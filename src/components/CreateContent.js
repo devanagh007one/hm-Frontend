@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Button } from "antd";
+import { Spin } from "antd";
 import "./popup.css"; // Import custom CSS
 import "./popup2.css"; // Import custom CSS
 import { useSelector, useDispatch } from "react-redux";
@@ -111,47 +111,62 @@ const ParentComponent = () => {
     };
 
 
+    const [loading2, setLoading2] = useState(false);
 
     const handleSave = async () => {
+        setLoading2(true); // Start loading
 
         const payload = { formData };
 
-        const response = await dispatch(createContent(payload));
+        try {
+            const response = await dispatch(createContent(payload));
 
-        if (response?._id) {
-            dispatch(showNotification("Content created successfully.", "success"));
+            if (response?._id) {
+                dispatch(showNotification("Content created successfully.", "success"));
 
-            // Update challenge data with the new content ID directly
-            setChallengeData((prevState) => ({
-                ...prevState,
-                module: response._id, // Directly set the module field
-            }));
+                // Update challenge data with the new content ID directly
+                setChallengeData((prevState) => ({
+                    ...prevState,
+                    module: response._id, // Directly set the module field
+                }));
 
-            handleMoreNext();
+                handleMoreNext();
+            }
+        } catch (error) {
+            dispatch(showNotification("An error occurred. Please try again.", "error"));
+        } finally {
+            setLoading2(false); // Stop loading
         }
     };
 
+
+    const [loading, setLoading] = useState(false);
 
     const handleSaveChall = async () => {
         if (!challengeData.challengeName || !challengeData.challenge_Description || !challengeData.difficulty_Level) {
             dispatch(showNotification("Please fill all required fields.", "error"));
             return;
         }
+    
+        setLoading(true); // Start loading
+    
         try {
-            // Dispatch the createchallenge action with the challengeData directly
             const response = await dispatch(createchallenge(challengeData));
-
+    
             if (response && response.success) {
                 dispatch(showNotification("Challenge created successfully.", "success"));
-
                 handleClosePopup();
+                window.location.reload(); // Reload the page after closing the popup
             } else {
                 dispatch(showNotification("Failed to create challenge. Please try again.", "error"));
             }
         } catch (error) {
             dispatch(showNotification("An error occurred. Please try again.", "error"));
+        } finally {
+            setLoading(false); // Stop loading
         }
     };
+    
 
 
 
@@ -414,11 +429,13 @@ const ParentComponent = () => {
                                             <div className="flex flex-col w-full">
                                                 <button
                                                     type="submit"
-                                                    className="bg-[#F48567] px-4 py-2 rounded-xl text-[#000]"
+                                                    className="bg-[#F48567] px-4 py-2 rounded-xl text-[#000] flex items-center justify-center"
                                                     onClick={handleSave}
+                                                    disabled={loading2}
                                                 >
-                                                    Save
+                                                    {loading2 ? <Spin size="small" /> : "Save"}
                                                 </button>
+
                                             </div>
 
                                             <div className="flex flex-col w-full">
@@ -553,11 +570,13 @@ const ParentComponent = () => {
                                             <div className="flex flex-col w-full">
                                                 <button
                                                     type="submit"
-                                                    className="bg-[#F48567] px-4 py-2 rounded-xl text-[#000]"
+                                                    className="bg-[#F48567] px-4 py-2 rounded-xl text-[#000] flex items-center justify-center"
                                                     onClick={handleSaveChall}
+                                                    disabled={loading}
                                                 >
-                                                    Save
+                                                    {loading ? <Spin size="small" /> : "Save"}
                                                 </button>
+
                                             </div>
 
                                             <div className="flex flex-col w-full">
