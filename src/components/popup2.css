@@ -1,0 +1,60 @@
+/* Styling for the dropdown container */
+.dropdown-container {
+    position: relative;
+    width: 100%;
+}
+
+/* Button styling */
+.dropdown-btn {
+    cursor: pointer;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    text-align: center;
+}
+
+/* The sliding dropdown menu */
+.dropdown-menu {
+    position: static;
+    top: 100%; /* Position below the button */
+    left: 0;
+    width: 100%;
+    background-color: #333;
+    color: white;
+    border-radius: 4px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    animation: slideDown 0.3s ease-out forwards;
+    border-radius: 5px;
+    border: 1px groove #fff;
+    border-style: groove;
+
+}
+
+/* Dropdown items */
+.dropdown-item {
+    padding: 7px;
+    cursor: pointer;
+    border-radius: 5px;
+
+}
+
+.dropdown-item:hover {
+    background-color: #444;
+}
+
+/* Slide down animation */
+@keyframes slideDown {
+    0% {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.img-fluid{
+    width: 100px ;
+    height: 150px;
+}

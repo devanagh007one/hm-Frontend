@@ -1,0 +1,452 @@
+.sidebartab {
+  padding: 18px;
+  border-radius: 10px;
+  transition: background-color 0.10s ease;
+  transition: color 0.4s ease;
+  font-size: 1.1rem;
+  position: relative;
+
+}
+
+.icon-side {
+  width: 21px;
+  margin-left: 7px;
+}
+
+.verticle-line {
+  border-right: 0.4px solid;
+  padding-right: 20px;
+
+}
+
+.sidebartab.active {
+  background-color: #f486673a;
+  color: #F48567;
+  border-left: 5px solid #F48567;
+
+
+}
+
+/* .sidebartab.active::before {
+  content: '';
+  width: 22px;
+  height: 22px;
+  position: absolute;
+  top: 50%;
+  left: -31px;
+  transform: translateY(-50%);
+  background-color: #F48567;
+  border-radius: 4px;
+  transition: background-color 0.3s ease-out;
+
+} */
+
+.sidebartab:hover {
+  background-color: #f486673a;
+  border-left: 5px solid #F48567;
+
+}
+
+.button-big {
+  border: 10px;
+  padding: 10px;
+  height: 45px;
+  width: 45px;
+  border-radius: 10px;
+  transition: background-color 0.5s ease-out;
+
+}
+
+.card {
+  border-radius: 20px;
+  overflow: auto;
+  /* enable scrollbars only when necessary */
+  scrollbar-width: 0;
+}
+
+.card::-webkit-scrollbar {
+  display: none !important;
+  /* hide the scrollbar */
+}
+
+.h-30 {
+  height: 5.5rem;
+}
+
+/* Example CSS */
+.drag-item {
+  transition: opacity 0.2s ease-in-out;
+}
+
+.drop-container {
+  /* Add transitions if necessary */
+}
+
+.w-vh50 {
+  width: 68vh;
+  max-width: 60vh;
+  min-width: 50vh;
+}
+
+.maidsh {
+  overflow-y: scroll;
+  height: -webkit-fill-available;
+}
+
+.h-81 {
+  height: 21rem;
+}
+
+.thescreanhe {
+  height: calc(100% - 100px);
+}
+
+.nubbox {
+  border-left: 2px solid #F48567;
+  height: 50%;
+  padding-left: 10px;
+}
+
+.glasseffect {
+  background: rgba(255, 255, 255, 0.31);
+  border-radius: 16px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(6.7px);
+  -webkit-backdrop-filter: blur(6.7px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* .backgroundgray{
+  background-image: linear-gradient(to right, #eea2a2 0%, #bbc1bf 19%, #57c6e1 42%, #b49fda 79%, #7ac5d8 100%);
+} */
+
+.custom-input:focus,
+.custom-input:active {
+  border: none;
+  outline: none;
+  box-shadow: none;
+}
+
+@keyframes gradientAnimation {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.backgroundgray {
+  background-color: #F48567;
+  background-size: 200% 200%;
+  animation: gradientAnimation 100s ease infinite;
+}
+
+.activesys {
+  background-color: #000;
+  color: #fff;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.custom-input {
+  border: 1px solid #F48567;
+}
+
+.custom-input:focus {
+  border: 1px solid #F48567;
+}
+
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.slide-in-from-left {
+  animation: slideInFromLeft 0.5s ease-out;
+}
+
+.custom-checkbox {
+  appearance: none;
+  /* Remove default checkbox styling */
+  width: 15px;
+  /* Adjust the size */
+  height: 15px;
+  border: 1px solid #F48567;
+  /* Border with the desired color */
+  border-radius: 50%;
+  /* Make it circular */
+  outline: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background-color: transparent;
+  /* Default background */
+}
+
+.custom-checkbox:checked {
+  background-color: #F48567;
+  /* Background when checked */
+}
+
+.custom-checkbox:checked::after {
+  content: '';
+  width: 7px;
+  /* White dot size */
+  height: 7px;
+  background-color: white;
+  /* White color for the dot */
+  border-radius: 50%;
+  /* Make it circular */
+  position: absolute;
+}
+
+/* Default border color for the switch */
+.custom-switch {
+  border: 1px solid #FFFF00;
+  padding-bottom: 1px;
+  /* Default to Trial (yellow) border */
+}
+
+/* Add styles for when the switch is checked (Paid) */
+.custom-switch.ant-switch-checked {
+  border: 1px solid #0FC20F;
+}
+
+/* Custom styles for the handle */
+.custom-switch .ant-switch-handle::before {
+  background-color: #FFFF00;
+  width: 15px;
+  height: 15px;
+}
+
+/* Add styles for when the switch is checked (Paid) */
+.custom-switch.ant-switch-checked .ant-switch-handle::before {
+  background-color: #0FC20F;
+  /* Green for Paid */
+  width: 15px;
+  height: 15px;
+}
+
+.custom-switch {
+  background: transparent !important;
+}
+
+.thereoledrop {
+  width: 150px;
+  height: 30px;
+  border-radius: 10px !important;
+
+}
+
+.thereoledrop .ant-select-selector {
+  border-radius: 20px !important;
+}
+
+.thereoledrop .ant-select-selection-item {
+
+  text-align: center !important;
+}
+
+
+/* Default Styles for all Roles */
+.thereoledrop .ant-select-selector {
+  border: 0.5px solid #ccc;
+}
+
+/* Styles for Admin and Super Admin */
+.thereoledrop.admin .ant-select-selector,
+.thereoledrop.superadmin .ant-select-selector {
+  background: #F485671A !important;
+  color: #FF9275 !important;
+  border: 0.5px solid #FFC9BB !important;
+}
+
+.thereoledrop.admin .ant-select-arrow,
+.thereoledrop.superadmin .ant-select-arrow {
+  color: #FF9275 !important;
+  /* Arrow color */
+}
+
+/* Styles for Partner */
+.thereoledrop.partner .ant-select-selector {
+  border-radius: 20px !important;
+  background: #9FB8F71A !important;
+  color: #CEDBFD !important;
+  border: 0.5px solid #7899ED !important;
+}
+
+.thereoledrop.partner .ant-select-arrow {
+  color: #7899ED !important;
+  /* Arrow color */
+}
+
+/* Styles for HR */
+.thereoledrop.hr .ant-select-selector,
+.thereoledrop.enduser .ant-select-selector {
+  border-radius: 20px !important;
+  background: #9C810C1A !important;
+  color: #FFE98A !important;
+  border: 0.5px solid #E4C53F !important;
+}
+
+.thereoledrop.hr .ant-select-arrow,
+.thereoledrop.enduser .ant-select-arrow {
+  color: #E4C53F !important;
+  /* Arrow color */
+}
+
+
+
+
+
+
+.image-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.controls {
+  margin-top: 10px;
+}
+
+.rotate-buttons button {
+  background: #ff5733;
+  color: white;
+  padding: 5px 10px;
+  border: none;
+  cursor: pointer;
+  margin: 5px;
+}
+
+.apply-btn,
+.close-btn {
+  margin-top: 10px;
+  padding: 5px 10px;
+  border: none;
+  cursor: pointer;
+}
+
+.apply-btn {
+  background: #ff5733;
+  color: white;
+}
+
+.image-container {
+  width: 250px;
+  border-radius: 500px;
+  height: 250px;
+  overflow: hidden;
+  margin-top: -120px;
+  /* border: 1px solid #ff5733; */
+}
+
+.imageback {
+  width: 350px;
+  height: 500px;
+  border-left: 10px solid #ff5733;
+  border-right: 10px solid #ff5733;
+
+  filter: blur(4px);
+  position: absolute;
+}
+
+
+
+.namedash {
+  font-family: Figtree;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 38.4px;
+  text-align: left;
+  text-underline-position: from-font;
+  text-decoration-skip-ink: none;
+  color: #fff;
+}
+
+.desination span {
+  font-family: Figtree;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 19.2px;
+  text-align: right;
+  text-underline-position: from-font;
+  text-decoration-skip-ink: none;
+  color: #1E1E1E !important;
+
+
+}
+
+.my-event .ant-checkbox-wrapper span {
+  color: #fff !important;
+  font-family: Figtree;
+  font-size: 16px;
+  font-weight: 300;
+  line-height: 19.2px;
+  text-align: left;
+  text-underline-position: from-font;
+  text-decoration-skip-ink: none;
+
+}
+
+.my-event .ant-radio-wrapper span {
+  color: #fff !important;
+  font-family: Figtree;
+  font-size: 16px;
+  font-weight: 300;
+  line-height: 19.2px;
+  text-align: left;
+  text-underline-position: from-font;
+  text-decoration-skip-ink: none;
+
+}
+
+.QNAsection {
+  font-family: Figtree;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 14.4px;
+  text-align: left;
+  text-underline-position: from-font;
+  text-decoration-skip-ink: none;
+  color: #C7C7C7;
+  text-transform: capitalize;
+
+}
+
+.theprofilesect {
+  padding: 17px 20px;
+  width: 250px;
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  font-family: Figtree;
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 28.8px;
+  text-align: left;
+  text-underline-position: from-font;
+  text-decoration-skip-ink: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mailemt{
+  border-top-right-radius: 20px;
+}
+.sidebartab.active path{
+  stroke:#F48567 ;
+}

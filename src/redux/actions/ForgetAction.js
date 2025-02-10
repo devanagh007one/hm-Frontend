@@ -1,0 +1,107 @@
+import { showNotification } from './notificationActions';
+
+export const FORGET_PASSWORD_REQUEST = 'FORGET_PASSWORD_REQUEST';
+export const FORGET_PASSWORD_SUCCESS = 'FORGET_PASSWORD_SUCCESS';
+export const FORGET_PASSWORD_FAILURE = 'FORGET_PASSWORD_FAILURE';
+export const VERIFY_OTP_REQUEST = 'VERIFY_OTP_REQUEST';
+export const VERIFY_OTP_SUCCESS = 'VERIFY_OTP_SUCCESS';
+export const VERIFY_OTP_FAILURE = 'VERIFY_OTP_FAILURE';
+export const RESET_PASSWORD_REQUEST = 'RESET_PASSWORD_REQUEST';
+export const RESET_PASSWORD_SUCCESS = 'RESET_PASSWORD_SUCCESS';
+export const RESET_PASSWORD_FAILURE = 'RESET_PASSWORD_FAILURE';
+
+// Action to handle forget password
+export const forgetPassword = (email) => {
+  return async (dispatch) => {
+    dispatch({ type: FORGET_PASSWORD_REQUEST });
+
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_STATIC_API_URL}/api/auth/forgot-password`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok && data.message === 'OTP sent via SMS') {
+        dispatch({ type: FORGET_PASSWORD_SUCCESS, payload: data });
+        dispatch(showNotification('Please check your mobile for the password reset OTP.', 'message'));
+      } else {
+        dispatch({ type: FORGET_PASSWORD_FAILURE, error: data.message });
+        dispatch(showNotification(data.message, 'error'));
+      }
+    } catch (error) {
+      dispatch({ type: FORGET_PASSWORD_FAILURE, error: error.message });
+      dispatch(showNotification(error.message, 'error'));
+    }
+  };
+};
+
+// Action to handle OTP verification
+export const verifyOtp = (email, otp) => {
+  return async (dispatch) => {
+    dispatch({ type: VERIFY_OTP_REQUEST });
+
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_STATIC_API_URL}/api/auth/verify-reset-otp`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email, otp }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok && data.message === 'OTP verified') {
+        dispatch({ type: VERIFY_OTP_SUCCESS, payload: data.resetToken });
+        dispatch(showNotification('OTP verified successfully.', 'message'));
+      } else {
+        dispatch({ type: VERIFY_OTP_FAILURE, error: data.message });
+        dispatch(showNotification(data.message, 'error'));
+      }
+    } catch (error) {
+      dispatch({ type: VERIFY_OTP_FAILURE, error: error.message });
+      dispatch(showNotification(error.message, 'error'));
+    }
+  };
+};
+
+// Action to handle password reset
+export const resetPassword = (resetToken, password) => async (dispatch) => {
+  dispatch({ type: RESET_PASSWORD_REQUEST });
+
+  try {
+    const response = await fetch(
+      `${process.env.REACT_APP_STATIC_API_URL}/api/auth/reset-password`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ resetToken, password }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (response.ok) {
+      dispatch({ type: RESET_PASSWORD_SUCCESS, payload: data });
+      dispatch(showNotification('Password reset successfully.', 'message'));
+    } else {
+      throw new Error(data.message);
+    }
+  } catch (error) {
+    dispatch({ type: RESET_PASSWORD_FAILURE, error: error.message });
+    dispatch(showNotification(error.message, 'error'));
+  }
+};

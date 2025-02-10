@@ -1,0 +1,133 @@
+export const FETCH_LICENSINGS_SUCCESS = "FETCH_LICENSINGS_SUCCESS";
+export const FETCH_LICENSINGS_FAILURE = "FETCH_LICENSINGS_FAILURE";
+export const CREATE_LICENSING_SUCCESS = "CREATE_LICENSING_SUCCESS";
+export const CREATE_LICENSING_FAILURE = "CREATE_LICENSING_FAILURE";
+export const TOGGLE_LICENSE_STATUS_SUCCESS = "TOGGLE_LICENSE_STATUS_SUCCESS";
+export const TOGGLE_LICENSE_STATUS_FAILURE = "TOGGLE_LICENSE_STATUS_FAILURE";
+export const HR_LICENSE_STATUS_SUCCESS = "HR_LICENSE_STATUS_SUCCESS";
+export const HR_LICENSE_STATUS_FAILURE = "HR_LICENSE_STATUS_FAILURE";
+
+// Action for fetching all LICENSING
+export const fetchAllLicensing = () => async (dispatch) => {
+  try {
+    const authToken = localStorage.getItem("authToken");
+
+    const response = await fetch(
+      `${process.env.REACT_APP_STATIC_API_URL}/api/company/view-all-licences`,
+      {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch Licensing");
+    }
+
+    const data = await response.json();
+    console.log(data.licenses)
+    dispatch({ type: FETCH_LICENSINGS_SUCCESS, payload: data.licenses });
+  } catch (error) {
+    dispatch({ type: FETCH_LICENSINGS_FAILURE, payload: error.message });
+  }
+};
+
+// Action for creating a licencing
+export const licencingUser = (licencingData) => async (dispatch) => {
+  try {
+    const authToken = localStorage.getItem("authToken");
+
+    // Construct FormData
+    const formData = new FormData();
+    for (const key in licencingData) {
+      formData.append(key, licencingData[key]);
+    }
+
+    const response = await fetch(
+      `${process.env.REACT_APP_STATIC_API_URL}/api/company/licencing`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: formData,
+      }
+    );
+
+    const data = await response.json();
+
+    // Check if the response contains a success message
+    if (data.message === "Licensing created successfully") {
+      dispatch({ type: CREATE_LICENSING_SUCCESS, payload: data });
+    } else {
+      throw new Error(data.message || "Failed to create user");
+    }
+  } catch (error) {
+    dispatch({ type: CREATE_LICENSING_FAILURE, payload: error.message });
+  }
+};
+
+
+
+// Action for toggling the license status
+export const toggleLicenseStatus = (licenseId) => async (dispatch) => {
+  try {
+    const authToken = localStorage.getItem("authToken");
+
+    const response = await fetch(
+      `${process.env.REACT_APP_STATIC_API_URL}/api/company/licenses/toggle-status`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ licenseId }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to toggle license status");
+    }
+
+    const data = await response.json();
+    console.log(data);
+
+    dispatch({ type: TOGGLE_LICENSE_STATUS_SUCCESS, payload: data });
+  } catch (error) {
+    dispatch({ type: TOGGLE_LICENSE_STATUS_FAILURE, payload: error.message });
+  }
+};
+
+// Action for toggling the license status
+export const hrLicenseGet = (hrUser) => async (dispatch) => {
+  try {
+    const authToken = localStorage.getItem("authToken");
+
+    const response = await fetch(
+      `${process.env.REACT_APP_STATIC_API_URL}/api/hrL/license-summary`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ hrUser }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to toggle license status");
+    }
+
+    const data = await response.json();
+    // console.log(data);
+
+    dispatch({ type: HR_LICENSE_STATUS_SUCCESS, payload: data });
+  } catch (error) {
+    dispatch({ type: HR_LICENSE_STATUS_FAILURE, payload: error.message });
+  }
+};
