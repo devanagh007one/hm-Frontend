@@ -1,4 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
+import CryptoJS from 'crypto-js';
+
 import { fetchAllUsers, deleteUser, toggleUserStatus, changeUserRole } from '../../redux/actions/alluserGet';
 import { useDispatch, useSelector } from 'react-redux';
 import { Table, Badge, Button, Space, Pagination, Select, Spin, Card } from "antd";
@@ -226,7 +228,7 @@ const UserManagement = () => {
     };
 
 
-    const rolesOptions = ["Admin", "Super Admin", "Partner", "HR", "End User"];
+    // const rolesOptions = ["Admin", "Super Admin", "Partner", "HR", "End User"];
     const handleRoleChange = (userId, newRole) => {
         // Dispatch the action to change the user role
         dispatch(changeUserRole(userId, newRole))
@@ -243,6 +245,40 @@ const UserManagement = () => {
           });
       };
       
+
+      const rolesOptions = ["Admin", "Super Admin", "Partner", "HR", "End User"];
+
+      // Retrieve encrypted roles from localStorage
+      const encryptedRoles = localStorage.getItem("encryptedRoles");
+      
+      let userRoles = [];
+      
+      if (encryptedRoles) {
+        try {
+          const bytes = CryptoJS.AES.decrypt(
+            encryptedRoles,
+            "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1"
+          );
+          userRoles = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+        } catch (error) {
+          console.error("Error decrypting roles:", error);
+        }
+      }
+      
+      // Define valid roles for checking
+      const validRoles = ["super admin", "admin", "partner", "hr"];
+      const hasValidRole = userRoles.some((role) => validRoles.includes(role.toLowerCase()));
+      
+      // Check if the user is an Admin
+      const isAdmin = userRoles.some((role) => role.toLowerCase() === "admin");
+      
+      // Filter rolesOptions to remove "Super Admin" if the user is an Admin
+      const filteredRolesOptions = isAdmin
+        ? rolesOptions.filter((role) => role !== "Super Admin")
+        : rolesOptions;
+      
+
+
 
     const columns = [
         {
@@ -278,15 +314,15 @@ const UserManagement = () => {
               const roleClass = Array.isArray(roles)
                 ? roles[0].toLowerCase().replace(" ", "")
                 : roles.toLowerCase().replace(" ", "");
-      
+        
               return (
                 <Select
                   mode="single"
                   className={`thereoledrop ${roleClass}`}
-                  options={rolesOptions.map((role) => ({ label: role, value: role }))}
-                  defaultValue={roles[0]}  // Use the first role from the array
+                  options={filteredRolesOptions.map((role) => ({ label: role, value: role }))}
+                  defaultValue={roles[0]} // Use the first role from the array
                   placeholder="Select roles"
-                  onChange={(newRole) => handleRoleChange(record._id, newRole)}  // Call handleRoleChange on role change
+                  onChange={(newRole) => handleRoleChange(record._id, newRole)} // Call handleRoleChange on role change
                 />
               );
             },
@@ -411,25 +447,37 @@ const UserManagement = () => {
         },
         {
             title: (
-                <div className="flex items-center">
-                    <SvgIcon />
-                    <span style={{ color: "#F48567", marginLeft: "8px" }}>Actions</span>
-                </div>
+              <div className="flex items-center">
+                <SvgIcon />
+                <span style={{ color: "#F48567", marginLeft: "8px" }}>Actions</span>
+              </div>
             ),
             key: "actions",
             render: (_, record) => (
-                <div>
-                    <Space>
-                        <EyeForm data={record} />
-                        <div className="cursor-pointer" onClick={() => handleDelete(record._id)}
-                        > <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M9 0.25C4.125 0.25 0.25 4.125 0.25 9C0.25 13.875 4.125 17.75 9 17.75C13.875 17.75 17.75 13.875 17.75 9C17.75 4.125 13.875 0.25 9 0.25ZM12.375 13.375L9 10L5.625 13.375L4.625 12.375L8 9L4.625 5.625L5.625 4.625L9 8L12.375 4.625L13.375 5.625L10 9L13.375 12.375L12.375 13.375Z" fill="#DD441B" />
-                            </svg>
-                        </div>
-                    </Space>
-                </div>
+              <div>
+                <Space>
+                  <EyeForm data={record} />
+                  {!isAdmin && ( // Hide the delete button if the user is an Admin
+                    <div className="cursor-pointer" onClick={() => handleDelete(record._id)}>
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 18 18"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M9 0.25C4.125 0.25 0.25 4.125 0.25 9C0.25 13.875 4.125 17.75 9 17.75C13.875 17.75 17.75 13.875 17.75 9C17.75 4.125 13.875 0.25 9 0.25ZM12.375 13.375L9 10L5.625 13.375L4.625 12.375L8 9L4.625 5.625L5.625 4.625L9 8L12.375 4.625L13.375 5.625L10 9L13.375 12.375L12.375 13.375Z"
+                          fill="#DD441B"
+                        />
+                      </svg>
+                    </div>
+                  )}
+                </Space>
+              </div>
             ),
-        }
+          },
+        
 
     ];
 

@@ -10,6 +10,7 @@ import Rolemanagement from '../components/Modular/Rolemanagement';
 import ContentManagement from '../components/Modular/Contentmanagement';
 import UsersmanagementHR from '../components/Modular/Usersmanagementhr';
 import Eventsmanagement from '../components/Modular/Eventsmanagement';
+import AnalyticsDashboard from '../components/Modular/AnalyticsDashboard';
 import Licensing from '../components/Modular/Licencing';
 import Messages from '../components/Modular/Messages';
 // import Policies from './Policies';
@@ -24,6 +25,7 @@ const components = {
   ProfileSettingsHR: <ProfileSettingsHR />,
   UsersmanagementHR: <UsersmanagementHR />,
   Eventsmanagement: <Eventsmanagement />,
+  AnalyticsDashboard: <AnalyticsDashboard />,
   messsage: <Messages />,
 
 };
