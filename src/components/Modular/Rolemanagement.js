@@ -496,7 +496,7 @@ const UserManagement = () => {
             <div className={`flex justify-between items-center mb-6 px-12 py-3 rounded-lg mt- ${darkMode ? 'bg-[#333333]' : 'bg-white'}`}>
                 <h1 className="text-2xl ml-[-20px] text-[#F48567]">Roles</h1>
                 <div className="flex space-x-8">
-                    {selectedIndices.length > 0 && (
+                {!isAdmin && selectedIndices.length > 0 && (
                         <Button
                             className={`text-[#F48567] border-none bg-transparent hover:bg-[#F4856720] hover:text-[#F48567] p-2 rounded ${darkMode ? 'bg-[#444444]' : 'bg-white'}`}
                             onClick={handleBulkDelete}

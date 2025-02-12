@@ -1,40 +1,34 @@
-import React, { useState, useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { fetchAllUsers, createUser } from "../redux/actions/alluserGet";
-import { showNotification } from "../redux/actions/notificationActions"; // Import showNotification
-import "./popup.css"; // Import custom CSS
-import { Button } from "antd";
+import React, { useState } from "react";
+import { useDispatch } from "react-redux";
+import { licencingUser } from "../redux/actions/allLicensingGet";
+import { showNotification } from "../redux/actions/notificationActions";
+import "./popup.css";
+import { Button, Spin  } from "antd";
 
 const ParentComponent = () => {
     const [showPopup, setShowPopup] = useState(false);
-    const [role, setRole] = useState("Admin");
     const [fileName, setFileName] = useState("Upload");
     const [formData, setFormData] = useState({
-        firstName: "",
-        lastName: "",
-        gender: "",
-        doB: "",
-        userName: "",
-        company: "",
-        department: "",
-        email: "",
-        password: "",
+        organisationName: "",
+        industryType: "",
+        organizationSize: "",
+        contactPersonName: "",
+        contactPersonEmail: "",
+        address1: "",
+        address2: "",
+        city: "",
+        state: "",
+        pinCode: "",
+        phoneNumber: "",
+        demoLicence: "",
+        numberOfLicence: "",
+        period: "Trial",
+        comment: "",
+        active: false,
         image: null,
-        employeeCount: "",
-        numberOfLicences: "",
-        address: "",
-        mobile: "",
-        roles: "",
-        country: "",
-        interests: "",
-        goals: "",
     });
 
     const dispatch = useDispatch();
-
-    useEffect(() => {
-        dispatch(fetchAllUsers());
-    }, [dispatch]);
 
     const handleChange = (e) => {
         const { name, value, files } = e.target;
@@ -44,27 +38,56 @@ const ParentComponent = () => {
         }));
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        dispatch(createUser(formData))
-            .then(() => {
-                // Dispatch notification after successful user creation
-                dispatch(showNotification("User created successfully", 'success'));
-                // Close the popup
-                setShowPopup(false);
-            })
-            .catch((error) => {
-                // Handle errors if any
-                console.error(error);
-            });
+    const handleToggleActive = () => {
+        setFormData((prevData) => ({
+            ...prevData,
+            active: !prevData.active,
+        }));
     };
 
-    const handleFullNameChange = (event) => {
-        const fullName = event.target.value.trim(); // Remove leading/trailing spaces
-        const [firstName = "", ...lastNameParts] = fullName.split(" "); // Split into parts
-        const lastName = lastNameParts.join(" "); // Combine remaining parts into lastName
-        setFormData({ firstName, lastName });
+    const [loading, setLoading] = useState(false);
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        setLoading(true);
+    
+        // Validate required fields
+        const requiredFields = [
+            "organisationName",
+            "industryType",
+            "organizationSize",
+            "contactPersonName",
+            "contactPersonEmail",
+            "address1",
+            "city",
+            "state",
+            "pinCode",
+            "phoneNumber",
+        ];
+    
+        const emptyFields = requiredFields.filter((field) => !formData[field]);
+    
+        if (emptyFields.length > 0) {
+            dispatch(showNotification(`Please fill all required fields: ${emptyFields.join(", ")}`, "error"));
+            setLoading(false);
+            return;
+        }
+    
+        dispatch(licencingUser(formData))
+            .then(() => {
+                dispatch(showNotification("Licenses created successfully", "success"));
+                setShowPopup(false);
+                setLoading(false);
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            })
+            .catch((error) => {
+                console.error(error);
+                setLoading(false);
+            });
     };
+    
 
     const handleViewPopup = () => setShowPopup(true);
     const handleClosePopup = () => setShowPopup(false);
@@ -72,12 +95,15 @@ const ParentComponent = () => {
     const handleFileChange = (event) => {
         const file = event.target.files[0];
         setFileName(file ? file.name : "Upload");
+        setFormData((prevData) => ({ ...prevData, image: file }));
     };
 
     return (
         <>
             <Button
-                className=" trigger text-[#F48567] border-none bg-transparent hover:bg-[#F4856720] hover:text-[#F48567] p-2 rounded"
+                className="trigger text-[#F48567] border-none bg-transparent hover:bg-[#F4856720] hover:text-[#F48567] p-2 rounded"
+                onClick={handleViewPopup}
+
                 icon={
                     <svg
                     width="44"
@@ -128,15 +154,12 @@ const ParentComponent = () => {
                     </defs>
                   </svg>
                 }
-                onClick={handleViewPopup}
-
             />
 
-            {/* Popup */}
             {showPopup && (
-                <div className="popup-overlay ">
-                    <div className="p-8 bg-[rgb(30,30,30)] rounded-lg overflow-y-auto overflow-hidden shadow-lg w-[520px] h-[800px] ove">
-                    <div className="flex justify-between align-center">
+                <div className="popup-overlay">
+                    <div className="p-8 bg-[rgb(30,30,30)] rounded-lg overflow-y-auto overflow-hidden shadow-lg w-[520px] h-[800px]">
+                        <div className="flex justify-between align-center">
                             <h2 className="text-2xl mb-4 text-white">Create Company Profile</h2>
                             <svg className="cursor-pointer mt-1" onClick={handleClosePopup}
                                 width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -149,209 +172,253 @@ const ParentComponent = () => {
                                     </clipPath>
                                 </defs>
                             </svg>
-
                         </div>
-                        <form className="grid grid-cols-2 gap-6 h-[97%] mt-3 pb-6" onSubmit={handleSubmit}>
-                            {/* Organization Name */}
+                        <form className="grid grid-cols-2 gap-6 w-full h-[97%] mt-3 pb-6" onSubmit={handleSubmit}>
+
                             <div className="col-span-2">
                                 <label className="block text-gray-300 mb-2">Organization Name</label>
                                 <input
                                     type="text"
-                                    placeholder="Name"
-                                    name="organizationName"
-                                    value={formData.organizationName}
+                                    name="organisationName"
+                                    value={formData.organisationName}
                                     onChange={handleChange}
+                                    required
                                     className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
                                 />
                             </div>
 
-                            {/* Industry */}
-                            <div>
-                                <label className="block text-gray-300 mb-2">Industry</label>
+                            <div className="col-span-2">
+                                <label className="block text-gray-300 mb-2">Industry Type</label>
                                 <input
                                     type="text"
-                                    placeholder="Industry"
-                                    name="industry"
-                                    value={formData.industry}
+                                    name="industryType"
+                                    value={formData.industryType}
                                     onChange={handleChange}
+                                    required
                                     className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
                                 />
                             </div>
 
-                            {/* Organization Size */}
-                            <div>
+                            <div className="col-span-2">
                                 <label className="block text-gray-300 mb-2">Organization Size</label>
                                 <input
                                     type="text"
                                     name="organizationSize"
-                                    placeholder="Organization Size"
                                     value={formData.organizationSize}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                />
+                            </div>
+
+                            <div className="col-span-2">
+                                <label className="block text-gray-300 mb-2">Contact Person Name</label>
+                                <input
+                                    type="text"
+                                    name="contactPersonName"
+                                    value={formData.contactPersonName}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                />
+                            </div>
+
+                            <div className="col-span-2">
+                                <label className="block text-gray-300 mb-2">Contact Person Email</label>
+                                <input
+                                    type="email"
+                                    name="contactPersonEmail"
+                                    value={formData.contactPersonEmail}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                />
+                            </div>
+
+                            <div className="col-span-2">
+                                <label className="block text-gray-300 mb-2">Address Line 1</label>
+                                <input
+                                    type="text"
+                                    name="address1"
+                                    value={formData.address1}
+                                    required
                                     onChange={handleChange}
                                     className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
                                 />
                             </div>
 
-                            {/* Contact Person Name */}
-                            <div>
-                                <label className="block text-gray-300 mb-2">Contact Person Name</label>
-                                <input
-                                    type="text"
-                                    name="contactPerson"
-                                    placeholder="Contact Person Name"
-                                    value={formData.contactPerson}
-                                    onChange={handleChange}
-                                    className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                />
-                            </div>
-                            {/* Email Address */}
-                            <div>
-                                <label className="block text-gray-300 mb-2">Contact Email Address</label>
-                                <input
-                                    type="text"
-                                    name="contactEmail"
-                                    placeholder="Contact Email Address"
-                                    value={formData.contactEmail}
-                                    onChange={handleChange}
-                                    className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                />
-                            </div>
-                            {/*Address 1*/}
-                            <div>
-                                <label className="block text-gray-300 mb-2">Address 1</label>
-                                <input
-                                    type="text"
-                                    name="address1"
-                                    placeholder="Address 1"
-                                    value={formData.address1}
-                                    onChange={handleChange}
-                                    className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                />
-                            </div>
-                            {/*Address 2*/}
-                            <div>
-                                <label className="block text-gray-300 mb-2">Address 2</label>
+                            <div className="col-span-2">
+                                <label className="block text-gray-300 mb-2">Address Line 2</label>
                                 <input
                                     type="text"
                                     name="address2"
-                                    placeholder="Address 2"
                                     value={formData.address2}
                                     onChange={handleChange}
                                     className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
                                 />
                             </div>
-                            {/*State*/}
-                            <div>
-                                <label className="block text-gray-300 mb-2">State</label>
-                                <input
-                                    type="text"
-                                    name="state"
-                                    placeholder="State"
-                                    value={formData.state}
-                                    onChange={handleChange}
-                                    className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                />
-                            </div>
-                            {/*City*/}
-                            <div>
+
+                            <div className="col-span-2">
                                 <label className="block text-gray-300 mb-2">City</label>
                                 <input
                                     type="text"
-                                    name="City"
-                                    placeholder="City"
+                                    name="city"
                                     value={formData.city}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                />
-                            </div>
-                            {/* Phone Number */}
-                            <div>
-                                <label className="block text-gray-300 mb-2">Phone Number</label>
-                                <input
-                                    type="text"
-                                    name="phone"
-                                    placeholder="Phone Number"
-                                    value={formData.phone}
-                                    onChange={handleChange}
+                                    required
                                     className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
                                 />
                             </div>
 
-                            {/* Pin Code */}
-                            <div>
-                                <label className="block text-gray-300 mb-2">Pin Code</label>
+                            <div className="col-span-2">
+                                <label className="block text-gray-300 mb-2">State</label>
                                 <input
                                     type="text"
+                                    name="state"
+                                    value={formData.state}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                />
+                            </div>
+
+                            <div className="col-span-2">
+                                <label className="block text-gray-300 mb-2">Pin Code</label>
+                                <input
+                                    type="number"
                                     name="pinCode"
-                                    placeholder="Pin Code"
+                                    required
                                     value={formData.pinCode}
                                     onChange={handleChange}
                                     className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
                                 />
                             </div>
-                            {/*Demo Licenses*/}
-                            <div>
-                                <label className="block text-gray-300 mb-2">Demo Licenses</label>
-                                <input
-                                    type="text"
-                                    name="demoLicenses"
-                                    placeholder="1-10"
-                                    value={formData.demoLicenses}
-                                    onChange={handleChange}
-                                    className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                />
-                            </div>
-                            {/*Upload Logo*/}
-                            <div>
-                                <label className="block text-gray-300 mb-2">Upload Logo</label>
-                                <input
-                                    type="text"
-                                    name="uploadLogo"
-                                    placeholder="Upload"
-                                    value={formData.uploadLogo}
-                                    onChange={handleChange}
-                                    className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                />
-                            </div>
-                            {/*No Of Licenses*/}
-                            <div>
-                                <label className="block text-gray-300 mb-2">No of Licenses</label>
-                                <input
-                                    type="text"
-                                    name="numberLicences"
-                                    placeholder="Enter No. of Licenses"
-                                    value={formData.numberLicenses}
-                                    onChange={handleChange}
-                                    className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                />
-                            </div>
-                            {/* Comments */}
+
                             <div className="col-span-2">
-                                <label className="block text-gray-300 mb-2">Comments or Special Requests</label>
-                                <textarea
-                                    name="comments"
-                                    placeholder="Comments or Special Requests"
-                                    value={formData.comments}
+                                <label className="block text-gray-300 mb-2">Phone Number</label>
+                                <input
+                                    type="number"
+                                    name="phoneNumber"
+                                    value={formData.phoneNumber}
+                                    required
                                     onChange={handleChange}
                                     className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                />
+                            </div>
+
+                            <div className="col-span-2">
+                                <label className="block text-gray-300 mb-2">Demo License</label>
+                                <input
+                                    type="text"
+                                    name="demoLicence"
+                                    value={formData.demoLicence}
+                                    required
+                                    onChange={handleChange}
+                                    className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                />
+                            </div>
+
+                            <div className="col-span-2">
+                                <label className="block text-gray-300 mb-2">Number of Licenses</label>
+                                <input
+                                    type="number"
+                                    name="numberOfLicence"
+                                    value={formData.numberOfLicence}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                />
+                            </div>
+
+                            <div className="col-span-2">
+                                <label className="block text-gray-300 mb-2">Comments</label>
+                                <textarea
+                                    name="comment"
+                                    value={formData.comment}
+                                    onChange={handleChange}
                                     rows="3"
+                                    className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
                                 ></textarea>
                             </div>
 
-                            {/* Submit Button */}
-                            <div className="col-span-2 flex justify-center ">
+                            <div className="flex flex-col w-full">
+                                <label className="block text-gray-300 mb-2">Active</label>
                                 <button
-                                    type="submit"
-                                    className="px-6 py-2 pr-32 pl-32 bg-[#F48567] text-white rounded-lg transition"
+                                    type="button"
+                                    onClick={handleToggleActive}
+                                    className={`w-full px-4 py-2 rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 ${formData.active ? 'bg-green-500' : 'bg-red-500'}`}
                                 >
-                                    Save
+                                    {formData.active ? 'Active' : 'Inactive'}
                                 </button>
                             </div>
+                            <div className="flex  flex-col w-full">
+                                <label className="block text-gray-300 mb-2">Period</label>
+                                <select
+                                    name="period"
+                                    value={formData.period}
+                                    onChange={handleChange}
+                                    className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                >
+                                    <option value="Trial">Trial</option>
+                                    <option value="Subscription">Subscription</option>
+                                </select>
+                            </div>
+                            <div className="flex col-span-2 flex-col w-full">
+                                <label className="text-white mb-1">Uploard Image</label>
+                                <label className="p-2 pl-4 pr-4 bg-[#333333] text-white rounded flex items-center justify-between cursor-pointer">
+                                    <div>{fileName}</div>
+                                    <svg
+                                        width="13"
+                                        height="13"
+                                        viewBox="0 0 13 13"
+                                        fill="none"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                        <path
+                                            d="M5.8501 9.59998V3.48748L3.9001 5.43748L2.8501 4.34998L6.6001 0.599976L10.3501 4.34998L9.3001 5.43748L7.3501 3.48748V9.59998H5.8501ZM2.1001 12.6C1.6876 12.6 1.3346 12.4532 1.0411 12.1597C0.747598 11.8662 0.600598 11.513 0.600098 11.1V8.84998H2.1001V11.1H11.1001V8.84998H12.6001V11.1C12.6001 11.5125 12.4533 11.8657 12.1598 12.1597C11.8663 12.4537 11.5131 12.6005 11.1001 12.6H2.1001Z"
+                                            fill="#C7C7C7"
+                                        />
+                                    </svg>
+                                    <input
+                                        name="image"
+                                        type="file"
+                                        className="hidden"
+                                        onChange={handleFileChange}
+                                    />
+                                </label>
+                            </div>
+
+                            <div className="flex col-span-2 gap-4 mt-4 pb-9 w-full">
+            <div className="flex flex-col w-full">
+                <button
+                    type="submit"
+                    onClick={handleSubmit}
+                    className="bg-[#F48567] px-4 py-2 rounded-xl text-[#000] flex justify-center items-center"
+                    disabled={loading}
+                >
+                    {loading ? <Spin /> : "Save"}
+                </button>
+            </div>
+
+            <div className="flex flex-col w-full">
+                <button
+                    onClick={handleClosePopup}
+                    className="bg-[#C7C7C7] px-4 py-2 rounded-xl text-[#000]"
+                    disabled={loading}
+                >
+                    Cancel
+                </button>
+            </div>
+        </div>
                         </form>
                     </div>
                 </div>
             )}
-        </ >
+        </>
     );
 };
 
 export default ParentComponent;
+
+
+

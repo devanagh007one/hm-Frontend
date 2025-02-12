@@ -2,7 +2,7 @@ import React from 'react'
 
 function AnalyticsDashboard() {
   return (
-    <div className='flex justify-center mt-5'>
+    <div className='flex justify-center mt-5 '>
         <svg width="1145" height="2428" viewBox="0 0 1145 2428" fill="none" xmlns="http://www.w3.org/2000/svg">
 <g filter="url(#filter0_d_550_2180)">
 <rect x="25" y="5" width="538" height="298" rx="8" fill="#333333"/>
