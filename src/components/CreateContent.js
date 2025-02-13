@@ -79,7 +79,7 @@ const ParentComponent = () => {
     };
 
     const tracks = [
-        "Valrrues", "Dance", "Fitnfes", "Mindfulness", "Music", "Art", "Cooking", "Yoga"
+        "Values", "Dance", "Fitness", "Mindfulness", "Music", "Art", "Cooking", "Yoga"
     ];
 
     const handleNext = () => {
