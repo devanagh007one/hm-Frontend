@@ -56,15 +56,15 @@ color: #000;
 
 border-bottom: 0px !important;
 }
-body.dark-mode .theusertab tr{
+body .theusertab tr{
 border-radius: 15px !important;
 overflow: hidden;
 }
-body.dark-mode .theusertab tr td:first-child{
+body .theusertab tr td:first-child{
   border-top-left-radius: 10px !important;
   border-bottom-left-radius: 10px !important;
 }
-body.dark-mode .theusertab tr td:last-child {
+body .theusertab tr td:last-child {
   border-top-right-radius: 10px !important;
   border-bottom-right-radius: 10px !important;
 }
@@ -84,8 +84,9 @@ body.dark-mode .theusertab thead th{
   background: #333333 !important;
 }
 body .theusertab thead th{
-  background: #fff !important;
+  background: #f1f5f9 !important;
 }
+
 input:focus{
   outline: none;
 }
@@ -98,7 +99,15 @@ input:focus{
   border-bottom-right-radius: 10px !important;
 }
 
-
+body.dark-mode .popup-overlay input{
+  background: #333333 !important;
+}
+body.dark-mode .popup-overlay select{
+  background: #333333 !important;
+}
+body.dark-mode .popup-overlay textarea{
+  background: #333333 !important;
+}
 
 /* body.dark-mode svg{
   fill:#333333 !important;
@@ -116,4 +125,13 @@ body.dark-mode .the-uploardtable .ant-input{
  background-color: #333333;
  color: #fff !important;
 
+}
+.headtable1, .headtable3 ,.headtable4 ,.headtable5 ,.headtable6 ,.headtable8 ,.headtable7{
+  color: #F48567 !important;
+}
+.ant-switch-inner-checked{
+  color: #0FC20F !important;
+}
+.ant-switch-inner-unchecked{
+  color: #FFFF00 !important;
 }

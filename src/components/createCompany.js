@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from 'react-redux';
 import { licencingUser } from "../redux/actions/allLicensingGet";
 import { showNotification } from "../redux/actions/notificationActions";
 import "./popup.css";
@@ -40,6 +40,7 @@ const statesAndCities = {
 };
 
 const ParentComponent = () => {
+    const darkMode = useSelector((state) => state.theme.darkMode);
     const [showPopup, setShowPopup] = useState(false);
     const [fileName, setFileName] = useState("Upload");
     const [formData, setFormData] = useState({
@@ -203,9 +204,9 @@ const ParentComponent = () => {
 
             {showPopup && (
                 <div className="popup-overlay">
-                    <div className="p-8 bg-[rgb(30,30,30)] rounded-lg overflow-y-auto overflow-hidden shadow-lg w-[520px] h-[800px] max-h-[90%]">
+                    <div className={`p-8 rounded-lg overflow-y-auto overflow-hidden shadow-lg w-[520px] h-[800px] max-h-[90%] ${darkMode ? 'bg-[#222222] text-white' : 'bg-[#fff] text-dark'}`}>
                         <div className="flex justify-between align-center">
-                            <h2 className="text-2xl mb-4 text-white">Create Company Profile</h2>
+                            <h2 className="text-2xl mb-4">Create Company Profile</h2>
                             <svg className="cursor-pointer mt-1" onClick={handleClosePopup}
                                 width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <g clip-path="url(#clip0_3261_1019)">
@@ -221,7 +222,7 @@ const ParentComponent = () => {
                         <form className="grid grid-cols-2 gap-6 w-full h-[97%] mt-3 pb-6" onSubmit={handleSubmit}>
 
                             <div className="col-span-2">
-                                <label className="block text-gray-300 mb-2">Organization Name</label>
+                                <label className="block  mb-2">Organization Name</label>
                                 <input
                                     type="text"
                                     name="organisationName"
@@ -229,12 +230,12 @@ const ParentComponent = () => {
                                     onChange={handleChange}
                                     required
                                     placeholder="Name"
-                                    className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none"
+                                    className="w-full px-4 py-2  rounded-lg border border-gray-600 focus:outline-none"
                                 />
                             </div>
                             <div className="flex col-span-2 gap-5">
                                 <div className=" w-1/2">
-                                    <label className="block text-gray-300 mb-2">Industry</label>
+                                    <label className="block mb-2">Industry</label>
                                     <input
                                         type="text"
                                         name="industryType"
@@ -242,12 +243,12 @@ const ParentComponent = () => {
                                         onChange={handleChange}
                                         required
                                         placeholder="Industry"
-                                        className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none "
+                                        className="w-full px-4 py-2 rounded-lg border border-gray-600 focus:outline-none "
                                     />
                                 </div>
 
                                 <div className="w-1/2">
-                                    <label className="block text-gray-300 mb-2">Organization Size</label>
+                                    <label className="block  mb-2">Organization Size</label>
                                     <input
                                         type="text"
                                         name="organizationSize"
@@ -255,14 +256,14 @@ const ParentComponent = () => {
                                         onChange={handleChange}
                                         required
                                         placeholder="Organization Size"
-                                        className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none "
+                                        className="w-full px-4 py-2 rounded-lg border border-gray-600 focus:outline-none "
                                     />
                                 </div>
                             </div>
 
                             <div className="flex col-span-2 gap-5">
                                 <div className=" w-1/2">
-                                    <label className="block text-gray-300 mb-2">Contact Person Name</label>
+                                    <label className="block  mb-2">Contact Person Name</label>
                                     <input
                                         type="text"
                                         name="contactPersonName"
@@ -270,12 +271,12 @@ const ParentComponent = () => {
                                         onChange={handleChange}
                                         required
                                         placeholder="Contact Person Name"
-                                        className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none "
+                                        className="w-full px-4 py-2 rounded-lg border border-gray-600 focus:outline-none "
                                     />
                                 </div>
 
                                 <div className=" w-1/2">
-                                    <label className="block text-gray-300 mb-2">Contact Email Address</label>
+                                    <label className="block  mb-2">Contact Email Address</label>
                                     <input
                                         type="email"
                                         name="contactPersonEmail"
@@ -283,14 +284,14 @@ const ParentComponent = () => {
                                         onChange={handleChange}
                                         required
                                         placeholder="Contact Email Address"
-                                        className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none "
+                                        className="w-full px-4 py-2 rounded-lg border border-gray-600 focus:outline-none "
                                     />
                                 </div>
                             </div>
 
                             <div className="flex col-span-2 gap-5">
                                 <div className=" w-1/2">
-                                    <label className="block text-gray-300 mb-2">Address 1</label>
+                                    <label className="block  mb-2">Address 1</label>
                                     <input
                                         type="text"
                                         name="address1"
@@ -298,32 +299,32 @@ const ParentComponent = () => {
                                         required
                                         onChange={handleChange}
                                         placeholder="Address 1"
-                                        className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none "
+                                        className="w-full px-4 py-2 rounded-lg border border-gray-600 focus:outline-none "
                                     />
                                 </div>
 
                                 <div className=" w-1/2">
-                                    <label className="block text-gray-300 mb-2">Address 2</label>
+                                    <label className="block  mb-2">Address 2</label>
                                     <input
                                         type="text"
                                         name="address2"
                                         value={formData.address2}
                                         onChange={handleChange}
                                         placeholder="Address 2"
-                                        className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none "
+                                        className="w-full px-4 py-2 rounded-lg border border-gray-600 focus:outline-none "
                                     />
                                 </div>
                             </div>
                             <div className="flex col-span-2 gap-5">
                                 {/* State Dropdown */}
                                 <div className="w-1/2">
-                                    <label className="block text-gray-300 mb-2">State</label>
+                                    <label className="block  mb-2">State</label>
                                     <select
                                         name="state"
                                         value={formData.state}
                                         onChange={handleStateChange}
                                         required
-                                        className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none"
+                                        className="w-full px-4 py-2 rounded-lg border border-gray-600 focus:outline-none"
                                     >
                                         <option value="">Select State</option>
                                         {Object.keys(statesAndCities).map((state) => (
@@ -336,13 +337,13 @@ const ParentComponent = () => {
 
                                 {/* City Dropdown */}
                                 <div className="w-1/2">
-                                    <label className="block text-gray-300 mb-2">City</label>
+                                    <label className="block  mb-2">City</label>
                                     <select
                                         name="city"
                                         value={formData.city}
                                         onChange={handleCityChange}
                                         required
-                                        className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none"
+                                        className="w-full px-4 py-2 rounded-lg border border-gray-600 focus:outline-none"
                                         disabled={!formData.state}
                                     >
                                         <option value="">Select City</option>
@@ -358,7 +359,7 @@ const ParentComponent = () => {
 
                             <div className="flex col-span-2 gap-5">
                                 <div className=" w-1/2">
-                                    <label className="block text-gray-300 mb-2">Phone Number</label>
+                                    <label className="block  mb-2">Phone Number</label>
                                     <input
                                         type="number"
                                         name="phoneNumber"
@@ -366,11 +367,11 @@ const ParentComponent = () => {
                                         required
                                         onChange={handleChange}
                                         placeholder="Phone Number"
-                                        className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none "
+                                        className="w-full px-4 py-2  rounded-lg border border-gray-600 focus:outline-none "
                                     />
                                 </div>
                                 <div className=" w-1/2">
-                                    <label className="block text-gray-300 mb-2">Pin Code</label>
+                                    <label className="block  mb-2">Pin Code</label>
                                     <input
                                         type="number"
                                         name="pinCode"
@@ -378,20 +379,20 @@ const ParentComponent = () => {
                                         value={formData.pinCode}
                                         onChange={handleChange}
                                         placeholder="Pin Code"
-                                        className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none "
+                                        className="w-full px-4 py-2 rounded-lg border border-gray-600 focus:outline-none "
                                     />
                                 </div>
                             </div>
 
                             <div className="flex col-span-2 gap-5">
                                 <div className="w-1/2">
-                                    <label className="block text-gray-300 mb-2">Demo License</label>
+                                    <label className="block  mb-2">Demo License</label>
                                     <select
                                         name="demoLicence"
                                         value={formData.demoLicence}
                                         required
                                         onChange={handleChange}
-                                        className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none"
+                                        className="w-full px-4 py-2 rounded-lg border border-gray-600 focus:outline-none"
                                     >
                                         <option value="">Select Range</option>
                                         {Array.from({ length: 7 }, (_, i) => {
@@ -408,8 +409,8 @@ const ParentComponent = () => {
 
 
                                 <div className="flex col-span-2 flex-col w-1/2">
-                                    <label className="text-white mb-1">Uploard Image</label>
-                                    <label className="p-2 pl-4 pr-4 bg-[#333333] text-white rounded flex items-center justify-between cursor-pointer">
+                                    <label className=" mb-1">Uploard Image</label>
+                                    <label className="p-2 pl-4 pr-4  rounded flex items-center justify-between cursor-pointer">
                                         <div>{fileName}</div>
                                         <svg
                                             width="13"
@@ -436,21 +437,21 @@ const ParentComponent = () => {
 
                             <div className="flex col-span-2 gap-5">
                                 <div className=" w-1/2">
-                                    <label className="block text-gray-300 mb-2">Number of Licenses</label>
+                                    <label className="block  mb-2">Number of Licenses</label>
                                     <input
                                         type="number"
                                         name="numberOfLicence"
                                         value={formData.numberOfLicence}
                                         onChange={handleChange}
                                         required
-                                        className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none "
+                                        className="w-full px-4 py-2 rounded-lg border border-gray-600 focus:outline-none "
                                     />
 
 
                                 </div>
 
                                 <div className="w-1/2 flex flex-col items-center ">
-                                    <label className="block text-gray-300 mb-2">Trial/Paid</label>
+                                    <label className="block  mb-2">Trial/Paid</label>
                                     <Switch
                                         onChange={(checked) => handleChange({ target: { name: "period", value: checked ? "Subscription" : "Trial" } })}
                                         checkedChildren="P"
@@ -464,14 +465,14 @@ const ParentComponent = () => {
 
 
                             <div className="col-span-2">
-                                <label className="block text-gray-300 mb-2">Comments or Special Requests</label>
+                                <label className="block  mb-2">Comments or Special Requests</label>
                                 <textarea
                                     name="comment"
                                     value={formData.comment}
                                     onChange={handleChange}
                                     rows="3"
                                     placeholder="Comments or Special Requests"
-                                    className="w-full px-4 py-2 bg-[#333333] text-white rounded-lg border border-gray-600 focus:outline-none "
+                                    className="w-full px-4 py-2  rounded-lg border border-gray-600 focus:outline-none "
                                 ></textarea>
                             </div>
 
