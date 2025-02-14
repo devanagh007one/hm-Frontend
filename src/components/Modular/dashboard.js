@@ -22,7 +22,6 @@ const dashboard = () => {
       <div className='flex gap-5 w-full'>
         <Meeting />
         <Statistic />
-        <Reports />
       </div>
     </div>
   )

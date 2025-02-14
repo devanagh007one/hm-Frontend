@@ -1,5 +1,6 @@
-import React from 'react';
-import { useSelector } from 'react-redux';
+import React, { useState, useMemo, useEffect } from "react";
+import { useDispatch, useSelector } from 'react-redux';
+
 import Header from '../components/Header';
 import Sidebar from '../components/tobbar';
 import Dashboard from '../components/Modular/dashboard';
@@ -13,6 +14,7 @@ import Eventsmanagement from '../components/Modular/Eventsmanagement';
 import AnalyticsDashboard from '../components/Modular/AnalyticsDashboard';
 import Licensing from '../components/Modular/Licencing';
 import Messages from '../components/Modular/Messages';
+import {setActiveComponent} from '../redux/actions/index.js';
 // import Policies from './Policies';
 
 const components = {
@@ -31,14 +33,25 @@ const components = {
 };
 
 const Homepage = () => {
-  const activeComponent = useSelector(state => state.header.activeComponent);
+  const dispatch = useDispatch();
+  const storedComponent = localStorage.getItem("activeComponent") || "Dashboard"; // Default to Licensing
+  const activeComponent = useSelector(state => state.header.activeComponent) || storedComponent;
+
+  useEffect(() => {
+    dispatch(setActiveComponent(storedComponent)); // Update Redux state
+
+    // Remove activeComponent after reload
+    setTimeout(() => {
+      localStorage.removeItem("activeComponent");
+    }, 100); // Delay to ensure component is set before removing
+  }, [dispatch, storedComponent]);
 
   return (
     <>
       <div className="flex">
         <Header />
       </div>
-      <div className="content w-[80%] h-screen">
+      <div className="content w-full h-screen">
         <Sidebar />
         {components[activeComponent]}
       </div>
@@ -47,3 +60,4 @@ const Homepage = () => {
 };
 
 export default Homepage;
+

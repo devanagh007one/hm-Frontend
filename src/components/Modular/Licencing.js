@@ -1,16 +1,25 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { fetchAllLicensing, toggleLicenseStatus } from '../../redux/actions/allLicensingGet.js';
+import { fetchAllLicensing, toggleLicenseStatus, changeLicenseType } from '../../redux/actions/allLicensingGet.js';
 import { useDispatch, useSelector } from 'react-redux';
+import { showNotification } from "../../redux/actions/notificationActions";
 import { Table, Badge, Button, Switch, Pagination, Select, Spin } from "antd";
 import CreateLincence from "../createCompany.js";
 import CsvLincence from "../csvLicence.js";
-import EyeForm from "./EyeForm.js";
+import BarttForm from "./BarttForm.js";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import * as XLSX from "xlsx";
 
-const SvgIcon = () => (
-    <svg width="13" height="12" viewBox="0 0 13 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+const SvgIcon = ({ onClick }) => (
+    <svg
+        width="13"
+        height="12"
+        viewBox="0 0 13 12"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        onClick={onClick} // Add the onClick handler here
+        style={{ cursor: "pointer" }} // Optional: Makes it clear it's clickable
+    >
         <g clip-path="url(#clip0_3004_430)">
             <path d="M6.35996 4.18999C6.29675 4.25232 6.26089 4.3372 6.26026 4.42597C6.25964 4.51474 6.2943 4.60012 6.35663 4.66333C6.41895 4.72654 6.50384 4.7624 6.5926 4.76302C6.68137 4.76365 6.76675 4.72899 6.82996 4.66666L8.08329 3.42666V9.38999C8.08329 9.4784 8.11841 9.56318 8.18092 9.6257C8.24344 9.68821 8.32822 9.72333 8.41663 9.72333C8.50503 9.72333 8.58982 9.68821 8.65233 9.6257C8.71484 9.56318 8.74996 9.4784 8.74996 9.38999V3.42666L9.98329 4.66666C10.0144 4.69752 10.0512 4.72196 10.0917 4.73858C10.1323 4.75519 10.1757 4.76367 10.2195 4.76351C10.2633 4.76336 10.3066 4.75458 10.347 4.73767C10.3874 4.72077 10.4241 4.69607 10.455 4.66499C10.4858 4.63391 10.5103 4.59706 10.5269 4.55654C10.5435 4.51601 10.552 4.47261 10.5518 4.42882C10.5517 4.38502 10.5429 4.34168 10.526 4.30127C10.5091 4.26087 10.4844 4.22419 10.4533 4.19333L8.41663 2.15666L6.35996 4.18999Z" fill="#F48567" />
             <path d="M6.90017 7.58667C6.90055 7.52046 6.88121 7.45564 6.84461 7.40046C6.80801 7.34529 6.75581 7.30227 6.69466 7.27688C6.63351 7.25149 6.56619 7.24488 6.50127 7.25791C6.43636 7.27093 6.37679 7.30299 6.33017 7.35L5.0835 8.58667V2.62667C5.0835 2.53826 5.04838 2.45348 4.98587 2.39096C4.92336 2.32845 4.83857 2.29333 4.75017 2.29333C4.66176 2.29333 4.57698 2.32845 4.51447 2.39096C4.45195 2.45348 4.41683 2.53826 4.41683 2.62667V8.58667L3.1735 7.35C3.14242 7.31914 3.10557 7.2947 3.06504 7.27808C3.02452 7.26147 2.98112 7.25299 2.93732 7.25315C2.89352 7.2533 2.85019 7.26208 2.80978 7.27899C2.76938 7.29589 2.7327 7.32059 2.70183 7.35167C2.67097 7.38275 2.64654 7.4196 2.62992 7.46012C2.6133 7.50065 2.60483 7.54405 2.60498 7.58785C2.6053 7.6763 2.64073 7.76101 2.7035 7.82333L4.75017 9.86L6.79683 7.82333C6.82893 7.79274 6.85461 7.75605 6.87235 7.71541C6.89009 7.67478 6.89955 7.63101 6.90017 7.58667Z" fill="#F48567" />
@@ -48,14 +57,6 @@ const UserManagement = () => {
 
 
 
-    const handleShowDownloadForm = () => {
-        setshowDownloadForm(true);
-    };
-
-    const handleCloseDownloadForm = () => {
-        setshowDownloadForm(false);
-    };
-
     const handleShowImportForm = () => {
         setshowImportForm(true);
     };
@@ -87,18 +88,10 @@ const UserManagement = () => {
     };
 
 
-    // Filter the data based on the filter state
     const filteredData = useMemo(() => {
-        let filtered = licensing;
+        let filtered = [...licensing]; // Avoid mutating state
 
-        // Apply the filter for active, inactive, or all users
-        if (filter === "active") {
-            filtered = licensing.filter((licensing) => !licensing.blocked); // Active if not blocked
-        } else if (filter === "inactive") {
-            filtered = licensing.filter((licensing) => licensing.blocked); // Inactive if blocked
-        }
-
-        // Apply the search query filter on top of the already filtered data
+        // Apply search filter
         if (searchQuery) {
             filtered = filtered.filter(item =>
                 Object.values(item).some(val =>
@@ -107,14 +100,48 @@ const UserManagement = () => {
             );
         }
 
+        // Apply sorting/filtering based on the selected filter option
+        switch (filter) {
+            case "newestFirst":
+                filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                break;
+
+            case "ABCD":
+                filtered.sort((a, b) => a.organisationName.localeCompare(b.organisationName));
+                break;
+
+            case "endDate":
+                filtered.sort((a, b) => new Date(a.End_date) - new Date(b.End_date));
+                break;
+
+            case "startDate":
+                filtered.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                break;
+
+            case "licenceMinToMax":
+                filtered.sort((a, b) => a.numberOfLicence - b.numberOfLicence);
+                break;
+
+            case "activeFirst":
+                filtered.sort((a, b) => b.active - a.active); // Active first, inactive last
+                break;
+
+            case "inactiveFirst":
+                filtered.sort((a, b) => a.active - b.active); // Inactive first, active last
+                break;
+
+            default:
+                break;
+        }
+
         return filtered;
     }, [filter, searchQuery, licensing]);
 
 
-    // Calculate Metrics
-    const totalUsers = licensing?.length || 0;
-    const activeUsers = licensing?.filter((licensing) => !licensing.blocked).length || 0; // Active users (not blocked)
-    const inactiveUsers = licensing?.filter((licensing) => licensing.blocked).length || 0; // Inactive users (blocked)
+
+
+
+
 
 
 
@@ -217,12 +244,39 @@ const UserManagement = () => {
 
     const [toggleStates, setToggleStates] = useState({}); // To manage toggle states for all rows
 
-    const handleToggle = (recordKey) => {
+    const handleToggle = async (record) => {
+        // Determine the new period based on the current state
+        const newPeriod = record.period === "Subscription" ? "Trial" : "Subscription";
+
+        // Optimistically update the local UI state
         setToggleStates((prevState) => ({
             ...prevState,
-            [recordKey]: !prevState[recordKey], // Toggle the state for the specific record
+            [record._id]: !prevState[record._id], // Toggle the state for the specific record
         }));
+
+        try {
+            // Dispatch the changeLicenseType action
+            await dispatch(changeLicenseType(record._id, newPeriod));
+
+            // Show success notification
+            dispatch(showNotification(`Changed ${record.organisationName} to ${newPeriod}`, "success"));
+
+            // Refresh licensing data
+            dispatch(fetchAllLicensing());
+        } catch (error) {
+            // Show error notification if something goes wrong
+            dispatch(showNotification("Failed to change the organization", "error"));
+
+            // Revert UI state in case of failure
+            setToggleStates((prevState) => ({
+                ...prevState,
+                [record._id]: !prevState[record._id], // Revert back to previous state
+            }));
+        }
     };
+
+
+
     const [loadingRecordId, setLoadingRecordId] = useState(null);
 
     // const columns = [
@@ -389,7 +443,7 @@ const UserManagement = () => {
         {
             title: (
                 <span className="flex items-center ">
-                    <SvgIcon />
+                    <SvgIcon onClick={() => setFilter(prev => (prev === "ABCD" ? "" : "ABCD"))} />
                     <span className="ml-2 ">Organization Name</span>
                 </span>
             ),
@@ -399,7 +453,16 @@ const UserManagement = () => {
         {
             title: (
                 <div className="flex items-center">
-                    <SvgIcon />
+                    <SvgIcon
+                        onClick={() =>
+                            setFilter(prev => prev === "activeFirst"
+                                ? "inactiveFirst"
+                                : prev === "inactiveFirst"
+                                    ? ""
+                                    : "activeFirst"
+                            )
+                        }
+                    />
                     <span style={{ color: "#F48567", marginLeft: "8px" }}>Status</span>
                 </div>
             ),
@@ -443,7 +506,7 @@ const UserManagement = () => {
         {
             title: (
                 <span className="flex items-center">
-                    <SvgIcon />
+                    <SvgIcon onClick={() => setFilter(prev => (prev === "licenceMinToMax" ? "" : "licenceMinToMax"))} />
                     <span className="ml-2">Licenses</span>
                 </span>
             ),
@@ -453,7 +516,7 @@ const UserManagement = () => {
         {
             title: (
                 <div className="flex items-center">
-                    <SvgIcon />
+                    <SvgIcon onClick={() => setFilter(prev => (prev === "startDate" ? "" : "startDate"))} />
                     <span style={{ color: "#F48567", marginLeft: "8px" }}>Start Date</span>
                 </div>
             ),
@@ -473,28 +536,41 @@ const UserManagement = () => {
         },
         {
             title: (
-                <span className="flex items-center">
-                    <SvgIcon />
-                    <span className="ml-2">End Date</span>
-                </span>
+                <div className="flex items-center">
+                    <SvgIcon onClick={() => setFilter(prev => (prev === "endDate" ? "" : "endDate"))} />
+                    <span style={{ color: "#F48567", marginLeft: "8px" }}>End Date</span>
+                </div>
             ),
-            dataIndex: 'end',
-            key: 'end',
+            dataIndex: "End_date",
+            key: "End_date",
+            render: (End_date) => {
+                if (!End_date) return "N/A"; // Handle missing or undefined data
+
+                const formattedDate = new Date(End_date).toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                });
+
+                return formattedDate;
+            },
         },
+
+
         {
-            title: "Trial/Paid",
+            title: "TRIAL/PAID",
             dataIndex: 'period', // Ensure this corresponds to the correct field in your data
             key: 'period',
             render: (_, record) => {
-                // Determine if the current record is "Paid" or "Trial"
-                const isPaid = toggleStates[record.key] !== undefined ? toggleStates[record.key] : (record.period === "Paid");
+                // Determine the current period and toggle it accordingly
+                const isSubscription = toggleStates[record._id] !== undefined ? toggleStates[record._id] : (record.period === "Subscription");
 
                 return (
                     <Switch
-                        checked={isPaid} // Set the checked state based on the current toggle state
+                        checked={isSubscription} // Set checked state based on the current toggle state
                         checkedChildren="P"
                         unCheckedChildren="T"
-                        onChange={() => handleToggle(record.key)} // Toggle the state for this record
+                        onChange={() => handleToggle(record)}
                         className="custom-switch" // Add custom class to apply custom styles
                     />
                 );
@@ -503,7 +579,6 @@ const UserManagement = () => {
         {
             title: (
                 <span className="flex items-center">
-                    <SvgIcon />
                     <span className="ml-2">SPOC</span>
                 </span>
             ),
@@ -511,25 +586,19 @@ const UserManagement = () => {
             key: 'spoc',
             render: (text, record) => (
                 <span className="flex items-center">
-                    {text === 'Barrett' ? (
-                        <>
-                            <span>{text}</span>
-                            <button
-                                className="ml-2"
-                            >
-                                {/* {barettIcon} */}
-                            </button>
-                        </>
-                    ) : (
-                        text
-                    )}
+
+                    <>
+                        <span className="w-16 overflow-hidden">{record.contactPersonName}</span>
+
+                            <BarttForm data={record} />
+                    </>
+
                 </span>
             ),
         },
         {
             title: (
                 <span className="flex items-center">
-                    <SvgIcon />
                     <span className="ml-2">Location</span>
                 </span>
             ),
@@ -633,14 +702,14 @@ const UserManagement = () => {
                                 </svg>
                             }
                             onClick={handleShowImportForm}
-                            
+
                         />
                     )}
                     {showImportForm && (
                         <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50">
                             <div className="bg-[#1E1E1E] rounded-lg shadow-lg w-full max-w-xl p-8 relative">
-                                <div className="flex justify-between items"> 
-                                     <h2 className="text-xl font-semibold mb-6 text-center text-white">Download As</h2>
+                                <div className="flex justify-between items">
+                                    <h2 className="text-xl font-semibold mb-6 text-center text-white">Download As</h2>
                                     <div onClick={handleHideImportForm} className="cursor-pointer">
                                         <svg width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg">
                                             <path d="M3.516 20.985C2.36988 19.878 1.45569 18.5539 0.826781 17.0898C0.197873 15.6258 -0.133162 14.0511 -0.147008 12.4578C-0.160854 10.8644 0.142767 9.28428 0.746137 7.80953C1.34951 6.33477 2.24055 4.99495 3.36726 3.86823C4.49397 2.74152 5.83379 1.85048 7.30855 1.24711C8.78331 0.643743 10.3635 0.340123 11.9568 0.353969C13.5502 0.367815 15.1248 0.698849 16.5889 1.32776C18.0529 1.95667 19.377 2.87085 20.484 4.01697C22.6699 6.2802 23.8794 9.31143 23.8521 12.4578C23.8247 15.6042 22.5627 18.6139 20.3378 20.8388C18.1129 23.0637 15.1032 24.3257 11.9568 24.3531C8.81045 24.3804 5.77922 23.1709 3.516 20.985ZM5.208 19.293C7.00935 21.0943 9.4525 22.1063 12 22.1063C14.5475 22.1063 16.9906 21.0943 18.792 19.293C20.5933 17.4916 21.6053 15.0485 21.6053 12.501C21.6053 9.95348 20.5933 7.51032 18.792 5.70897C16.9906 3.90762 14.5475 2.89564 12 2.89564C9.4525 2.89564 7.00935 3.90762 5.208 5.70897C3.40665 7.51032 2.39466 9.95348 2.39466 12.501C2.39466 15.0485 3.40665 17.4916 5.208 19.293ZM17.088 9.10497L13.692 12.501L17.088 15.897L15.396 17.589L12 14.193L8.604 17.589L6.912 15.897L10.308 12.501L6.912 9.10497L8.604 7.41297L12 10.809L15.396 7.41297L17.088 9.10497Z" fill="#C7C7C7" />
@@ -682,10 +751,7 @@ const UserManagement = () => {
                 </div>
             </div>
 
-            {/* User Metrics Section */}
-            <div className="flex justify-between space-x-4 mb-6 px-8">
 
-            </div>
             <div className="flex-grow overflow-x-auto h-11 px-8 theusertab">
                 <div className={darkMode ? "dark-mode" : "light-mode"}></div>
                 <div className="relative">
@@ -714,7 +780,7 @@ const UserManagement = () => {
                                     {columns.map((column, index) => (
                                         <th
                                             key={index}
-                                            className={`${darkMode ? "bg-[#333333]" : "bg-white"} text-white`}
+                                            className={`headtable${index + 1} ${darkMode ? "bg-[#333333]" : "bg-white"} text-white`}
                                             style={{
                                                 cursor: "default",
                                                 userSelect: "none",
@@ -731,15 +797,14 @@ const UserManagement = () => {
                                             {typeof column.title === "string" ? column.title : column.title}
                                         </th>
                                     ))}
+
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredData.map((row, rowIndex) => (
                                     <tr
                                         key={row.key || rowIndex}
-                                        className={`rounded-lg ${darkMode ? "bg-[#333333]" : "bg-white"} text-white ${selectedIndices.includes(rowIndex) ? "bg-[#f486673a]" : ""
-                                            }`}
-                                        // onClick={() => handleRowSelection(rowIndex)}
+                                        className={`rounded-lg ${darkMode ? "bg-[#333333]" : "bg-white"} text-white ${selectedIndices.includes(rowIndex) ? "bg-[#f486673a]" : ""} headoptions`}
                                         style={{ cursor: "pointer" }}
                                     >
                                         {columns.map((column, colIndex) => (
@@ -748,16 +813,16 @@ const UserManagement = () => {
                                                 style={{
                                                     padding: "10px 10px",
                                                     border: "none",
-                                                    textAlign: column.align || "left",
                                                 }}
                                             >
                                                 {column.render
-                                                    ? column.render(row[column.dataIndex], row) // Use render function if defined
+                                                    ? column.render(row[column.dataIndex], row)
                                                     : row[column.dataIndex] || "N/A"}
                                             </td>
                                         ))}
                                     </tr>
                                 ))}
+
                             </tbody>
                         </table>
                     </div>

@@ -1,11 +1,69 @@
 .sidebartab {
-  padding: 18px;
+  padding: 7%;
   border-radius: 10px;
   transition: background-color 0.10s ease;
   transition: color 0.4s ease;
   font-size: 1.1rem;
   position: relative;
 
+}
+
+@media screen and (min-width: 1200px) and (max-width: 1800px) {
+  .sidebartab {
+    padding: 4%;
+    border-radius: 10px;
+    transition: background-color 0.10s ease;
+    transition: color 0.4s ease;
+    font-size: 1.1rem;
+    position: relative;
+
+  }
+
+  .thescreanhe {
+    overflow-y: scroll;
+    overflow-x: hidden;
+  }
+
+  .theusertab {
+    height: 5rem !important;
+  }
+
+  .thescreanhe ul {
+    margin-bottom: -20px;
+    overflow: hidden;
+  }
+
+  .thescreanhe .items-center .space-x-4 {
+    margin-bottom: -20px;
+  }
+
+
+  .thescreanhe ul::-webkit-scrollbar {
+    display: none !important;
+  }
+
+}
+.headoptions td:nth-child(3){
+  text-align: center;
+}
+.headoptions td:nth-child(5){
+  text-align: center;
+}
+.headoptions td:nth-child(6){
+  text-align: center;
+}
+.headtable3 {
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+
+
+.thescreanhe::-webkit-scrollbar {
+  display: none !important;
 }
 
 .icon-side {
@@ -444,9 +502,11 @@
   align-items: center;
   justify-content: center;
 }
-.mailemt{
+
+.mailemt {
   border-top-right-radius: 20px;
 }
-.sidebartab.active path{
-  stroke:#F48567 ;
+
+.sidebartab.active path {
+  stroke: #F48567;
 }

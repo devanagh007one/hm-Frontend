@@ -15,7 +15,7 @@ const EyeForm = ({ data }) => {
         dispatch(fetchAllUsers()); // Fetch updated users list
         handleClosePopup()
     };
-    console.log(data)
+    // console.log(data)
 
     return (
         <>
