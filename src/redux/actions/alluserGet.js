@@ -46,6 +46,7 @@ export const createUser = (userData) => async (dispatch) => {
   try {
     const authToken = localStorage.getItem("authToken");
 
+    console.log(userData)
     // Construct FormData
     const formData = new FormData();
     for (const key in userData) {
@@ -53,13 +54,14 @@ export const createUser = (userData) => async (dispatch) => {
     }
 
     const response = await fetch(
-      `${process.env.REACT_APP_STATIC_API_URL}/api/auth/signup`,
+      `${process.env.REACT_APP_STATIC_API_URL}/api/adminSignup/signup`,
       {
         method: "POST",
         headers: {
           Authorization: `Bearer ${authToken}`,
         },
-        body: formData,
+        body: JSON.stringify({ userData }),
+        // body: formData,
       }
     );
 

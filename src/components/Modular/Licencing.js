@@ -46,7 +46,7 @@ const UserManagement = () => {
     const [showImportForm, setshowImportForm] = useState(false);
     const [selectedIndices, setSelectedIndices] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize, setPageSize] = useState(50);
+    const [pageSize, setPageSize] = useState(10);
     const [filter, setFilter] = useState("all");
     const [selectedRecordKey, setSelectedRecordKey] = useState(null);
     const [selectedFormat, setSelectedFormat] = useState("");
@@ -168,64 +168,40 @@ const UserManagement = () => {
     }, [currentPage, pageSize, filteredData]);
 
     const handleDownload = () => {
-        // Use paginatedData or filteredData instead of data
-        const selectedRows = paginatedData
+        const selectedRows = filteredData
             .filter((_, index) => selectedIndices.includes(index))
-            .map((row) => {
-                // Remove unnecessary fields
-                const { _id, __v, passwordChangedAt, macAddresses, editLogs, ...filteredRow } = row;
-
-                // Modify the logo path to be a full URL
-                if (filteredRow.logo) {
-                    filteredRow.logo = `${process.env.REACT_APP_STATIC_API_URL}${filteredRow.logo}`;
-                }
-
-                return filteredRow;
-            });
-
+            .map(({ _id, __v, passwordChangedAt, macAddresses, editLogs, ...row }) => row);
+    
         if (selectedFormat === ".pdf") {
             const doc = new jsPDF({ orientation: "landscape" });
-            doc.setFontSize(8); // Set smaller font size for better fit
-
-            // Get the logo from the first selected row (adjust if necessary)
-            const logoUrl = selectedRows[0]?.logo; // Now this should be a full URL
-            console.log(logoUrl); // Check if it's now a full URL
-
-            if (logoUrl) {
-                doc.addImage(logoUrl, 'JPEG', 5, 5, 30, 30); // Add image to the PDF
-            }
-
-            doc.text("HappMe License", 40, 15); // Text after the logo, adjust the position
-
+            doc.setFontSize(8);
+            doc.text("HappMe", 5, 10);
+    
             const tableHeaders = Object.keys(selectedRows[0] || {});
-            const tableData = selectedRows.map((row) =>
-                tableHeaders.map((header) => row[header] || "")
-            );
-
+            const tableData = selectedRows.map((row) => tableHeaders.map((header) => row[header] || ""));
+    
             doc.autoTable({
                 head: [tableHeaders],
                 body: tableData,
-                startY: 20, // Adjust for the logo and title
+                startY: 15,
                 margin: { left: 5, right: 5 },
-                styles: { fontSize: 5 }, // Reduce table font size
-                headStyles: { fillColor: [22, 160, 133] }, // Optional: Style headers
-                bodyStyles: { textColor: [0, 0, 0] }, // Optional: Style body text
-                theme: "striped", // Optional: Add stripes to rows
+                styles: { fontSize: 5 },
+                headStyles: { fillColor: [22, 160, 133] },
+                bodyStyles: { textColor: [0, 0, 0] },
+                theme: "striped",
             });
-
+    
             doc.save("HappMe-data.pdf");
         } else if ([".xls", ".xlsx"].includes(selectedFormat)) {
             const worksheet = XLSX.utils.json_to_sheet(selectedRows);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "HappMe Data");
-
-            const fileType = selectedFormat === ".xls" ? "xls" : "xlsx";
-            XLSX.writeFile(workbook, `HappMe-data.${fileType}`);
+    
+            XLSX.writeFile(workbook, `HappMe-data.${selectedFormat.replace(".", "")}`);
         } else {
             alert("Please select a format.");
         }
     };
-
 
 
 
@@ -240,18 +216,12 @@ const UserManagement = () => {
     };
 
     const handleSelectAll = () => {
-        const start = (currentPage - 1) * pageSize;
-        const end = start + paginatedData.length;
-
-        const pageIndices = paginatedData.map((_, i) => start + i); // Get absolute indices for this page
-
         setSelectedIndices((prev) => {
-            const allSelected = pageIndices.every((index) => prev.includes(index));
-            return allSelected
-                ? prev.filter((index) => !pageIndices.includes(index)) // Deselect all on this page
-                : [...new Set([...prev, ...pageIndices])]; // Select all on this page
+            const allSelected = prev.length === filteredData.length; // Check if all items are selected
+            return allSelected ? [] : filteredData.map((_, i) => i); // Select all or deselect all
         });
     };
+    
 
 
     // Function to determine the background color for the status
@@ -456,7 +426,6 @@ const UserManagement = () => {
                 <span className="flex items-center">
 
                     <>
-                        <span className="w-16 overflow-hidden">{record.contactPersonName}</span>
 
                         <BarttForm data={record} />
                     </>

@@ -4,13 +4,12 @@ import { fetchAllLicensing } from "../redux/actions/allLicensingGet.js";
 import { fetchAllUsers, createUser } from "../redux/actions/alluserGet.js";
 import { showNotification } from "../redux/actions/notificationActions.js"; // Import showNotification
 import "./popup.css"; // Import custom CSS
-import { Button, Select } from "antd";
+import { Button, Select, Checkbox, Radio } from "antd";
 
 const ParentComponent = () => {
     const [showPopup, setShowPopup] = useState(false);
     const { licensing, error: licensingError } = useSelector((state) => state.licensing);
     const { users, error } = useSelector((state) => state.user);
-    const [selectedLicense, setSelectedLicense] = useState(null);
     const [isSaveDisabled, setIsSaveDisabled] = useState(false);
     const [totalLicenses, setTotalLicenses] = useState(false);
     const [userCount, setUserCount] = useState(false);
@@ -39,9 +38,36 @@ const ParentComponent = () => {
         relationShipStatus: "",
         bloodGroups: "",
         childCount: "",
+        permissions: {},
+        title_at_organization: "",
+        social_twitter: "",
+        social_youtube: "",
+        social_insta: "",
+        type_of_contantSpecilization: "",
+        brief_bio: "",
+        contact_method: "",
     });
-    
     console.log(formData)
+
+    const handleCheckboxChange = (checkedValues) => {
+        // If at least one checkbox is selected, ensure all permissions are initialized
+        let updatedPermissions = {};
+        if (checkedValues.length > 0) {
+            updatedPermissions = {
+                Create: false,
+                Update: false,
+                View: false,
+                Delete: false,
+                ...Object.fromEntries(checkedValues.map((key) => [key, true])),
+            };
+        }
+
+        setFormData((prev) => ({
+            ...prev,
+            permissions: updatedPermissions,
+        }));
+    };
+
 
     const dispatch = useDispatch();
     console.log(formData)
@@ -49,30 +75,6 @@ const ParentComponent = () => {
         dispatch(fetchAllLicensing());
         dispatch(fetchAllUsers());
     }, [dispatch]);
-
-    const handleLicenseChange = (licenseId) => {
-        const selected = licensing.find((license) => license.id === licenseId);
-        setSelectedLicense(selected);
-
-        if (selected) {
-            const { numberOfLicenses } = selected;
-            const userCount = users.filter(
-                (user) => user.company === formData.company
-            ).length;
-
-            if (userCount >= numberOfLicenses) {
-                setIsSaveDisabled(true);
-                dispatch(
-                    showNotification(
-                        `The selected license allows only ${numberOfLicenses} users. Please upgrade your license.`,
-                        "error"
-                    )
-                );
-            } else {
-                setIsSaveDisabled(false);
-            }
-        }
-    };
 
     const handleChange = (e) => {
         const { name, value, files } = e.target;
@@ -90,7 +92,7 @@ const ParentComponent = () => {
             .then(() => {
                 dispatch(showNotification("User created successfully", "success"));
                 sessionStorage.setItem("fetchData", "fatchdata");
-                setShowPopup(false);
+                // setShowPopup(false);
             })
             .catch((error) => {
                 console.error(error);
@@ -117,6 +119,16 @@ const ParentComponent = () => {
 
 
     const handleCompanyChange = (value) => {
+        // Ensure the restriction applies only when the role is "HR"
+        if (formData.roles !== "HR") {
+            setFormData((prevData) => ({
+                ...prevData,
+                company: value,
+                numberOfLicenses: 1, // Default for non-HR roles
+            }));
+            return;
+        }
+    
         const associatedLicense = licensing.find(
             (license) => license.organisationName === value
         );
@@ -133,7 +145,7 @@ const ParentComponent = () => {
                 setIsSaveDisabled(true);
                 dispatch(
                     showNotification(
-                        `Maximum number of users (${numberOfLicence}) reached for this organisation.`,
+                        `Max users (${numberOfLicence}) reached, but Partner, Admin, and Super Admin can still be added.`,
                         "error"
                     )
                 );
@@ -159,9 +171,32 @@ const ParentComponent = () => {
         }
     };
     
-    
 
+    const handleChangeSocial = (e) => {
+        const inputText = e.target.value;
+        const links = inputText.split(",").map((link) => link.trim()); // Split by comma and trim spaces
 
+        let updatedSocials = {
+            social_twitter: "",
+            social_youtube: "",
+            social_insta: "",
+        };
+
+        links.forEach((link) => {
+            if (link.includes("twitter.com") || link.includes("x.com")) {
+                updatedSocials.social_twitter = link;
+            } else if (link.includes("youtube.com") || link.includes("youtu.be")) {
+                updatedSocials.social_youtube = link;
+            } else if (link.includes("instagram.com")) {
+                updatedSocials.social_insta = link;
+            }
+        });
+
+        setFormData((prev) => ({
+            ...prev,
+            ...updatedSocials,
+        }));
+    };
 
     return (
         <>
@@ -213,315 +248,111 @@ const ParentComponent = () => {
 
                         {/* Choose Role */}
                         <div className="flex flex-col">
-                            <label className="text-white mb-1">Organisation</label>
+                            <label className="text-white mb-1">Choose Role *</label>
                             <select
                                 name="roles"
                                 value={formData.roles}
                                 onChange={handleChange}
                                 className="p-2 bg-[#333333] text-white rounded"
                             >
-                                <option value="">Select</option>
-                                <option value="Admin">Admin</option>
-                                <option value="Super Admin">Super Admin</option>
+                                <option value="">Choose Role</option>
                                 <option value="HR">HR</option>
                                 <option value="Partner">Partner</option>
-                                <option value="End User">End User</option>
+                                <option value="Admin">Admin</option>
+                                <option value="Super Admin">Super Admin</option>
                             </select>
                         </div>
 
-
-                        {formData.roles && formData.roles !== "" && (
+                        {formData.roles === "HR" && (
                             <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-                                {/* First Name & Last Name */}
-                                <div className="flex gap-4 mt-3">
+
+                                <div className="flex flex-col mt-3">
+                                    <label className="text-white mb-1">Organization Name</label>
+                                    <Select
+                                        showSearch
+                                        placeholder="Choose Organization"
+                                        options={licensing?.map((item) => ({
+                                            label: item.organisationName,
+                                            value: item.organisationName,
+                                        }))}
+                                        onChange={handleCompanyChange}
+                                    />
+                                </div>
+                                <div className="flex gap-4">
                                     <div className="flex flex-col w-1/2">
-                                        <label className="text-white mb-1">Name *</label>
+                                        <label className="text-white mb-1">Contact Person Name</label>
                                         <input
                                             name="full name"
                                             onChange={handleFullNameChange}
                                             required
                                             type="text"
-                                            placeholder="Name"
+                                            placeholder="Contact Person Name"
                                             className="p-2 bg-[#333333] text-white rounded"
                                         />
                                     </div>
                                     <div className="flex flex-col w-1/2">
-                                        <label className="text-white mb-1">User Name</label>
+                                        <label className="text-white mb-1">Contact Email Address</label>
                                         <input
-                                            name="userName"
+                                            name="email"
                                             onChange={handleChange}
                                             required
-                                            type="text"
-                                            placeholder="User Name"
+                                            type="email"
+                                            placeholder="Contact Email Address"
                                             className="p-2 bg-[#333333] text-white rounded"
                                         />
                                     </div>
                                 </div>
 
-                                {/* Email Address */}
-                                <div className="flex flex-col">
-                                    <label className="text-white mb-1">Email ID*</label>
-                                    <input
-                                        name="email"
-                                        onChange={handleChange}
-                                        required
-                                        type="email"
-                                        placeholder="Enter Email"
-                                        className="p-2 bg-[#333333] text-white rounded"
-                                    />
-                                </div>
-
                                 {/* Phone */}
                                 <div className="flex flex-col">
-                                    <label className="text-white mb-1">Phone Number </label>
+                                    <label className="text-white mb-1">Phone Number</label>
                                     <input
                                         name="mobile"
                                         onChange={handleChange}
                                         required
-                                        type="text"
-                                        placeholder="Enter Phone Number"
+                                        type="number"
+                                        placeholder="Phone Number"
                                         className="p-2 bg-[#333333] text-white rounded"
                                     />
                                 </div>
 
                                 {/* Location */}
                                 <div className="flex flex-col">
-                                    <label className="text-white mb-1">Location </label>
+                                    <label className="text-white mb-1">Location</label>
                                     <input
                                         name="address"
                                         onChange={handleChange}
                                         required
                                         type="text"
-                                        placeholder="Enter Location"
+                                        placeholder="Location"
                                         className="p-2 bg-[#333333] text-white rounded"
                                     />
                                 </div>
+
                                 <div className="flex flex-col">
-                                    <label className="text-white mb-1">Department</label>
-                                    <input
-                                        name="department"
-                                        onChange={handleChange}
-                                        required
-                                        type="text"
-                                        placeholder="Department"
-                                        className="p-2 bg-[#333333] text-white rounded"
-                                    />
-                                </div>
-                                <div className="flex gap-4">
-                                    <div className="flex flex-col w-1/2">
-                                        <label className="text-white mb-1">Gender</label>
-                                        <select
-                                            name="gender"
-                                            value={formData.gender}
-                                            onChange={handleChange}
-                                            className="p-2 bg-[#333333] text-white rounded"
+                                    <label className="text-white mb-1">Upload your Profile Picture</label>
+                                    <label className="p-2 pl-4 pr-4 bg-[#333333] text-white rounded flex items-center justify-between cursor-pointer">
+                                        <div>{fileName}</div>
+                                        <svg
+                                            width="13"
+                                            height="13"
+                                            viewBox="0 0 13 13"
+                                            fill="none"
+                                            xmlns="http://www.w3.org/2000/svg"
                                         >
-                                            <option value="">Select Gender</option>
-                                            <option value="female">Female</option>
-                                            <option value="male">Male</option>
-                                        </select>
-                                    </div>{/* DOB */}
-                                    <div className="flex flex-col w-1/2">
-                                        <label className="text-white mb-1">DOB</label>
-                                        <input
-                                            name="doB"
-                                            value={formData.doB}
-                                            onChange={handleChange}
-                                            type="date"
-                                            className="p-2 bg-[#333333] text-white rounded"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="flex gap-4">
-                                    <div className="flex flex-col w-1/2">
-                                        <label className="text-white mb-1">Country</label>
-                                        <input
-                                            name="country"
-                                            onChange={handleChange}
-                                            placeholder="Country"
-                                            className="p-2 bg-[#333333] text-white rounded"
-                                        />
-                                    </div>
-                                    <div className="flex flex-col w-1/2">
-                                        <label className="text-white mb-1">Password</label>
-                                        <input
-                                            name="password"
-                                            onChange={handleChange}
-                                            required
-                                            type="text"
-                                            placeholder="Password"
-                                            className="p-2 bg-[#333333] text-white rounded"
-                                        />
-                                    </div>
-                                </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                                <div className="flex gap-4">
-                                    <div className="flex flex-col w-1/2">
-                                        <label className="text-white mb-1">Interests</label>
-                                        <input
-                                            name="interests"
-                                            onChange={handleChange}
-                                            placeholder="Interests"
-                                            className="p-2 bg-[#333333] text-white rounded"
-                                        />
-                                    </div>
-                                    <div className="flex flex-col w-1/2">
-                                        <label className="text-white mb-1">Goals</label>
-                                        <input
-                                            name="goals"
-                                            onChange={handleChange}
-                                            required
-                                            type="text"
-                                            placeholder="goals"
-                                            className="p-2 bg-[#333333] text-white rounded"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="flex gap-4">
-                                    <div className="flex flex-col w-1/2">
-                                        <label className="text-white mb-1">Company</label>
-
-                                        <Select
-                                            showSearch
-                                            placeholder="Company"
-                                            options={licensing?.map((item) => ({
-                                                label: item.organisationName,
-                                                value: item.organisationName,
-                                            }))}
-                                            onChange={handleCompanyChange}
-                                        />
-                                    </div>
-                                    <div className="flex flex-col w-1/2">
-                                        <label className="text-white mb-1">Licenses</label>
-                                        <input
-                                            name="numberOfLicences"
-                                            type="text"
-                                            value={totalLicenses ? `${userCount} / ${totalLicenses}` : ""}
-                                            disabled
-                                            className="p-2 bg-[#333333] text-white rounded"
-                                        />
-                                    </div>
-
-                                </div>
-                                <div className="flex gap-4">
-                                    <div className="flex flex-col w-1/2">
-                                        <label className="text-white mb-1">Employee Count</label>
-                                        <input
-                                            name="employeeCount"
-                                            onChange={handleChange}
-                                            required
-                                            type="number"
-                                            placeholder="Employee Count"
-                                            className="p-2 bg-[#333333] text-white rounded"
-                                        />
-                                    </div>
-                                    <div className="flex flex-col w-1/2">
-                                        <label className="text-white mb-1">Profile Picture</label>
-                                        <label className="p-2 pl-4 pr-4 bg-[#333333] text-white rounded flex items-center justify-between cursor-pointer">
-                                            <div>{fileName}</div>
-                                            <svg
-                                                width="13"
-                                                height="13"
-                                                viewBox="0 0 13 13"
-                                                fill="none"
-                                                xmlns="http://www.w3.org/2000/svg"
-                                            >
-                                                <path
-                                                    d="M5.8501 9.59998V3.48748L3.9001 5.43748L2.8501 4.34998L6.6001 0.599976L10.3501 4.34998L9.3001 5.43748L7.3501 3.48748V9.59998H5.8501ZM2.1001 12.6C1.6876 12.6 1.3346 12.4532 1.0411 12.1597C0.747598 11.8662 0.600598 11.513 0.600098 11.1V8.84998H2.1001V11.1H11.1001V8.84998H12.6001V11.1C12.6001 11.5125 12.4533 11.8657 12.1598 12.1597C11.8663 12.4537 11.5131 12.6005 11.1001 12.6H2.1001Z"
-                                                    fill="#C7C7C7"
-                                                />
-                                            </svg>
-                                            <input
-                                                name="image"
-                                                type="file"
-                                                className="hidden"
-                                                onChange={handleFileChange}
+                                            <path
+                                                d="M5.8501 9.59998V3.48748L3.9001 5.43748L2.8501 4.34998L6.6001 0.599976L10.3501 4.34998L9.3001 5.43748L7.3501 3.48748V9.59998H5.8501ZM2.1001 12.6C1.6876 12.6 1.3346 12.4532 1.0411 12.1597C0.747598 11.8662 0.600598 11.513 0.600098 11.1V8.84998H2.1001V11.1H11.1001V8.84998H12.6001V11.1C12.6001 11.5125 12.4533 11.8657 12.1598 12.1597C11.8663 12.4537 11.5131 12.6005 11.1001 12.6H2.1001Z"
+                                                fill="#C7C7C7"
                                             />
-                                        </label>
-                                    </div>
-
-                                </div>
-
-
-
-                                <div className="flex gap-4">
-                                    <div className="flex flex-col w-1/2">
-                                        <label className="text-white mb-1">Relationship Status</label>
-                                        <select
-                                            name="relationShipStatus"
-                                            value={formData.relationShipStatus}
-                                            onChange={handleChange}
-                                            className="p-2 bg-[#333333] text-white rounded"
-                                        >
-                                            <option value="">Select Relationship</option>
-                                            <option value="single">Single</option>
-                                            <option value="married">Married</option>
-                                            <option value="complicated">Complicated</option>
-                                        </select>
-                                    </div>
-                                    <div className="flex flex-col w-1/2">
-                                        <label className="text-white mb-1">Date of Anniversary</label>
+                                        </svg>
                                         <input
-                                            name="dateOfAniversary"
-                                            value={formData.dateOfAniversary}
-                                            onChange={handleChange}
-                                            type="date"
-                                            className="p-2 bg-[#333333] text-white rounded"
+                                            name="image"
+                                            type="file"
+                                            className="hidden"
+                                            onChange={handleFileChange}
                                         />
-                                    </div>
+                                    </label>
                                 </div>
-                                <div className="flex gap-4">
-                                    <div className="flex flex-col w-1/2">
-                                        <label className="text-white mb-1">Blood Group</label>
-                                        <select
-                                            name="bloodGroups"
-                                            value={formData.bloodGroups}
-                                            onChange={handleChange}
-                                            className="p-2 bg-[#333333] text-white rounded"
-                                        >
-                                            <option value="">Select Blood Group</option>
-                                            <option value="A+">A+</option>
-                                            <option value="A-">A-</option>
-                                            <option value="B+">B+</option>
-                                            <option value="B-">B-</option>
-                                            <option value="AB+">AB+</option>
-                                            <option value="AB-">AB-</option>
-                                            <option value="O+">O+</option>
-                                            <option value="O-">O-</option>
-                                        </select>
-                                    </div>
-
-                                    <div className="flex flex-col w-1/2">
-                                        <label className="text-white mb-1">Child Count</label>
-                                        <select
-                                            name="childCount"
-                                            value={formData.childCount}
-                                            onChange={handleChange}
-                                            className="p-2 bg-[#333333] text-white rounded"
-                                        >
-                                            <option value="">Select Child Count</option>
-                                            <option value="1">1</option>
-                                            <option value="2">2</option>
-                                            <option value="3">3</option>
-                                            <option value="4+">4+</option>
-                                        </select>
-                                    </div>
-                                </div>
-
 
 
 
@@ -537,15 +368,395 @@ const ParentComponent = () => {
                                         </div>
                                     )}
 
+                                </div>
+                            </form>
+                        )}
 
-                                    <div className="flex flex-col w-full">
-                                        {/* Save Button */}
-                                        <button
+                        {formData.roles === "Partner" && (
+                            <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+                                <div className="flex gap-4 mt-3">
+                                    <div className="flex flex-col w-1/2">
+                                        <label className="text-white mb-1">Partner Name</label>
+                                        <input
+                                            name="full name"
+                                            onChange={handleFullNameChange}
+                                            required
+                                            type="text"
+                                            placeholder="Partner Name"
+                                            className="p-2 bg-[#333333] text-white rounded"
+                                        />
+                                    </div>
+                                    <div className="flex flex-col w-1/2">
+                                        <label className="text-white mb-1">Organization Name</label>
+                                        <Select
+                                            showSearch
+                                            placeholder="Choose Organization"
+                                            options={licensing?.map((item) => ({
+                                                label: item.organisationName,
+                                                value: item.organisationName,
+                                            }))}
+                                            onChange={handleCompanyChange}
+                                        />
+                                    </div>
+                                </div>
 
-                                            onClick={handleClosePopup}
-                                            className="bg-[#C7C7C7] px-4 py-2 rounded-xl text-[#000]"
+                                <div className="flex flex-col">
+                                    <label className="text-white mb-1">Email Address</label>
+                                    <input
+                                        name="email"
+                                        onChange={handleChange}
+                                        required
+                                        type="email"
+                                        placeholder="Email"
+                                        className="p-2 bg-[#333333] text-white rounded"
+                                    />
+                                </div>
+
+                                {/* Phone */}
+                                <div className="flex flex-col">
+                                    <label className="text-white mb-1">Phone</label>
+                                    <input
+                                        name="mobile"
+                                        onChange={handleChange}
+                                        required
+                                        type="text"
+                                        placeholder="Phone"
+                                        className="p-2 bg-[#333333] text-white rounded"
+                                    />
+                                </div>
+
+                                {/* Location */}
+                                <div className="flex flex-col">
+                                    <label className="text-white mb-1">Location</label>
+                                    <input
+                                        name="address"
+                                        onChange={handleChange}
+                                        required
+                                        type="text"
+                                        placeholder="Location"
+                                        className="p-2 bg-[#333333] text-white rounded"
+                                    />
+                                </div>
+
+                                <div className="flex flex-col">
+                                    <label className="text-white mb-1">Role/ Title at Organization</label>
+                                    <input
+                                        name="title_at_organization"
+                                        onChange={handleChange}
+                                        required
+                                        type="text"
+                                        placeholder="Organization"
+                                        className="p-2 bg-[#333333] text-white rounded"
+                                    />
+                                </div>
+                                <div className="flex flex-col">
+                                    <label className="text-white mb-1">Social Media Profile</label>
+                                    <input
+                                        name="socialMedia"
+                                        onChange={handleChangeSocial}
+                                        required
+                                        type="text"
+                                        placeholder="Enter Social Media Links (comma-separated)"
+                                        className="p-2 bg-[#333333] text-white rounded"
+                                    />
+                                </div>
+                                <div className="flex flex-col">
+                                    <label className="text-white mb-1">Type of Content Specialization</label>
+                                    <input
+                                        name="type_of_contantSpecilization"
+                                        onChange={handleChange}
+                                        required
+                                        type="text"
+                                        placeholder="Content Specialization"
+                                        className="p-2 bg-[#333333] text-white rounded"
+                                    />
+                                </div>
+                                <div className="flex flex-col">
+                                    <label className="text-white mb-1">Brief Bio</label>
+                                    <textarea
+                                        name="brief_bio"
+                                        onChange={handleChange}
+                                        required
+                                        type="text"
+                                        placeholder="Bio"
+                                        className="p-2 bg-[#333333] text-white rounded"
+                                    />
+                                </div>
+
+                                <div className="flex flex-row items-center">
+                                    <label className="text-white mb-1 mr-2">Preferred Contact Method:</label>
+                                    <Radio.Group
+                                        options={['Call', 'Email']}
+                                        className="p-2 flex justify-start gap-5 text-white rounded"
+                                        required
+                                        value={formData.contact_method}
+                                        onChange={(e) => setFormData({ ...formData, contact_method: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="flex flex-col">
+                                    <label className="text-white mb-1">Upload your Profile Picture</label>
+                                    <label className="p-2 pl-4 pr-4 bg-[#333333] text-white rounded flex items-center justify-between cursor-pointer">
+                                        <div>{fileName}</div>
+                                        <svg
+                                            width="13"
+                                            height="13"
+                                            viewBox="0 0 13 13"
+                                            fill="none"
+                                            xmlns="http://www.w3.org/2000/svg"
                                         >
-                                            Cancel
+                                            <path
+                                                d="M5.8501 9.59998V3.48748L3.9001 5.43748L2.8501 4.34998L6.6001 0.599976L10.3501 4.34998L9.3001 5.43748L7.3501 3.48748V9.59998H5.8501ZM2.1001 12.6C1.6876 12.6 1.3346 12.4532 1.0411 12.1597C0.747598 11.8662 0.600598 11.513 0.600098 11.1V8.84998H2.1001V11.1H11.1001V8.84998H12.6001V11.1C12.6001 11.5125 12.4533 11.8657 12.1598 12.1597C11.8663 12.4537 11.5131 12.6005 11.1001 12.6H2.1001Z"
+                                                fill="#C7C7C7"
+                                            />
+                                        </svg>
+                                        <input
+                                            name="image"
+                                            type="file"
+                                            className="hidden"
+                                            onChange={handleFileChange}
+                                        />
+                                    </label>
+                                </div>
+
+
+                                <div className="flex gap-4 mt-4 w-full">
+                                        <div className="flex flex-col w-full">
+                                            <button
+                                                type="submit"
+                                                className="bg-[#F48567] px-4 py-2 rounded-xl text-[#000]"
+                                            >
+                                                Save
+                                            </button>
+                                        </div>
+                                </div>
+                            </form>
+                        )}
+
+                        {formData.roles === "Admin" && (
+                            <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+
+                                <div className="flex flex-col mt-3">
+                                    <label className="text-white mb-1">User Name</label>
+                                    <input
+                                        name="userName"
+                                        onChange={handleChange}
+                                        required
+                                        type="text"
+                                        placeholder="User Name"
+                                        className="p-2 bg-[#333333] text-white rounded"
+                                    />
+                                </div>
+
+
+                                <div className="flex flex-col">
+                                    <label className="text-white mb-1">Organization Name</label>
+                                    <Select
+                                        showSearch
+                                        placeholder="Choose Organization"
+                                        options={licensing?.map((item) => ({
+                                            label: item.organisationName,
+                                            value: item.organisationName,
+                                        }))}
+                                        onChange={handleCompanyChange}
+                                    />
+                                </div>
+
+
+                                {/* Email Address */}
+                                <div className="flex flex-col">
+                                    <label className="text-white mb-1">Email Address</label>
+                                    <input
+                                        name="email"
+                                        onChange={handleChange}
+                                        required
+                                        type="email"
+                                        placeholder="Email"
+                                        className="p-2 bg-[#333333] text-white rounded"
+                                    />
+                                </div>
+
+                                {/* Phone */}
+                                <div className="flex flex-col">
+                                    <label className="text-white mb-1">Phone</label>
+                                    <input
+                                        name="mobile"
+                                        onChange={handleChange}
+                                        required
+                                        type="text"
+                                        placeholder="Phone"
+                                        className="p-2 bg-[#333333] text-white rounded"
+                                    />
+                                </div>
+
+                                {/* Location */}
+                                <div className="flex flex-col">
+                                    <label className="text-white mb-1">Location</label>
+                                    <input
+                                        name="address"
+                                        onChange={handleChange}
+                                        required
+                                        type="text"
+                                        placeholder="Location"
+                                        className="p-2 bg-[#333333] text-white rounded"
+                                    />
+                                </div>
+
+                                <div className="flex flex-row items-center">
+                                    <label className="text-white mb-1">Function</label>
+                                    <Checkbox.Group
+                                        options={['Create', 'Update', 'View', 'Delete']}
+                                        className="p-2 flex selectext justify-between rounded w-full"
+                                        value={Object.keys(formData.permissions).filter((key) => formData.permissions[key])}
+                                        onChange={handleCheckboxChange}
+                                    />
+                                </div>
+
+
+                                <div className="flex flex-col">
+                                    <label className="text-white mb-1">Upload your Profile Picture</label>
+                                    <label className="p-2 pl-4 pr-4 bg-[#333333] text-white rounded flex items-center justify-between cursor-pointer">
+                                        <div>{fileName}</div>
+                                        <svg
+                                            width="13"
+                                            height="13"
+                                            viewBox="0 0 13 13"
+                                            fill="none"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                        >
+                                            <path
+                                                d="M5.8501 9.59998V3.48748L3.9001 5.43748L2.8501 4.34998L6.6001 0.599976L10.3501 4.34998L9.3001 5.43748L7.3501 3.48748V9.59998H5.8501ZM2.1001 12.6C1.6876 12.6 1.3346 12.4532 1.0411 12.1597C0.747598 11.8662 0.600598 11.513 0.600098 11.1V8.84998H2.1001V11.1H11.1001V8.84998H12.6001V11.1C12.6001 11.5125 12.4533 11.8657 12.1598 12.1597C11.8663 12.4537 11.5131 12.6005 11.1001 12.6H2.1001Z"
+                                                fill="#C7C7C7"
+                                            />
+                                        </svg>
+                                        <input
+                                            name="image"
+                                            type="file"
+                                            className="hidden"
+                                            onChange={handleFileChange}
+                                        />
+                                    </label>
+                                </div>
+
+
+
+                                <div className="flex gap-4 mt-4 w-full">
+                                        <div className="flex flex-col w-full">
+                                            <button
+                                                type="submit"
+                                                className="bg-[#F48567] px-4 py-2 rounded-xl text-[#000]"
+                                            >
+                                                Save
+                                            </button>
+                                        </div>
+
+                                </div>
+                            </form>
+                        )}
+
+                        {formData.roles === "Super Admin" && (
+                            <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+
+                                <div className="flex flex-col mt-3">
+                                    <label className="text-white mb-1">User Name</label>
+                                    <input
+                                        name="userName"
+                                        onChange={handleChange}
+                                        required
+                                        type="text"
+                                        placeholder="User Name"
+                                        className="p-2 bg-[#333333] text-white rounded"
+                                    />
+                                </div>
+
+
+                                <div className="flex flex-col">
+                                    <label className="text-white mb-1">Organization Name</label>
+                                    <Select
+                                        showSearch
+                                        placeholder="Choose Organization"
+                                        options={licensing?.map((item) => ({
+                                            label: item.organisationName,
+                                            value: item.organisationName,
+                                        }))}
+                                        onChange={handleCompanyChange}
+                                    />
+                                </div>
+
+
+                                {/* Email Address */}
+                                <div className="flex flex-col">
+                                    <label className="text-white mb-1">Email Address</label>
+                                    <input
+                                        name="email"
+                                        onChange={handleChange}
+                                        required
+                                        type="email"
+                                        placeholder="Email"
+                                        className="p-2 bg-[#333333] text-white rounded"
+                                    />
+                                </div>
+
+                                {/* Phone */}
+                                <div className="flex flex-col">
+                                    <label className="text-white mb-1">Phone</label>
+                                    <input
+                                        name="mobile"
+                                        onChange={handleChange}
+                                        required
+                                        type="text"
+                                        placeholder="Phone"
+                                        className="p-2 bg-[#333333] text-white rounded"
+                                    />
+                                </div>
+
+                                {/* Location */}
+                                <div className="flex flex-col">
+                                    <label className="text-white mb-1">Location</label>
+                                    <input
+                                        name="address"
+                                        onChange={handleChange}
+                                        required
+                                        type="text"
+                                        placeholder="Location"
+                                        className="p-2 bg-[#333333] text-white rounded"
+                                    />
+                                </div>
+
+                                <div className="flex flex-col">
+                                    <label className="text-white mb-1">Upload your Profile Picture</label>
+                                    <label className="p-2 pl-4 pr-4 bg-[#333333] text-white rounded flex items-center justify-between cursor-pointer">
+                                        <div>{fileName}</div>
+                                        <svg
+                                            width="13"
+                                            height="13"
+                                            viewBox="0 0 13 13"
+                                            fill="none"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                        >
+                                            <path
+                                                d="M5.8501 9.59998V3.48748L3.9001 5.43748L2.8501 4.34998L6.6001 0.599976L10.3501 4.34998L9.3001 5.43748L7.3501 3.48748V9.59998H5.8501ZM2.1001 12.6C1.6876 12.6 1.3346 12.4532 1.0411 12.1597C0.747598 11.8662 0.600598 11.513 0.600098 11.1V8.84998H2.1001V11.1H11.1001V8.84998H12.6001V11.1C12.6001 11.5125 12.4533 11.8657 12.1598 12.1597C11.8663 12.4537 11.5131 12.6005 11.1001 12.6H2.1001Z"
+                                                fill="#C7C7C7"
+                                            />
+                                        </svg>
+                                        <input
+                                            name="image"
+                                            type="file"
+                                            className="hidden"
+                                            onChange={handleFileChange}
+                                        />
+                                    </label>
+                                </div>
+
+
+
+                                <div className="flex gap-4 mt-4 w-full">
+                                    <div className="flex flex-col w-full">
+                                        <button
+                                            type="submit"
+                                            className="bg-[#F48567] px-4 py-2 rounded-xl text-[#000]"
+                                        >
+                                            Save
                                         </button>
                                     </div>
                                 </div>
