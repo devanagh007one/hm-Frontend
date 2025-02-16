@@ -41,16 +41,21 @@ console.log(data)
 };
 
 
-// Action for creating a user
 export const createUser = (userData) => async (dispatch) => {
   try {
     const authToken = localStorage.getItem("authToken");
 
-    console.log(userData)
     // Construct FormData
     const formData = new FormData();
     for (const key in userData) {
-      formData.append(key, userData[key]);
+      if (typeof userData[key] === "object" && userData[key] !== null) {
+        // Handle nested objects like permissions
+        for (const subKey in userData[key]) {
+          formData.append(`${key}[${subKey}]`, userData[key][subKey]);
+        }
+      } else {
+        formData.append(key, userData[key]);
+      }
     }
 
     const response = await fetch(
@@ -60,15 +65,11 @@ export const createUser = (userData) => async (dispatch) => {
         headers: {
           Authorization: `Bearer ${authToken}`,
         },
-        body: JSON.stringify({ userData }),
-        // body: formData,
+        body: formData,
       }
     );
 
     const data = await response.json();
-
-    console.log(data)
-
 
     // Check if the response contains a success message
     if (data.message === "User created successfully") {
@@ -80,6 +81,7 @@ export const createUser = (userData) => async (dispatch) => {
     dispatch({ type: CREATE_USER_FAILURE, payload: error.message });
   }
 };
+
 
 // Action for deleting multiple users
 export const deleteUser = (userIds) => async (dispatch) => {
@@ -187,7 +189,11 @@ export const changeUserRole = (userId, newRole) => async (dispatch) => {
 export const editUserProfile = (userId, formData) => async (dispatch) => {
   try {
     const authToken = localStorage.getItem("authToken");
-
+    console.log(userId);
+    for (const pair of formData.entries()) {
+      console.log(pair[0], pair[1]);
+    }
+    
     const response = await fetch(
       `${process.env.REACT_APP_STATIC_API_URL}/api/user/profile/${userId}`,
       {

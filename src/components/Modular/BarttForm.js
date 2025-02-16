@@ -6,8 +6,8 @@ import { fetchLicenseData, FETCH_LICENSE_DATA_SUCCESS, updateLicense, deleteLice
 import { showNotification } from "../../redux/actions/notificationActions"; // Import showNotification
 
 const EyeForm = ({ data }) => {
-        const darkMode = useSelector((state) => state.theme.darkMode);
-    
+    const darkMode = useSelector((state) => state.theme.darkMode);
+
     const [showPopup, setShowPopup] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({});
@@ -53,7 +53,7 @@ const EyeForm = ({ data }) => {
         await dispatch(deleteLicence(data));
         handleClosePopup();
         dispatch(showNotification('Deleted License successful!', 'success'));
-    
+
         localStorage.setItem("activeComponent", "Licensing"); // Store Licensing before reload
         window.location.reload();
     };
@@ -102,29 +102,29 @@ const EyeForm = ({ data }) => {
             ...formData,
             logo: uploadedImage, // Include the uploaded image if available
         };
-    
+
         if (data?._id) {
             dispatch(updateLicense(data._id, updatedData));
         }
-    
+
         setIsEditing(false);
         dispatch(showNotification('Edited License successful!', 'success'));
-    
+
         localStorage.setItem("activeComponent", "Licensing"); // Store Licensing before reload
         setTimeout(() => {
             handleClosePopup();
             window.location.reload();
         }, 3000); // 3000ms = 3 seconds
-            };
-    
-    
+    };
+
+
 
 
 
     return (
         <>
             <div onClick={handleViewPopup} className="cursor-pointer flex flex-row">
-            <span className="w-16 overflow-hidden">{data.contactPersonName}</span>
+                <span className="w-16 overflow-hidden">{data.contactPersonName}</span>
 
                 <svg width="21" height="21" viewBox="0 0 21 21" fill="none">
                     <path d="M6.87887 10.2027V8.53605H13.5455V10.2027H6.87887ZM6.87887 6.86938V5.20272H13.5455V6.86938H6.87887ZM5.2122 11.8694H11.4622C11.865 11.8694 12.24 11.9563 12.5872 12.1302C12.9344 12.3041 13.2261 12.5505 13.4622 12.8694L15.2122 15.161V3.53605H5.2122V11.8694ZM5.2122 16.8694H14.4205L12.1497 13.8902C12.0664 13.7791 11.9658 13.6924 11.848 13.6302C11.7303 13.568 11.6016 13.5366 11.4622 13.536H5.2122V16.8694ZM15.2122 18.536H5.2122C4.75387 18.536 4.36164 18.373 4.03553 18.0469C3.70942 17.7208 3.54609 17.3283 3.54553 16.8694V3.53605C3.54553 3.07772 3.70887 2.6855 4.03553 2.35938C4.3622 2.03327 4.75442 1.86994 5.2122 1.86938H15.2122C15.6705 1.86938 16.063 2.03272 16.3897 2.35938C16.7164 2.68605 16.8794 3.07827 16.8789 3.53605V16.8694C16.8789 17.3277 16.7158 17.7202 16.3897 18.0469C16.0636 18.3735 15.6711 18.5366 15.2122 18.536Z" fill="#6376B1" />
@@ -133,10 +133,9 @@ const EyeForm = ({ data }) => {
 
             {showPopup && (
                 <div className="popup-overlay">
-                                        <div className={`rounded-lg shadow-lg w-[35%] max-w-3xl p-8 relative flex flex-col max-h-[90%] ${darkMode ? 'bg-[#222222] text-white' : 'bg-[#fff] text-dark'}`}>
+                    <div className={`rounded-lg shadow-lg w-[35%] max-w-3xl p-8 relative flex flex-col max-h-[90%] ${darkMode ? 'bg-[#222222] text-white' : 'bg-[#fff] text-dark'}`}>
 
-                    {/* <div className="bg-[#1E1E1E] text-white rounded-lg shadow-lg w-[40%] max-w-3xl p-8 relative flex flex-col max-h-[90%]"> */}
-                            <div className="flex justify-between align-center">
+                        <div className="flex justify-between align-center">
                             <h2 className="text-2xl mb-4">SPOC</h2>
                             <svg className="cursor-pointer mt-1" onClick={handleClosePopup}
                                 width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg">

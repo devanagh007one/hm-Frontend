@@ -108,7 +108,10 @@ body.dark-mode .popup-overlay select{
 body.dark-mode .popup-overlay textarea{
   background: #333333 !important;
 }
+.custom-table th {
+  height: max-content ;
 
+}
 /* body.dark-mode svg{
   fill:#333333 !important;
   } */
@@ -134,4 +137,75 @@ body.dark-mode .the-uploardtable .ant-input{
 }
 .ant-switch-inner-unchecked{
   color: #FFFF00 !important;
+}
+.headtextxx{
+  font-family: Figtree;
+font-weight: 600;
+font-size: 10px;
+line-height: 12px;
+letter-spacing: 0%;
+
+}
+.table-text{
+  font-family: Figtree;
+font-weight: 400;
+font-size: 12px;
+line-height: 14.4px;
+letter-spacing: 0%;
+
+}
+.choose-org{
+  height: 42px;
+}
+.choose-org .ant-select-selector{
+  border: 1px solid #000 !important;
+  border-radius: 10px !important;
+
+}
+body.dark-mode .choose-org .ant-select-selector{
+  border: 1px solid rgb(75 85 99 / var(--tw-border-opacity)) !important;
+  border-radius: 10px !important;
+  background: #333333 !important;
+  color: #fff !important;
+}
+body.dark-mode .choose-org input::placeholder {
+  color: rgba(255, 255, 255, 0.7) !important; /* Adjust opacity for better visibility */
+}
+
+
+.gola {
+  width: 15px;
+  height: 15px;
+  background: #F48567;
+  border-radius: 50%;
+  position: relative;
+}
+
+.gola::after {
+  content: '';
+  width: 2px;
+  height: 100px;
+  margin-left: 6px;
+  background: #F48567;
+  display: block;
+  border-radius: 50px;
+}
+
+/* Glowing circle at the end */
+.gola-end {
+  width: 15px;
+  height: 15px;
+  background: #F48567;
+  border-radius: 50%;
+  box-shadow: 0px 0px 15px 5px #F48567; /* Strong glow effect */
+}
+
+
+.activetolgs{
+  font-family: Figtree;
+font-weight: 400;
+font-size: 16px;
+line-height: 19.2px;
+letter-spacing: 0%;
+
 }

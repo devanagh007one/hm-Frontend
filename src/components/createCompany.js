@@ -59,7 +59,7 @@ const ParentComponent = () => {
         numberOfLicence: "",
         period: "Trial",
         comment: "",
-        active: false,
+        active: true,
         logo: null,
     });
 

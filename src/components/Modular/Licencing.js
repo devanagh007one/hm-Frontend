@@ -630,7 +630,7 @@ const UserManagement = () => {
                                         {columns.map((column, index) => (
                                             <th
                                                 key={index}
-                                                className={`headtable${index + 1} ${darkMode ? "bg-[#333333]" : "bg-white"} text-white`}
+                                                className={`headtextxx headtable${index + 1} ${darkMode ? "bg-[#333333]" : "bg-white"} text-white`}
                                                 style={{
                                                     cursor: "default",
                                                     userSelect: "none",
@@ -654,7 +654,7 @@ const UserManagement = () => {
                                     {paginatedData.map((row, rowIndex) => (
                                         <tr
                                             key={row.key || rowIndex}
-                                            className={`rounded-lg ${darkMode ? "bg-[#333333] text-white" : "bg-[#f1f5f9]"}  ${selectedIndices.includes(rowIndex) ? "bg-[#f486673a]" : ""} headoptions`}
+                                            className={`table-text rounded-lg ${darkMode ? "bg-[#333333] text-white" : "bg-[#f1f5f9]"}  ${selectedIndices.includes(rowIndex) ? "bg-[#f486673a]" : ""} headoptions`}
                                             style={{ cursor: "pointer" }}
                                         >
                                             {columns.map((column, colIndex) => (
@@ -679,11 +679,11 @@ const UserManagement = () => {
 
 
                         {/* Pagination */}
-                        <div className="absolute left-[-20px] bottom-0 flex flex-col items-center justify h-full pt-[59px]">
+                        <div className="absolute left-[-20px] bottom-0 flex flex-col items-center justify h-full pt-[45px]">
                             {paginatedData.map((_, index) => {
                                 const absoluteIndex = (currentPage - 1) * pageSize + index; // Convert paginated index to absolute
                                 return (
-                                    <span key={absoluteIndex} className="h-[65px] flex justify-center items-center">
+                                    <span key={absoluteIndex} className="h-[58.5px] flex justify-center items-center">
                                         <input
                                             className="custom-checkbox peer/draft border-[#F48567] rounded-full"
                                             type="checkbox"
