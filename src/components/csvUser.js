@@ -13,6 +13,7 @@ import * as XLSX from "xlsx"; // Import XLSX for handling Excel files
 import "./popup.css";
 
 const ParentComponent = () => {
+    
     const dispatch = useDispatch();
     const [showPopup, setShowPopup] = useState(false);
     const darkMode = useSelector((state) => state.theme.darkMode);
@@ -457,8 +458,8 @@ const ParentComponent = () => {
 
             {showPopup && (
                 <div className="fixed inset-0 bg-[#222222] bg-opacity-70 flex justify-center items-center z-50">
-                    {!isUploaded ? (
-                        <div className="bg-[#222222] rounded-lg p-6 w-[400px] text-white shadow-lg relative">
+                {!isUploaded ? (
+                        <div className={` ${darkMode ? 'bg-zinc-800 text-zinc-300' : 'bg-slate-100 text-black'}  rounded-lg p-6 w-[400px]  relative border border-gray-600 `}>
 
 
                             <div className="flex justify-between">
@@ -496,16 +497,16 @@ const ParentComponent = () => {
                             </div>
                             <button
                                 onClick={handleUpload}
-                                className="w-full bg-[#F48567] text-white py-2 rounded-lg hover:bg-[#e57357] transition"
+                                className="w-full bg-[#F48567] py-2 rounded-lg hover:bg-[#e57357] transition"
                             >
                                 Upload
                             </button>
                         </div>
                     ) : (
-                        <div className="bg-[#222222] rounded-lg p-6 w-9/12 text-white shadow-lg relative">
-                            <button
+<div className={`rounded-lg p-6 w-9/12 shadow-lg relative ${darkMode ? 'bg-[#222222] text-zinc-300' : 'bg-white text-black'} transition-colors duration-300`}>
+<button
                                 onClick={handleClosePopup}
-                                className="absolute top-4 right-4 text-white hover:text-gray-400 text-2xl"
+                                className="absolute top-4 right-4 hover:text-gray-400 text-2xl"
                             >
                                 <AiOutlineClose />
                             </button>
@@ -519,9 +520,9 @@ const ParentComponent = () => {
                                         columns={editableColumns}
                                         dataSource={tableData}
                                         rowKey={(record) => record.key}
-                                        className={`rounded-lg the-uploardtable ${darkMode ? "bg-[#333333]" : "bg-white"} text-white`}
+                                        className={`rounded-lg the-uploardtable ${darkMode ? "bg-[#333333]" : "bg-white"} `}
                                         scroll={{ x: "max-content" }}
-                                        rowClassName={`rounded-lg ${darkMode ? "bg-[#333333]" : "bg-white"} text-white`}
+                                        rowClassName={`rounded-lg ${darkMode ? "bg-[#333333] text-white" : "bg-white text-dark"} `}
                                         pagination={false} // Disable pagination
                                     />
 

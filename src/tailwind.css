@@ -70,7 +70,7 @@ body .theusertab tr td:last-child {
 }
 .ant-table-row{
   padding-top: 5px !important;
-  color: #fff;
+  /* color: #fff; */
 }
 .active-row .ant-table-cell{
   color: #000 !important;
