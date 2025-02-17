@@ -109,9 +109,7 @@ const ParentComponent = () => {
         else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email?.trim())) {
             fieldErrors.email = "Invalid email format.";
         }
-    
-        if (!formData.company?.trim()) fieldErrors.company = "Organization name is missing.";
-    
+        
         if (Object.keys(fieldErrors).length > 0) {
             const errorMessage = Object.values(fieldErrors).join(" ");
             dispatch(showNotification(errorMessage, "error"));
