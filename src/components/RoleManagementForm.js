@@ -87,22 +87,19 @@ const ParentComponent = () => {
     };
     const handleRoleChange = (e) => {
         const { value } = e.target;
-
+    
         setFormData((prevState) => {
-            // Ensure prevState is always an object
-            if (!prevState) return { roles: value, password: "HAPPME@1234" };
-
+            // Ensure prevState is always an object with a default structure
+            const safePrevState = prevState && typeof prevState === "object" ? prevState : { roles: "", password: "HAPPME@1234" };
+    
             return {
-                ...Object.fromEntries(
-                    Object.keys(prevState).map((key) => [
-                        key,
-                        key === "roles" ? value : key === "password" ? prevState[key] : typeof prevState[key] === "object" ? null : "",
-                    ])
-                ),
+                ...safePrevState,
+                roles: value,
             };
         });
-    };
-
+    };   
+    
+console.log(formData)
     const handleSubmit = (e) => {
         e.preventDefault();
         if (isSaveDisabled) return;
