@@ -52,40 +52,44 @@ const EyeForm = ({ data }) => {
         dispatch(showNotification('Deleted License successful!', 'success'));
 
         localStorage.setItem("activeComponent", "Rolemanagement"); // Store Licensing before reload
-        window.location.reload();
+        // window.location.reload();
     };
 
     const fields = [
-        { label: "User ID", key: "userId" },
-        { label: "Partner Name", key: "firstName" },
-        { label: "Organization Name", key: "company", value: company, editable: false },
+        { label: "Username", key: "userName" },
+        { label: "Organization", key: "company", editable: false},
         { label: "Email Address", key: "email" },
         { label: "Phone Number", key: "mobile" },
         { label: "Location", key: "address" },
-        { label: "Role/ Title at Organization", key: "title_at_organization" },
-        { label: "Social Media Profile", key: "social_twitter", key: "social_youtube", key: "social_insta" },
-        { label: "Type of Content Specialization", key: "type_of_contantSpecilization" },
+        { label: "Deparment", key: "department" },
+        { label: "Gender", key: "gender" },
+        { label: "DOB", key: "doB" },
         { label: "Date of Joining", key: "joinedAt" },
-        { label: "Brief Bio", key: "brief_bio" },
-        { label: "Preferred Contact Method", key: "contact_method" },
+        { label: "Blood Group", key: "bloodGroups" },
+        { label: "Relationship Status", key: "relationShipStatus" },
+        { label: "DOA", key: "dateOfAniversary" },
+        { label: "Child Count", key: "childCount" },
+        { label: "Interests", key: "interests" },
     ];
 
     // Update formData when data or licenseData changes
     useEffect(() => {
         if (data) {
             setFormData({
-                userId: data?.userId || "",
-                firstName: data?.firstName || "",
+                userName: data?.userName || "",
                 company: data?.company || "",
                 email: data?.email || "",
                 mobile: data?.mobile || "",
-                address: licenseData?.license?.address || "", // Fixed
-                title_at_organization: data?.title_at_organization || "",
-                social_twitter: data?.social_twitter || "",
-                type_of_contantSpecilization: data?.type_of_contantSpecilization || "",
+                address: data?.address || "",
+                department: licenseData?.department || "", // Fixed
+                gender: data?.gender || "",
+                doB: data?.doB || "",
+                bloodGroups: data?.bloodGroups || "",
                 joinedAt: data?.joinedAt || "",
-                brief_bio: data?.brief_bio || "",
-                contact_method: data?.contact_method || "",
+                relationShipStatus: data?.relationShipStatus || "",
+                dateOfAniversary: data?.dateOfAniversary || "",
+                childCount: data?.childCount || "",
+                interests: data?.interests || "",
             });
         }
     }, [data, licenseData]); // Runs when data or licenseData changes
@@ -123,11 +127,11 @@ const EyeForm = ({ data }) => {
         handleClosePopup()
         dispatch(showNotification('Edited License successful!', 'success'));
     
-        localStorage.setItem("activeComponent", "Rolemanagement"); // Store Licensing before reload
+        localStorage.setItem("activeComponent", "Usersmanagement"); // Store Licensing before reload
     
         // Refresh the page after 3 seconds
         setTimeout(() => {
-            window.location.reload();
+            // window.location.reload();
         }, 3000);
     };
     

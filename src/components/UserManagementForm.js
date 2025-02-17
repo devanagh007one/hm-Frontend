@@ -7,6 +7,8 @@ import "./popup.css"; // Import custom CSS
 import { Button, Select } from "antd";
 
 const ParentComponent = () => {
+    const darkMode = useSelector((state) => state.theme.darkMode);
+
     const [showPopup, setShowPopup] = useState(false);
     const { licensing, error: licensingError } = useSelector((state) => state.licensing);
     const { users, error } = useSelector((state) => state.user);
@@ -31,14 +33,17 @@ const ParentComponent = () => {
         numberOfLicenses: "10",
         address: "",
         mobile: "",
-        roles: "",
+        roles: "End User",
         country: "",
         interests: "",
         goals: "",
+        joinedAt: "",
+        childCount: "",
+        dateOfAniversary: "",
     });
 
     const dispatch = useDispatch();
-// console.log(formData)
+    console.log(formData)
     useEffect(() => {
         dispatch(fetchAllLicensing());
         dispatch(fetchAllUsers());
@@ -75,21 +80,42 @@ const ParentComponent = () => {
             [name]: files ? files[0] : value,
         }));
     };
+    const validatePassword = (password) => {
+        const regex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+        return regex.test(password);
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
         if (isSaveDisabled) return;
 
+        if (!validatePassword(formData.password)) {
+            dispatch(showNotification("Password must be at least 8 characters, include 1 uppercase, 1 number, and 1 special character.", "error"));
+
+            return;
+        }
+        if (!(formData.company)) {
+            dispatch(showNotification("Organisation is required.", "error"));
+
+            return;
+        }
+
         dispatch(createUser(formData))
             .then(() => {
                 dispatch(showNotification("User created successfully", "success"));
-                sessionStorage.setItem("fetchData", "fatchdata");
-                setShowPopup(false);
+                localStorage.setItem("activeComponent", "Usersmanagement");
+    
+                setTimeout(() => {
+                    handleClosePopup();
+                    window.location.reload();
+                }, 2000);               
+                 setShowPopup(false);
             })
             .catch((error) => {
                 console.error(error);
             });
     };
+
 
     const handleFullNameChange = (event) => {
         const fullName = event.target.value.trim();
@@ -151,7 +177,7 @@ const ParentComponent = () => {
     return (
         <>
             <Button
-                className=" trigger text-[#F48567] border-none bg-transparent hover:bg-[#F4856720] hover:text-[#F48567] p-2 rounded"
+                className=" trigger text-[#F48567] border-none bg-transparent hover:bg-[#F4856720] hover:text-[#F48567] p-2 rounded-xl border border-gray-600 focus:outline-none"
                 icon={
                     <svg width="46" height="47" viewBox="0 0 46 47" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <g filter="url(#filter0_b_3004_2013)">
@@ -192,9 +218,9 @@ const ParentComponent = () => {
             {/* Popup */}
             {showPopup && (
                 <div className="popup-overlay">
-                    <div className="p-8 bg-[rgb(30,30,30)] rounded-lg w-[500px] h-[800px] overflow-y-auto">
+                    <div className={`rounded-xl border border-gray-600 focus:outline-none-3xl shadow-lg w-] max-w-[70%] overflow-y-scroll pl-10 pr-10 p-8 relative flex flex-col max-h-[95%] ${darkMode ? 'bg-[#222222] text-white' : 'bg-[#fff] text-dark'}`}>
                         <div className="flex justify-between align-center">
-                            <h2 className="text-2xl mb-6 text-white">Create User Profile</h2>
+                            <h2 className="text-2xl mb-6">Create User Profile</h2>
                             <svg className="cursor-pointer mt-1" onClick={handleClosePopup}
                                 width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <g clip-path="url(#clip0_3261_1019)">
@@ -212,102 +238,106 @@ const ParentComponent = () => {
                             {/* First Name & Last Name */}
                             <div className="flex gap-4">
                                 <div className="flex flex-col w-1/2">
-                                    <label className="text-white mb-1">Name *</label>
+                                    <label className="mb-1">Name *</label>
                                     <input
                                         name="full name"
                                         onChange={handleFullNameChange}
-                                        required
                                         type="text"
                                         placeholder="Name"
-                                        className="p-2 bg-[#333333] text-white rounded"
+                                        className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                     />
                                 </div>
                                 <div className="flex flex-col w-1/2">
-                                    <label className="text-white mb-1">User Name</label>
+                                    <label className="mb-1">User Name</label>
                                     <input
                                         name="userName"
                                         onChange={handleChange}
-                                        required
                                         type="text"
                                         placeholder="User Name"
-                                        className="p-2 bg-[#333333] text-white rounded"
+                                        className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                     />
                                 </div>
                             </div>
-                            {/* Choose Role */}
                             <div className="flex flex-col">
-                                <label className="text-white mb-1">Organisation</label>
-                                <select
-                                    name="roles"
-                                    value={formData.roles}
-                                    onChange={handleChange}
-                                    className="p-2 bg-[#333333] text-white rounded"
-                                >
-                                    <option >Select</option>
-                                    <option value="Admin">Admin</option>
-                                    <option value="Super Admin">Super Admin</option>
-                                    <option value="HR">HR</option>
-                                    <option value="Partner">Partner</option>
-                                    <option value="End User">End User</option>
-                                </select>
+                                <label className="mb-1">Organisation [{totalLicenses ? `${userCount} / ${totalLicenses}` : ""}]</label>
+
+                                <Select
+                                    showSearch
+                                    placeholder="Organisation"
+                                    className="choose-org"
+
+                                    options={licensing?.map((item) => ({
+                                        label: item.organisationName,
+                                        value: item.organisationName,
+                                    }))}
+                                    onChange={handleCompanyChange}
+                                />
                             </div>
                             {/* Email Address */}
                             <div className="flex flex-col">
-                                <label className="text-white mb-1">Email ID*</label>
+                                <label className="mb-1">Email ID *</label>
                                 <input
                                     name="email"
                                     onChange={handleChange}
                                     required
                                     type="email"
                                     placeholder="Enter Email"
-                                    className="p-2 bg-[#333333] text-white rounded"
+                                    className="p-2  rounded-xl border border-gray-600 focus:outline-none"
+                                />
+                            </div>
+                            <div className="flex flex-col">
+                                <label className="mb-1">Password</label>
+                                <input
+                                    name="password"
+                                    onChange={handleChange}
+                                    type="text"
+                                    placeholder="Password"
+                                    className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                 />
                             </div>
 
                             {/* Phone */}
                             <div className="flex flex-col">
-                                <label className="text-white mb-1">Phone Number </label>
+                                <label className="mb-1">Phone Number </label>
                                 <input
                                     name="mobile"
                                     onChange={handleChange}
-                                    required
                                     type="text"
-                                    placeholder="Enter Phone Number"
-                                    className="p-2 bg-[#333333] text-white rounded"
+                                    placeholder="Phone Number"
+                                    className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                 />
                             </div>
 
                             {/* Location */}
                             <div className="flex flex-col">
-                                <label className="text-white mb-1">Location </label>
+                                <label className="mb-1">Location </label>
                                 <input
                                     name="address"
                                     onChange={handleChange}
                                     required
                                     type="text"
                                     placeholder="Enter Location"
-                                    className="p-2 bg-[#333333] text-white rounded"
+                                    className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                 />
                             </div>
                             <div className="flex flex-col">
-                                <label className="text-white mb-1">Department</label>
+                                <label className="mb-1">Department</label>
                                 <input
                                     name="department"
                                     onChange={handleChange}
-                                    required
                                     type="text"
                                     placeholder="Department"
-                                    className="p-2 bg-[#333333] text-white rounded"
+                                    className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                 />
                             </div>
                             <div className="flex gap-4">
                                 <div className="flex flex-col w-1/2">
-                                    <label className="text-white mb-1">Gender</label>
+                                    <label className="mb-1">Gender</label>
                                     <select
                                         name="gender"
                                         value={formData.gender}
                                         onChange={handleChange}
-                                        className="p-2 bg-[#333333] text-white rounded"
+                                        className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                     >
                                         <option value="">Select Gender</option>
                                         <option value="female">Female</option>
@@ -315,79 +345,53 @@ const ParentComponent = () => {
                                     </select>
                                 </div>{/* DOB */}
                                 <div className="flex flex-col w-1/2">
-                                    <label className="text-white mb-1">DOB</label>
+                                    <label className="mb-1">DOB</label>
                                     <input
                                         name="doB"
                                         value={formData.doB}
                                         onChange={handleChange}
                                         type="date"
-                                        className="p-2 bg-[#333333] text-white rounded"
+                                        className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                     />
                                 </div>
                             </div>
                             <div className="flex gap-4">
                                 <div className="flex flex-col w-1/2">
-                                    <label className="text-white mb-1">Country</label>
+                                    <label className="mb-1">DOJ *</label>
                                     <input
-                                        name="country"
+                                        name="joinedAt"
+                                        value={formData.joinedAt}
                                         onChange={handleChange}
-                                        placeholder="Relationship status"
-                                        className="p-2 bg-[#333333] text-white rounded"
+                                        type="date"
+                                        className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                     />
                                 </div>
                                 <div className="flex flex-col w-1/2">
-                                    <label className="text-white mb-1">Password</label>
+                                    <label className="mb-1">DOA</label>
                                     <input
-                                        name="password"
+                                        name="dateOfAniversary"
+                                        value={formData.dateOfAniversary}
                                         onChange={handleChange}
-                                        required
-                                        type="text"
-                                        placeholder="Password"
-                                        className="p-2 bg-[#333333] text-white rounded"
+                                        type="date"
+                                        className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                     />
                                 </div>
                             </div>
-                            <div className="flex gap-4">
-                                <div className="flex flex-col w-1/2">
-                                    <label className="text-white mb-1">Company</label>
 
-                                    <Select
-                                        showSearch
-                                        placeholder="Company"
-                                        options={licensing?.map((item) => ({
-                                            label: item.organisationName,
-                                            value: item.organisationName,
-                                        }))}
-                                        onChange={handleCompanyChange}
-                                    />
-                                </div>
-                                <div className="flex flex-col w-1/2">
-                                    <label className="text-white mb-1">Licenses</label>
-                                    <input
-                                        name="numberOfLicences"
-                                        type="text"
-                                        value={totalLicenses ? `${userCount} / ${totalLicenses}` : ""}
-                                        disabled
-                                        className="p-2 bg-[#333333] text-white rounded"
-                                    />
-                                </div>
-
-                            </div>
                             <div className="flex gap-4">
                                 <div className="flex flex-col w-1/2">
-                                    <label className="text-white mb-1">Employee Count</label>
+                                    <label className="mb-1">Child Count</label>
                                     <input
-                                        name="employeeCount"
+                                        name="childCount"
                                         onChange={handleChange}
-                                        required
                                         type="number"
-                                        placeholder="Employee Count"
-                                        className="p-2 bg-[#333333] text-white rounded"
+                                        placeholder="Child Count"
+                                        className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                     />
                                 </div>
                                 <div className="flex flex-col w-1/2">
-                                    <label className="text-white mb-1">Profile Picture</label>
-                                    <label className="p-2 pl-4 pr-4 bg-[#333333] text-white rounded flex items-center justify-between cursor-pointer">
+                                    <label className="mb-1">Profile Picture</label>
+                                    <label className="p-2 pl-4 pr-4  rounded-xl border border-gray-600 focus:outline-none flex items-center justify-between cursor-pointer">
                                         <div>{fileName}</div>
                                         <svg
                                             width="13"
@@ -420,7 +424,7 @@ const ParentComponent = () => {
                                     <div className="flex flex-col w-full">
                                         <button
                                             type="submit"
-                                            className="bg-[#F48567] px-4 py-2 rounded-xl text-[#000]"
+                                            className="bg-[#F48567] px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#000]"
                                         >
                                             Save
                                         </button>
@@ -433,7 +437,7 @@ const ParentComponent = () => {
                                     <button
 
                                         onClick={handleClosePopup}
-                                        className="bg-[#C7C7C7] px-4 py-2 rounded-xl text-[#000]"
+                                        className="bg-[#C7C7C7] px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#000]"
                                     >
                                         Cancel
                                     </button>

@@ -97,10 +97,11 @@ const UserManagement = () => {
     };
 
 
-
     const filteredData = useMemo(() => {
         let filtered = [...users]; // Avoid mutating state
-
+        
+       // Remove users with the role "End User"
+       filtered = filtered.filter(item => !item.roles.includes("End User"));        
         // Apply organization, SPOC, or location-based search
         if (specificSearchQuery) {
             filtered = filtered.filter(item =>
@@ -110,26 +111,25 @@ const UserManagement = () => {
                 item.roles.some(role => role.toLowerCase().includes(specificSearchQuery.toLowerCase()))
             );
         }
-
-
+        
         // Apply sorting/filtering based on the selected filter option
         switch (filter) {
             case "newestFirst":
                 filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
                 break;
-
+    
             case "1234":
                 filtered.sort((a, b) => a.userId - b.userId);
                 break;
-
+    
             case "ABCD":
                 filtered.sort((a, b) => {
                     const nameA = a.userName || "";
                     const nameB = b.userName || "";
                     return nameA.localeCompare(nameB);
                 });
-                                break;
-
+                break;
+    
             case "role":
                 const rolePriority = {
                     "Super Admin": 1,
@@ -138,44 +138,41 @@ const UserManagement = () => {
                     "Hr": 4,
                     "End User": 5
                 };
-
+    
                 filtered.sort((a, b) => {
                     return (rolePriority[a.roles[0]] || 99) - (rolePriority[b.roles[0]] || 99);
                 });
                 break;
-
-
+    
             case "endDate":
                 filtered.sort((a, b) => {
                     const getLastEditDate = (logs) => {
                         if (!Array.isArray(logs) || logs.length === 0) return new Date(0); // Default to oldest date
                         return new Date(logs[logs.length - 1].date); // Use the last element's date
                     };
-
+    
                     return getLastEditDate(a.editLogs) - getLastEditDate(b.editLogs);
                 });
                 break;
-
-
+    
             case "startDate":
                 filtered.sort((b, a) => new Date(a.joinedAt) - new Date(b.joinedAt));
                 break;
-
+    
             case "inactiveFirst":
                 filtered.sort((b, a) => {
                     return (a.blocked === b.blocked) ? 0 : a.blocked ? 1 : -1;
                 });
                 break;
-
-
-
-
+    
             default:
                 break;
         }
-
+    
         return filtered;
     }, [filter, specificSearchQuery, users]);
+    
+    
 
 
     // Calculate Metrics
@@ -283,11 +280,11 @@ const UserManagement = () => {
             const response = await dispatch(changeUserRole(userId, newRole));
 
             // If the role change is successful, refresh users and show success notification
-            if (response?.success) {
+            if (response) {
                 dispatch(fetchAllUsers());
-                dispatch(showNotification(response.message || "Role updated successfully", "success"));
+                dispatch(showNotification("Role updated successfully", "success"));
             } else {
-                throw new Error(response?.message || "Failed to update role");
+                throw new Error("Failed to update role");
             }
         } catch (error) {
             // Handle failure scenario
@@ -298,7 +295,7 @@ const UserManagement = () => {
 
 
 
-    const rolesOptions = ["Admin", "Super Admin", "Partner", "HR", "End User"];
+    const rolesOptions = ["Admin", "Super Admin", "Partner", "HR"];
 
     // Retrieve encrypted roles from localStorage
     const encryptedRoles = localStorage.getItem("encryptedRoles");

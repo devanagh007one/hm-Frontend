@@ -1,3 +1,5 @@
+import CryptoJS from 'crypto-js'; // Ensure you have imported CryptoJS
+
 export const FETCH_USERS_SUCCESS = "FETCH_USERS_SUCCESS";
 export const FETCH_USERS_FAILURE = "FETCH_USERS_FAILURE";
 export const CREATE_USER_SUCCESS = "CREATE_USER_SUCCESS";
@@ -31,7 +33,7 @@ export const fetchAllUsers = () => async (dispatch) => {
     }
 
     const data = await response.json();
-console.log(data)
+    console.log(data)
     // Dispatch FETCH_USERS_SUCCESS with the full user list
     dispatch({ type: FETCH_USERS_SUCCESS, payload: data });
   } catch (error) {
@@ -44,12 +46,33 @@ console.log(data)
 export const createUser = (userData) => async (dispatch) => {
   try {
     const authToken = localStorage.getItem("authToken");
+    console.log("User Data Being Sent:", userData);
 
-    // Construct FormData
+    // Retrieve and decrypt userId from localStorage
+    const encryptedId = localStorage.getItem('userId');
+    if (!encryptedId) {
+      console.error('Encrypted user ID is missing.');
+      return null;
+    }
+
+    let userId = null;
+    try {
+      const bytes = CryptoJS.AES.decrypt(encryptedId, '477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1');
+      userId = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+    } catch (error) {
+      console.error('Error decrypting user ID:', error);
+      return null;
+    }
+
     const formData = new FormData();
+    
+    // Append uploaded_by first
+    formData.append('uploaded_by', userId);
+
     for (const key in userData) {
-      if (typeof userData[key] === "object" && userData[key] !== null) {
-        // Handle nested objects like permissions
+      if (userData[key] instanceof File || userData[key] instanceof Blob) {
+        formData.append(key, userData[key]);
+      } else if (typeof userData[key] === "object" && userData[key] !== null) {
         for (const subKey in userData[key]) {
           formData.append(`${key}[${subKey}]`, userData[key][subKey]);
         }
@@ -70,17 +93,24 @@ export const createUser = (userData) => async (dispatch) => {
     );
 
     const data = await response.json();
+    console.log("API Response Data:", data);
 
-    // Check if the response contains a success message
-    if (data.message === "User created successfully") {
+    if (data.message === "User created successfully" && data.userId) {
       dispatch({ type: CREATE_USER_SUCCESS, payload: data });
+      return data;
     } else {
-      throw new Error(data.message || "Failed to create user");
+      // throw new Error(data.message || "Failed to create user");
     }
   } catch (error) {
-    dispatch({ type: CREATE_USER_FAILURE, payload: error.message });
+    // dispatch({ type: CREATE_USER_FAILURE, payload: error.message });
+    throw error;
   }
 };
+
+
+
+
+
 
 
 // Action for deleting multiple users
@@ -173,12 +203,12 @@ export const changeUserRole = (userId, newRole) => async (dispatch) => {
 
     const data = await response.json();
     dispatch({ type: CHANGE_USER_ROLE_SUCCESS, payload: data });
-    
+
     // Return the message to be used in the success handler
-    return Promise.resolve(data);  // Contains the message field like { message: 'Role changed and notification sent' }
+    return Promise.resolve(data);  // Contains the message field like { message: 'Role changed Done' }
   } catch (error) {
     dispatch({ type: CHANGE_USER_ROLE_FAILURE, payload: error.message });
-    
+
     // Return the error message in case of failure
     return Promise.reject(error);  // Contains the error message
   }
@@ -193,9 +223,9 @@ export const editUserProfile = (userId, formData) => async (dispatch) => {
     for (const pair of formData.entries()) {
       console.log(pair[0], pair[1]);
     }
-    
+
     const response = await fetch(
-      `${process.env.REACT_APP_STATIC_API_URL}/api/user/profile/${userId}`,
+      `${process.env.REACT_APP_STATIC_API_URL}/api/adminSignup/edit/${userId}`,
       {
         method: "PUT",
         headers: {
@@ -215,7 +245,7 @@ export const editUserProfile = (userId, formData) => async (dispatch) => {
     const data = await response.json();
     console.log(data)
     dispatch({ type: EDIT_USER_PROFILE_SUCCESS, payload: data });
-    
+
     // Return the message to be used in the success handler
     return Promise.resolve(data);  // Contains the message field like { message: 'Profile updated successfully' }
   } catch (error) {

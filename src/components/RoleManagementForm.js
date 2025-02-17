@@ -99,47 +99,47 @@ const ParentComponent = () => {
         });
     };   
     
-console.log(formData)
     const handleSubmit = (e) => {
         e.preventDefault();
         if (isSaveDisabled) return;
-
-        // Validate required fields with specific messages
+    
         const fieldErrors = {};
+    
         if (!formData.email?.trim()) fieldErrors.email = "The Email ID is required.";
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email?.trim())) {
+            fieldErrors.email = "Invalid email format.";
+        }
+    
         if (!formData.company?.trim()) fieldErrors.company = "Organization name is missing.";
-
+    
         if (Object.keys(fieldErrors).length > 0) {
             const errorMessage = Object.values(fieldErrors).join(" ");
             dispatch(showNotification(errorMessage, "error"));
             return;
         }
-
-        // Ensure roles is always an array
+    
         const updatedFormData = {
             ...formData,
             roles: Array.isArray(formData.roles) ? formData.roles : [formData.roles],
         };
-
+    
         dispatch(createUser(updatedFormData))
             .then(() => {
                 dispatch(showNotification("User created successfully", "success"));
-                sessionStorage.setItem("fetchData", "fatchdata");
                 setShowPopup(false);
-
-                // Store Licensing before reload
                 localStorage.setItem("activeComponent", "Rolemanagement");
-
-                // Delay reload after popup closes
+    
                 setTimeout(() => {
                     handleClosePopup();
                     window.location.reload();
-                }, 3000); // 3 seconds
+                }, 2000);
             })
             .catch((error) => {
                 console.error("Error creating user:", error);
+                dispatch(showNotification(error.message || "Failed to create user", "error"));
             });
     };
+    
 
 
 
