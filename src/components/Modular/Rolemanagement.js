@@ -123,8 +123,12 @@ const UserManagement = () => {
                 break;
 
             case "ABCD":
-                filtered.sort((a, b) => a.userName.localeCompare(b.userName));
-                break;
+                filtered.sort((a, b) => {
+                    const nameA = a.userName || "";
+                    const nameB = b.userName || "";
+                    return nameA.localeCompare(nameB);
+                });
+                                break;
 
             case "role":
                 const rolePriority = {
