@@ -14,6 +14,7 @@ const ParentComponent = () => {
     const [showPopup, setShowPopup] = useState(false);
     const [isSectionVisible, setIsSectionVisible] = useState(true);
     const [isSection2Visible, setIsSection2Visible] = useState(false);
+    const [isCreatedModuleVisible, setisCreatedModuleVisible] = useState(false);
     const [isSection3Visible, setIsSection3Visible] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
     const [isOpen2, setIsOpen2] = useState(false);
@@ -36,7 +37,7 @@ const ParentComponent = () => {
 
 
 
-    const initialFormData = {
+    const initialModuleData = {
         uniqueUploadId: generateUniqueId(),
         tracks: "",
         moduleName: "",
@@ -62,9 +63,17 @@ const ParentComponent = () => {
 
 
 
-    const [formData, setFormData] = useState(initialFormData);
+    const [formData, setFormData] = useState(initialModuleData);
     const [challengeData, setChallengeData] = useState(initialChallangeData);
-    console.log(formData);
+
+
+    const [modules, setModules] = useState([]);
+    // const [formData, setFormData] = useState(initialFormData);
+    const [editingIndex, setEditingIndex] = useState(null);
+    const [expandedIndex, setExpandedIndex] = useState(null);
+
+    console.log(modules);
+
 
     const toggleDropdown = () => setIsOpen(!isOpen);
     const toggleDropdown2 = () => setIsOpen2(!isOpen2);
@@ -73,10 +82,14 @@ const ParentComponent = () => {
     const handleSelectTracks = (option) => {
         setFormData(prevData => ({
             ...prevData,
-            tracks: option,  // Store the selected option in the tracks field
+            tracks: option,
         }));
+
         setIsOpen(false); // Close dropdown after selection
     };
+
+
+
 
     const tracks = [
         "Values", "Dance", "Fitness", "Mindfulness", "Music", "Art", "Cooking", "Yoga"
@@ -135,7 +148,7 @@ const ParentComponent = () => {
         } catch (error) {
             dispatch(showNotification("An error occurred. Please try again.", "error"));
         } finally {
-            setLoading2(false); // Stop loading
+            // setLoading2(false); // Stop loading
         }
     };
 
@@ -147,16 +160,16 @@ const ParentComponent = () => {
             dispatch(showNotification("Please fill all required fields.", "error"));
             return;
         }
-    
+
         setLoading(true); // Start loading
-    
+
         try {
             const response = await dispatch(createchallenge(challengeData));
-    
+
             if (response && response.success) {
                 dispatch(showNotification("Challenge created successfully.", "success"));
-                handleClosePopup();
-                window.location.reload(); // Reload the page after closing the popup
+                // handleClosePopup();
+                // window.location.reload(); // Reload the page after closing the popup
             } else {
                 dispatch(showNotification("Failed to create challenge. Please try again.", "error"));
             }
@@ -166,15 +179,13 @@ const ParentComponent = () => {
             setLoading(false); // Stop loading
         }
     };
-    
-
 
 
 
     const handleViewPopup = () => setShowPopup(true);
     const handleClosePopup = () => {
         setShowPopup(false);
-        setFormData(initialFormData);
+        // setFormData(initialFormData);
         setChallengeData(initialChallangeData);
         settime({ duration: 0 }); // Reset time state
         setIsSectionVisible(true);
@@ -209,10 +220,93 @@ const ParentComponent = () => {
     };
 
 
+    const handleAddModule = () => {
+        if (!formData.moduleName) {
+            setisCreatedModuleVisible(true);
+            setIsSection2Visible(false);
+            return;
+        }
+
+        const trackValue = modules[0]?.tracks || formData.tracks;
+        const newModule = { ...formData, tracks: trackValue, uniqueUploadId: generateUniqueId() };
+
+        if (editingIndex !== null) {
+            const updatedModules = [...modules];
+            updatedModules[editingIndex] = newModule;
+            setModules(updatedModules);
+            setEditingIndex(null);
+        } else {
+            setModules([...modules, newModule]);
+        }
+
+        setFormData({ ...initialModuleData, uniqueUploadId: generateUniqueId(), tracks: trackValue });
+        setIsSection2Visible(false);
+        setisCreatedModuleVisible(true);
+    };
+
+    const handleAddModulefromavilable = () => {
+        if (!formData.moduleName) {
+            dispatch(showNotification("Title is required to create Module.", "error"));
+            return;
+        }
+
+        const trackValue = modules[0]?.tracks || formData.tracks;
+        const newModule = { ...formData, tracks: trackValue, uniqueUploadId: generateUniqueId() };
+
+        const updatedModules = editingIndex !== null
+            ? [...modules.slice(0, editingIndex), newModule, ...modules.slice(editingIndex + 1)]
+            : [...modules, newModule];
+
+        setModules(updatedModules);
+        setFormData({ ...initialModuleData, uniqueUploadId: generateUniqueId(), tracks: trackValue });
+        setIsSection2Visible(true);
+        setisCreatedModuleVisible(false);
+        setEditingIndex(null);
+    };
+
+    const handleEditModule = (index) => {
+        setFormData(modules[index]);
+        setEditingIndex(index);
+        setIsSection2Visible(true);
+        setisCreatedModuleVisible(false);
+    };
+
+    const handleDeleteModule = (index) => {
+        setModules(modules.filter((_, i) => i !== index));
+    };
+
+    const handleAddModulefromavilablenew = () => {
+        setIsSection2Visible(true);
+        setisCreatedModuleVisible(false);
+    };
+
+
+
+
+
+    const handleSaveModules = async () => {
+        setLoading(true);
+        console.log("Full Modules Array:", modules); // Logs the complete array
+
+        try {
+            console.log("Full Modules Array:", modules); // Logs the complete array
+            // You can send this array to the backend via API call here
+        } catch (error) {
+            console.error("Error saving modules:", error);
+        }
+        setLoading(false);
+    };
+
+    const handleRemoveFile = (field) => {
+        setFormData((prev) => ({
+            ...prev,
+            [field]: null, // Reset the specific field to null
+        }));
+    };
+
     return (
         <>
-            <div onClick={handleViewPopup}
-            >
+            <div onClick={handleViewPopup}>
                 <svg width="46" height="46" viewBox="0 0 46 46" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <g filter="url(#filter0_b_4249_1934)">
                         <rect x="0.1" y="0.1" width="45.8" height="45.8" rx="11.9" stroke="#F48567" stroke-width="0.2" />
@@ -243,6 +337,9 @@ const ParentComponent = () => {
                                 <h2 className="text-2xl mb-6 text-white">Upload Content</h2>
                             )}
                             {isSection2Visible && (
+                                <h2 className="text-2xl mb-6 text-white">Track: Values</h2>
+                            )}
+                            {isCreatedModuleVisible && (
                                 <h2 className="text-2xl mb-6 text-white">Track: Values</h2>
                             )}
                             {isSection3Visible && (
@@ -340,118 +437,309 @@ const ParentComponent = () => {
                             <div>
 
                                 {isSection2Visible && (
-                                    <section>
-                                        <div className="flex flex-col">
-                                            <label className="text-white mb-1">Title</label>
-                                            <input
-                                                name="moduleName"
-                                                required
-                                                type="text"
-                                                placeholder="Title"
-                                                className="p-2 bg-[#333333] text-white rounded"
-                                                value={formData.moduleName}
-                                                onChange={(e) => setFormData({ ...formData, moduleName: e.target.value })}
-                                            />
-                                        </div>
+                                    <div>
+                                        {true && (
+                                            <section>
+                                                <div className="flex flex-col">
+                                                    <button
+                                                        type="button"
+                                                        className="bg-[#333333] mb-3 px-4 py-2 rounded-xl text-[#F48567] flex items-center justify-center"
+                                                        onClick={handleAddModulefromavilable}
+                                                    >
+                                                        Add Module
+                                                    </button>
 
-                                        <div className="flex flex-col">
-                                            <label className="text-white mb-1">Description</label>
-                                            <textarea
-                                                name="description"
-                                                required
-                                                type="text"
-                                                placeholder="Enter Description"
-                                                className="p-2 bg-[#333333] text-white rounded"
-                                                value={formData.description}
-                                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                            />
-                                        </div>
+                                                </div>
 
-                                        <div className="flex flex-col w-full">
-                                            <label className="text-white mb-1">Upload Cover Photo (Optional)</label>
-                                            <label className="p-2 pl-4 pr-4 bg-[#333333] text-white rounded flex items-center justify-between cursor-pointer">
-                                                <div>{formData.cover_Photo?.name || "Upload Cover Photo"}</div>
-                                                <svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <path
-                                                        d="M5.8501 9.59998V3.48748L3.9001 5.43748L2.8501 4.34998L6.6001 0.599976L10.3501 4.34998L9.3001 5.43748L7.3501 3.48748V9.59998H5.8501ZM2.1001 12.6C1.6876 12.6 1.3346 12.4532 1.0411 12.1597C0.747598 11.8662 0.600598 11.513 0.600098 11.1V8.84998H2.1001V11.1H11.1001V8.84998H12.6001V11.1C12.6001 11.5125 12.4533 11.8657 12.1598 12.1597C11.8663 12.4537 11.5131 12.6005 11.1001 12.6H2.1001Z"
-                                                        fill="#C7C7C7"
+                                                {/* Form for adding/editing module */}
+                                                <div className="flex flex-col">
+                                                    <label className="text-white mb-1">Title</label>
+                                                    <input
+                                                        name="moduleName"
+                                                        required
+                                                        type="text"
+                                                        placeholder="Title"
+                                                        className="p-2 bg-[#333333] text-white rounded"
+                                                        value={formData.moduleName}
+                                                        onChange={(e) => setFormData({ ...formData, moduleName: e.target.value })}
                                                     />
-                                                </svg>
-                                                <input
-                                                    name="cover_Photo"
-                                                    type="file"
-                                                    className="hidden"
-                                                    onChange={(e) => handleFileChange(e, 'cover_Photo')}
-                                                />
-                                            </label>
-                                        </div>
+                                                </div>
 
-                                        <div className="flex flex-col w-full">
-                                            <label className="text-white mb-1">Upload Module Video (Optional)</label>
-                                            <label className="p-2 pl-4 pr-4 bg-[#333333] text-white rounded flex items-center justify-between cursor-pointer">
-                                                <div>{formData.videoFile_introduction?.name || "Upload Module Video"}</div>
-                                                <svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <path
-                                                        d="M5.8501 9.59998V3.48748L3.9001 5.43748L2.8501 4.34998L6.6001 0.599976L10.3501 4.34998L9.3001 5.43748L7.3501 3.48748V9.59998H5.8501ZM2.1001 12.6C1.6876 12.6 1.3346 12.4532 1.0411 12.1597C0.747598 11.8662 0.600598 11.513 0.600098 11.1V8.84998H2.1001V11.1H11.1001V8.84998H12.6001V11.1C12.6001 11.5125 12.4533 11.8657 12.1598 12.1597C11.8663 12.4537 11.5131 12.6005 11.1001 12.6H2.1001Z"
-                                                        fill="#C7C7C7"
+                                                <div className="flex flex-col mt-3">
+                                                    <label className="text-white mb-1">Description</label>
+                                                    <textarea
+                                                        name="description"
+                                                        required
+                                                        placeholder="Enter Description"
+                                                        className="p-2 bg-[#333333] text-white rounded"
+                                                        value={formData.description}
+                                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                                     />
-                                                </svg>
-                                                <input
-                                                    name="videoFile_introduction"
-                                                    type="file"
-                                                    className="hidden"
-                                                    onChange={(e) => handleFileChange(e, 'videoFile_introduction')}
-                                                />
-                                            </label>
-                                        </div>
+                                                </div>
 
-                                        <div className="flex flex-col w-full">
-                                            <label className="text-white mb-1">Upload Explanatory Video (Optional)</label>
-                                            <label className="p-2 pl-4 pr-4 bg-[#333333] text-white rounded flex items-center justify-between cursor-pointer">
-                                                <div>{formData.videoFile_description?.name || "Upload Explanatory Video"}</div>
-                                                <svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <path
-                                                        d="M5.8501 9.59998V3.48748L3.9001 5.43748L2.8501 4.34998L6.6001 0.599976L10.3501 4.34998L9.3001 5.43748L7.3501 3.48748V9.59998H5.8501ZM2.1001 12.6C1.6876 12.6 1.3346 12.4532 1.0411 12.1597C0.747598 11.8662 0.600598 11.513 0.600098 11.1V8.84998H2.1001V11.1H11.1001V8.84998H12.6001V11.1C12.6001 11.5125 12.4533 11.8657 12.1598 12.1597C11.8663 12.4537 11.5131 12.6005 11.1001 12.6H2.1001Z"
-                                                        fill="#C7C7C7"
-                                                    />
-                                                </svg>
-                                                <input
-                                                    name="videoFile_description"
-                                                    type="file"
-                                                    className="hidden"
-                                                    onChange={(e) => handleFileChange(e, 'videoFile_description')}
-                                                />
-                                            </label>
-                                        </div>
+                                                {/* Upload sections */}
+                                                <div className="flex flex-col w-full  mt-3">
+                                                    <label className="text-white mb-1">Upload Cover Photo (Optional)</label>
+                                                    <label className="p-2 pl-4 pr-4 bg-[#333333] text-white rounded flex items-center justify-between cursor-pointer">
+                                                        <div>{formData.cover_Photo?.name || "Upload Cover Photo"}</div>
+                                                        <div className="flex items-center">
+                                                            <input
+                                                                name="cover_Photo"
+                                                                type="file"
+                                                                className="hidden"
+                                                                onChange={(e) => handleFileChange(e, "cover_Photo")}
+                                                            />
+                                                            {formData.cover_Photo && (
+                                                                <svg
+                                                                    width="18"
+                                                                    height="18"
+                                                                    viewBox="0 0 18 18"
+                                                                    fill="none"
+                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation(); // Prevent file input dialog from opening
+                                                                        handleRemoveFile("cover_Photo");
+                                                                    }}
+                                                                    className="cursor-pointer ml-2"
+                                                                >
+                                                                    <path
+                                                                        d="M9 0.25C4.125 0.25 0.25 4.125 0.25 9C0.25 13.875 4.125 17.75 9 17.75C13.875 17.75 17.75 13.875 17.75 9C17.75 4.125 13.875 0.25 9 0.25ZM12.375 13.375L9 10L5.625 13.375L4.625 12.375L8 9L4.625 5.625L5.625 4.625L9 8L12.375 4.625L13.375 5.625L10 9L13.375 12.375L12.375 13.375Z"
+                                                                        fill="#DD441B"
+                                                                    />
+                                                                </svg>
+                                                            )}
+                                                        </div>
+                                                    </label>
+                                                </div>
+
+                                                <div className="flex flex-col w-full  mt-3">
+                                                    <label className="text-white mb-1">Upload Module Video (Optional)</label>
+                                                    <label className="p-2 pl-4 pr-4 bg-[#333333] text-white rounded flex items-center justify-between cursor-pointer">
+                                                        <div>{formData.videoFile_introduction?.name || "Upload Module Video"}</div>
+                                                        <div className="flex items-center">
+                                                            <input
+                                                                name="videoFile_introduction"
+                                                                type="file"
+                                                                className="hidden"
+                                                                onChange={(e) => handleFileChange(e, "videoFile_introduction")}
+                                                            />
+                                                            {formData.videoFile_introduction && (
+                                                                <svg
+                                                                    width="18"
+                                                                    height="18"
+                                                                    viewBox="0 0 18 18"
+                                                                    fill="none"
+                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation(); // Prevent file input dialog from opening
+                                                                        handleRemoveFile("videoFile_introduction");
+                                                                    }}
+                                                                    className="cursor-pointer ml-2"
+                                                                >
+                                                                    <path
+                                                                        d="M9 0.25C4.125 0.25 0.25 4.125 0.25 9C0.25 13.875 4.125 17.75 9 17.75C13.875 17.75 17.75 13.875 17.75 9C17.75 4.125 13.875 0.25 9 0.25ZM12.375 13.375L9 10L5.625 13.375L4.625 12.375L8 9L4.625 5.625L5.625 4.625L9 8L12.375 4.625L13.375 5.625L10 9L13.375 12.375L12.375 13.375Z"
+                                                                        fill="#DD441B"
+                                                                    />
+                                                                </svg>
+                                                            )}
+                                                        </div>
+                                                    </label>
+                                                </div>
+
+                                                <div className="flex flex-col w-full  mt-3">
+                                                    <label className="text-white mb-1">Upload Explanatory Video (Optional)</label>
+                                                    <label className="p-2 pl-4 pr-4 bg-[#333333] text-white rounded flex items-center justify-between cursor-pointer">
+                                                        <div>{formData.videoFile_description?.name || "Upload Explanatory Video"}</div>
+                                                        <div className="flex items-center">
+                                                            <input
+                                                                name="videoFile_description"
+                                                                type="file"
+                                                                className="hidden"
+                                                                onChange={(e) => handleFileChange(e, "videoFile_description")}
+                                                            />
+                                                            {formData.videoFile_description && (
+                                                                <svg
+                                                                    width="18"
+                                                                    height="18"
+                                                                    viewBox="0 0 18 18"
+                                                                    fill="none"
+                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation(); // Prevent file input dialog from opening
+                                                                        handleRemoveFile("videoFile_description");
+                                                                    }}
+                                                                    className="cursor-pointer ml-2"
+                                                                >
+                                                                    <path
+                                                                        d="M9 0.25C4.125 0.25 0.25 4.125 0.25 9C0.25 13.875 4.125 17.75 9 17.75C13.875 17.75 17.75 13.875 17.75 9C17.75 4.125 13.875 0.25 9 0.25ZM12.375 13.375L9 10L5.625 13.375L4.625 12.375L8 9L4.625 5.625L5.625 4.625L9 8L12.375 4.625L13.375 5.625L10 9L13.375 12.375L12.375 13.375Z"
+                                                                        fill="#DD441B"
+                                                                    />
+                                                                </svg>
+                                                            )}
+                                                        </div>
+                                                    </label>
+                                                </div>
+
+                                                <div className="flex gap-4 mt-4 w-full">
+                                                    <div className="flex flex-col w-full">
+                                                        <button
+                                                            type="button"
+                                                            className="bg-[#F48567] px-4 py-2 rounded-xl text-[#000] flex items-center justify-center"
+                                                            onClick={handleAddModule}
+                                                            disabled={loading}
+                                                        >
+                                                            {loading ? <Spin size="small" /> : editingIndex !== null ? "Update Module" : "Save"}
+                                                        </button>
 
 
-                                        <div className="flex gap-4 mt-4 w-full">
-                                            <div className="flex flex-col w-full">
-                                                <button
-                                                    type="submit"
-                                                    className="bg-[#F48567] px-4 py-2 rounded-xl text-[#000] flex items-center justify-center"
-                                                    onClick={handleSave}
-                                                    disabled={loading2}
-                                                >
-                                                    {loading2 ? <Spin size="small" /> : "Save"}
-                                                </button>
+                                                    </div>
 
-                                            </div>
+                                                    <div className="flex flex-col w-full">
+                                                        <button
+                                                            onClick={handleClosePopup}
+                                                            className="bg-[#C7C7C7] px-4 py-2 rounded-xl text-[#000]"
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </section>
+                                        )}
+                                    </div>
+                                )}
 
-                                            <div className="flex flex-col w-full">
-                                                <button
-                                                    onClick={handleClosePopup}
-                                                    className="bg-[#C7C7C7] px-4 py-2 rounded-xl text-[#000]"
-                                                >
-                                                    Cancel
-                                                </button>
-                                            </div>
-                                        </div>
+                                {isCreatedModuleVisible && (
+                                    <section className="flex flex-col space-y-4">
+                                        <button
+                                            type="button"
+                                            className="bg-[#333333] px-4 py-2 rounded-xl text-[#F48567] flex items-center justify-center"
+                                            onClick={handleAddModulefromavilablenew}                                        >
+                                            {editingIndex !== null ? "" : "Add Module"}
+                                        </button>
+
+                                        {modules.map((module, index) => {
+                                            const coverPhotoURL = module.cover_Photo ? URL.createObjectURL(module.cover_Photo) : null;
+                                            const videoIntroURL = module.videoFile_introduction ? URL.createObjectURL(module.videoFile_introduction) : null;
+                                            const videoDescURL = module.videoFile_description ? URL.createObjectURL(module.videoFile_description) : null;
+
+                                            return (
+                                                <div className="">
+                                                    <label className="text-white mb-1">Module {index + 1}</label>
+                                                    <div className="flex justify-between items-start gap-2">
+                                                        <div key={module.uniqueUploadId} className="w-full bg-[#333333] p-2 rounded shadow-md">
+                                                            {/* Module Header with Dropdown Toggle */}
+                                                            <div
+                                                                className="flex justify-between items-center cursor-pointer"
+                                                                onClick={() => setExpandedIndex(expandedIndex === index ? null : index)}>
+                                                                <h3 className="">Module {index + 1}</h3>
+                                                                <span className="text-gray-400">
+                                                                    {expandedIndex === index}
+                                                                </span>
+
+                                                                <svg
+                                                                    width="12"
+                                                                    height="7"
+                                                                    viewBox="0 0 12 7"
+                                                                    fill="none"
+                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                    className={`transition-transform duration-300 ${expandedIndex === index ? 'rotate-180' : ''}`}
+                                                                >
+                                                                    <path
+                                                                        fillRule="evenodd"
+                                                                        clipRule="evenodd"
+                                                                        d="M5.15828 0.536211L0.444115 5.25038L1.62245 6.42871L5.74745 2.30371L9.87245 6.42871L11.0508 5.25038L6.33662 0.536211C6.18034 0.379985 5.96842 0.292222 5.74745 0.292222C5.52648 0.292222 5.31455 0.379985 5.15828 0.536211Z"
+                                                                        fill="#C7C7C7"
+                                                                    />
+                                                                </svg>
+                                                            </div>
+
+                                                            {/* Dropdown Content */}
+                                                            {expandedIndex === index && (
+
+                                                                <div className="mt-2 p-2 rounded-lg">
+                                                                    <div className="flex justify-between">
+                                                                        <span>
+                                                                            <p className="text-sm">Title</p>
+                                                                            <p className="text-sm">{module.moduleName}</p>
+                                                                        </span>
+                                                                        <svg
+                                                                            onClick={() => {
+                                                                                setFormData(module);
+                                                                                setEditingIndex(index);
+                                                                                setIsSection2Visible(true); // Show edit section
+                                                                                setisCreatedModuleVisible(false); // Hide available modules
+
+                                                                            }}
+                                                                            className="cursor-pointer"
+                                                                            width="21" height="20" viewBox="0 0 21 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                            <path opacity="0.16" d="M4.91732 13.3333L4.08398 16.6667L7.41732 15.8333L15.7507 7.5L13.2507 5L4.91732 13.3333Z" fill="#C7C7C7" />
+                                                                            <path d="M13.2507 5.00007L15.7507 7.50007M11.584 16.6667H18.2507M4.91732 13.3334L4.08398 16.6667L7.41732 15.8334L17.0723 6.17841C17.3848 5.86586 17.5603 5.44201 17.5603 5.00007C17.5603 4.55813 17.3848 4.13429 17.0723 3.82174L16.929 3.67841C16.6164 3.36596 16.1926 3.19043 15.7507 3.19043C15.3087 3.19043 14.8849 3.36596 14.5723 3.67841L4.91732 13.3334Z" stroke="#C7C7C7" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" />
+                                                                        </svg>
+
+
+                                                                    </div>
+                                                                    <div className="mt-4">
+                                                                        <p className="text-sm">Description</p>
+                                                                        <p className="text-sm mt-2">{module.description}</p>
+                                                                    </div>
+                                                                    <section className="flex justify-between w-[90%] mt-4">
+                                                                        <div>
+                                                                            <p className="text-sm">Cover Photo</p>
+                                                                            {coverPhotoURL && (
+                                                                                <img src={coverPhotoURL} alt="Cover" className="w-20 h-20 object-cover rounded-md mt-2" />
+                                                                            )}
+                                                                        </div>
+
+                                                                        <div>
+                                                                            <p className="text-sm">Module Video:</p>
+                                                                            {videoIntroURL && (
+                                                                                <video src={videoIntroURL} controls className="w-20 h-20 rounded-md object-cover rounded-md mt-2" />
+                                                                            )}
+                                                                        </div>
+                                                                        <div>
+                                                                            <p className="text-sm">Explanatory Video:</p>
+                                                                            {videoDescURL && (
+                                                                                <video src={videoDescURL} controls className="w-20 h-20 rounded-md object-cover rounded-md mt-2" />
+                                                                            )}
+                                                                        </div>
+                                                                    </section>
+                                                                </div>
+
+
+                                                            )}
+
+                                                        </div>
+                                                        <svg onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDeleteModule(index);
+                                                        }}
+                                                            className="cursor-pointer mt-3"
+                                                            width="17" height="18" viewBox="0 0 17 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M7.3125 2.8125V3.125H10.4375V2.8125C10.4375 2.3981 10.2729 2.00067 9.97985 1.70765C9.68683 1.41462 9.2894 1.25 8.875 1.25C8.4606 1.25 8.06317 1.41462 7.77015 1.70765C7.47712 2.00067 7.3125 2.3981 7.3125 2.8125ZM6.0625 3.125V2.8125C6.0625 2.06658 6.35882 1.35121 6.88626 0.823762C7.41371 0.296316 8.12908 0 8.875 0C9.62092 0 10.3363 0.296316 10.8637 0.823762C11.3912 1.35121 11.6875 2.06658 11.6875 2.8125V3.125H16.375C16.5408 3.125 16.6997 3.19085 16.8169 3.30806C16.9342 3.42527 17 3.58424 17 3.75C17 3.91576 16.9342 4.07473 16.8169 4.19194C16.6997 4.30915 16.5408 4.375 16.375 4.375H15.4325L14.25 14.73C14.1628 15.4926 13.798 16.1965 13.2251 16.7073C12.6522 17.2182 11.9113 17.5004 11.1437 17.5H6.60625C5.83866 17.5004 5.09779 17.2182 4.52491 16.7073C3.95202 16.1965 3.5872 15.4926 3.5 14.73L2.3175 4.375H1.375C1.20924 4.375 1.05027 4.30915 0.933058 4.19194C0.815848 4.07473 0.75 3.91576 0.75 3.75C0.75 3.58424 0.815848 3.42527 0.933058 3.30806C1.05027 3.19085 1.20924 3.125 1.375 3.125H6.0625ZM7.625 7.1875C7.625 7.02174 7.55915 6.86277 7.44194 6.74556C7.32473 6.62835 7.16576 6.5625 7 6.5625C6.83424 6.5625 6.67527 6.62835 6.55806 6.74556C6.44085 6.86277 6.375 7.02174 6.375 7.1875V13.4375C6.375 13.6033 6.44085 13.7622 6.55806 13.8794C6.67527 13.9967 6.83424 14.0625 7 14.0625C7.16576 14.0625 7.32473 13.9967 7.44194 13.8794C7.55915 13.7622 7.625 13.6033 7.625 13.4375V7.1875ZM10.75 6.5625C10.5842 6.5625 10.4253 6.62835 10.3081 6.74556C10.1908 6.86277 10.125 7.02174 10.125 7.1875V13.4375C10.125 13.6033 10.1908 13.7622 10.3081 13.8794C10.4253 13.9967 10.5842 14.0625 10.75 14.0625C10.9158 14.0625 11.0747 13.9967 11.1919 13.8794C11.3092 13.7622 11.375 13.6033 11.375 13.4375V7.1875C11.375 7.02174 11.3092 6.86277 11.1919 6.74556C11.0747 6.62835 10.9158 6.5625 10.75 6.5625Z" fill="#DD441B" />
+                                                        </svg>
+                                                    </div>
+
+                                                </div>
+                                            );
+                                        })}
                                     </section>
                                 )}
 
+
                                 {isSection3Visible && (
                                     <section>
+                                        {modules.map((module, index) => (
+                                            <div key={module.uniqueUploadId} className="border p-2 m-2 rounded bg-gray-800 text-white">
+                                                <h3>Module {index + 1}: {module.moduleName}</h3>
+                                                <p>{module.description}</p>
+                                                <button onClick={() => handleEditModule(index)} className="bg-blue-500 px-2 py-1 rounded text-white mr-2">
+                                                    Edit
+                                                </button>
+                                                <button onClick={() => handleDeleteModule(index)} className="bg-red-500 px-2 py-1 rounded text-white">
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        ))}
                                         <div className="flex flex-col">
                                             <label className="text-white mb-1">Challenge Name</label>
                                             <input
