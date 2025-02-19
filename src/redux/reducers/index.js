@@ -19,6 +19,7 @@ const rootReducer = combineReducers({
     forgetPassword: forgetReducer,
     user: alluserReducer,
     licensing: alllicensingReducer,
+    hrlicensing: alllicensingReducer,
     content: allcontentReducer,
     events: eventReducer,
 

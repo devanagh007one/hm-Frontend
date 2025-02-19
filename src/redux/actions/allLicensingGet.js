@@ -132,7 +132,7 @@ export const hrLicenseGet = (hrUser) => async (dispatch) => {
     }
 
     const data = await response.json();
-    // console.log(data);
+    console.log(data);
 
     dispatch({ type: HR_LICENSE_STATUS_SUCCESS, payload: data });
   } catch (error) {

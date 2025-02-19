@@ -7,28 +7,45 @@ import "./popup.css"; // Import custom CSS
 import { Button, Select } from "antd";
 
 const ParentComponent = () => {
+    const darkMode = useSelector((state) => state.theme.darkMode);
+
     const [showPopup, setShowPopup] = useState(false);
-    const { hrlicensing, error: licensingError } = useSelector((state) => state.licensing);
     const { users, error } = useSelector((state) => state.user);
     const [isSaveDisabled, setIsSaveDisabled] = useState(false);
-    const [userCount, setUserCount] = useState(false);
-    const [role, setRole] = useState("End User");
     const [fileName, setFileName] = useState("Upload");
-    const licenseDetails = hrlicensing?.licenseDetails || {};
-    const assignedLicenses = hrlicensing?.assignedLicenses || 0;
+    const dispatch = useDispatch();
+    const { hrlicensing } = useSelector((state) => state.hrlicensing);
+
+    const [licenseDetails, setLicenseDetails] = useState({});
+    const [assignedLicenses, setAssignedLicenses] = useState(0);
+
+    useEffect(() => {
+        if (showPopup) {
+            dispatch(hrLicenseGet());
+            dispatch(fetchAllUsers());
+        }
+    }, [showPopup, dispatch]);
+
+    // Update licenseDetails and assignedLicenses when hrlicensing updates
+    useEffect(() => {
+        setLicenseDetails(hrlicensing?.licenseDetails?.organisationName || {});
+        setAssignedLicenses(hrlicensing?.assignedLicenses || 0);
+        console.log(licenseDetails)
+    }, [hrlicensing]);
+
     const [formData, setFormData] = useState({
         firstName: "",
         lastName: "",
         gender: "",
         doB: "",
         userName: "",
-        company: licenseDetails.organisationName,
+        company: licenseDetails,
         department: "",
         email: "",
         password: "",
         image: null,
         employeeCount: "",
-        numberOfLicenses:assignedLicenses + 1,
+        numberOfLicenses: assignedLicenses + 1,
         address: "",
         mobile: "",
         roles: "",
@@ -39,14 +56,17 @@ const ParentComponent = () => {
         relationShipStatus: "",
         bloodGroups: "",
         childCount: "",
+        joinedAt: "",
     });
 
     // console.log(formData)
-    const dispatch = useDispatch();
     useEffect(() => {
-        dispatch(hrLicenseGet());
-        dispatch(fetchAllUsers());
-    }, [dispatch]);
+        setFormData((prevData) => ({
+            ...prevData,
+            company: licenseDetails,
+            numberOfLicenses: assignedLicenses + 1,
+        }));
+    }, [licenseDetails, assignedLicenses]);
 
 
     const handleChange = (e) => {
@@ -60,17 +80,37 @@ const ParentComponent = () => {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (isSaveDisabled) return;
-
+    
+        // Password validation regex
+        const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    
+        // Required fields validation
+        if (
+            !formData.email.trim() ||
+            !formData.password.trim()
+        ) {
+            dispatch(showNotification("Please fill in all required fields", "error"));
+            return;
+        }
+    
+        // Validate password strength
+        if (!passwordRegex.test(formData.password)) {
+            dispatch(showNotification("Password must be at least 8 characters, include 1 uppercase, 1 number, and 1 special character.", "error"));
+            return;
+        }
+    
         dispatch(createUser(formData))
             .then(() => {
-                dispatch(showNotification("User created successfully", "success"));
+                // dispatch(showNotification("User created successfully", "success"));
                 sessionStorage.setItem("fetchData", "fatchdata");
                 setShowPopup(false);
             })
             .catch((error) => {
                 console.error(error);
+                dispatch(showNotification("Failed to create user", "error"));
             });
     };
+    
 
     const handleFullNameChange = (event) => {
         const fullName = event.target.value.trim();
@@ -93,11 +133,10 @@ const ParentComponent = () => {
 
 
 
-
     return (
         <>
             <Button
-                className=" trigger text-[#F48567] border-none bg-transparent hover:bg-[#F4856720] hover:text-[#F48567] p-2 rounded"
+                className=" trigger text-[#F48567] border-none bg-transparent hover:bg-[#F4856720] hover:text-[#F48567] p-2 rounded-xl border border-gray-600 focus:outline-none"
                 icon={
                     <svg width="46" height="47" viewBox="0 0 46 47" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <g filter="url(#filter0_b_3004_2013)">
@@ -138,9 +177,9 @@ const ParentComponent = () => {
             {/* Popup */}
             {showPopup && (
                 <div className="popup-overlay">
-                    <div className="p-8 bg-[rgb(30,30,30)] rounded-lg w-[500px] h-[800px] overflow-y-auto">
+                    <div className={`rounded-xl border border-gray-600 focus:outline-none-3xl shadow-lg w-] max-w-[70%] overflow-y-scroll pl-10 pr-10 p-8 relative flex flex-col max-h-[95%] ${darkMode ? 'bg-[#222222] text-white' : 'bg-[#fff] text-dark'}`}>
                         <div className="flex justify-between align-center">
-                            <h2 className="text-2xl mb-6 text-white">Create User Profile</h2>
+                            <h2 className="text-2xl mb-6">Create User Profile</h2>
                             <svg className="cursor-pointer mt-1" onClick={handleClosePopup}
                                 width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <g clip-path="url(#clip0_3261_1019)">
@@ -158,36 +197,35 @@ const ParentComponent = () => {
                             {/* First Name & Last Name */}
                             <div className="flex gap-4">
                                 <div className="flex flex-col w-1/2">
-                                    <label className="text-white mb-1">Name *</label>
+                                    <label className="mb-1">Name *</label>
                                     <input
                                         name="full name"
                                         onChange={handleFullNameChange}
-                                        required
                                         type="text"
                                         placeholder="Name"
-                                        className="p-2 bg-[#333333] text-white rounded"
+                                        className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                     />
                                 </div>
                                 <div className="flex flex-col w-1/2">
-                                    <label className="text-white mb-1">User Name</label>
+                                    <label className="mb-1">User Name</label>
                                     <input
                                         name="userName"
                                         onChange={handleChange}
-                                        required
                                         type="text"
                                         placeholder="User Name"
-                                        className="p-2 bg-[#333333] text-white rounded"
+                                        className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                     />
                                 </div>
                             </div>
-                            {/* Choose Role */}
+
+
                             <div className="flex flex-col">
-                                <label className="text-white mb-1">Organisation</label>
+                                <label className="mb-1">Organisation</label>
                                 <select
                                     name="roles"
                                     value={formData.roles}
                                     onChange={handleChange}
-                                    className="p-2 bg-[#333333] text-white rounded"
+                                    className="p-2 rounded-xl border border-gray-600 focus:outline-none"
                                 >
                                     <option >Select</option>
                                     <option value="HR">HR</option>
@@ -196,61 +234,70 @@ const ParentComponent = () => {
                             </div>
                             {/* Email Address */}
                             <div className="flex flex-col">
-                                <label className="text-white mb-1">Email ID*</label>
+                                <label className="mb-1">Email ID *</label>
                                 <input
                                     name="email"
                                     onChange={handleChange}
                                     required
                                     type="email"
                                     placeholder="Enter Email"
-                                    className="p-2 bg-[#333333] text-white rounded"
+                                    className="p-2  rounded-xl border border-gray-600 focus:outline-none"
+                                />
+                            </div>
+                            <div className="flex flex-col">
+                                <label className="mb-1">Password</label>
+                                <input
+                                    name="password"
+                                    onChange={handleChange}
+                                    type="text"
+                                    required
+                                    placeholder="Password"
+                                    className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                 />
                             </div>
 
                             {/* Phone */}
                             <div className="flex flex-col">
-                                <label className="text-white mb-1">Phone Number </label>
+                                <label className="mb-1">Phone Number </label>
                                 <input
                                     name="mobile"
                                     onChange={handleChange}
-                                    required
                                     type="text"
-                                    placeholder="Enter Phone Number"
-                                    className="p-2 bg-[#333333] text-white rounded"
+                                    placeholder="Phone Number"
+                                    className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                 />
                             </div>
 
                             {/* Location */}
                             <div className="flex flex-col">
-                                <label className="text-white mb-1">Location </label>
+                                <label className="mb-1">Location </label>
                                 <input
                                     name="address"
                                     onChange={handleChange}
                                     required
                                     type="text"
                                     placeholder="Enter Location"
-                                    className="p-2 bg-[#333333] text-white rounded"
+                                    className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                 />
                             </div>
                             <div className="flex flex-col">
-                                <label className="text-white mb-1">Department</label>
+                                <label className="mb-1">Department</label>
                                 <input
                                     name="department"
                                     onChange={handleChange}
-                                    required
                                     type="text"
                                     placeholder="Department"
-                                    className="p-2 bg-[#333333] text-white rounded"
+                                    className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                 />
                             </div>
                             <div className="flex gap-4">
                                 <div className="flex flex-col w-1/2">
-                                    <label className="text-white mb-1">Gender</label>
+                                    <label className="mb-1">Gender</label>
                                     <select
                                         name="gender"
                                         value={formData.gender}
                                         onChange={handleChange}
-                                        className="p-2 bg-[#333333] text-white rounded"
+                                        className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                     >
                                         <option value="">Select Gender</option>
                                         <option value="female">Female</option>
@@ -258,77 +305,53 @@ const ParentComponent = () => {
                                     </select>
                                 </div>{/* DOB */}
                                 <div className="flex flex-col w-1/2">
-                                    <label className="text-white mb-1">DOB</label>
+                                    <label className="mb-1">DOB</label>
                                     <input
                                         name="doB"
                                         value={formData.doB}
                                         onChange={handleChange}
                                         type="date"
-                                        className="p-2 bg-[#333333] text-white rounded"
+                                        className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                     />
                                 </div>
                             </div>
                             <div className="flex gap-4">
                                 <div className="flex flex-col w-1/2">
-                                    <label className="text-white mb-1">Country</label>
+                                    <label className="mb-1">DOJ *</label>
                                     <input
-                                        name="country"
+                                        name="joinedAt"
+                                        value={formData.joinedAt}
                                         onChange={handleChange}
-                                        placeholder="Relationship status"
-                                        className="p-2 bg-[#333333] text-white rounded"
+                                        type="date"
+                                        className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                     />
                                 </div>
                                 <div className="flex flex-col w-1/2">
-                                    <label className="text-white mb-1">Password</label>
+                                    <label className="mb-1">DOA</label>
                                     <input
-                                        name="password"
+                                        name="dateOfAniversary"
+                                        value={formData.dateOfAniversary}
                                         onChange={handleChange}
-                                        required
-                                        type="text"
-                                        placeholder="Password"
-                                        className="p-2 bg-[#333333] text-white rounded"
-                                    />
-                                </div>
-                            </div>
-                            <div className="flex gap-4">
-                                <div className="flex flex-col w-1/2">
-                                    <label className="text-white mb-1">Company</label>
-                                    <input
-                                        name="Company"
-                                        type="text"
-                                        value={formData.company}
-                                        disabled
-                                        className="p-2 bg-[#333333] text-white rounded"
-                                    />
-                                </div>
-                                <div className="flex flex-col w-1/2">
-                                    <label className="text-white mb-1">Licenses</label>
-                                    <input
-                                        name="numberOfLicences"
-                                        type="text"
-                                        value={formData.numberOfLicenses}
-                                        disabled
-                                        className="p-2 bg-[#333333] text-white rounded"
+                                        type="date"
+                                        className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                     />
                                 </div>
                             </div>
 
-
                             <div className="flex gap-4">
                                 <div className="flex flex-col w-1/2">
-                                    <label className="text-white mb-1">Employee Count</label>
+                                    <label className="mb-1">Child Count</label>
                                     <input
-                                        name="employeeCount"
+                                        name="childCount"
                                         onChange={handleChange}
-                                        required
                                         type="number"
-                                        placeholder="Employee Count"
-                                        className="p-2 bg-[#333333] text-white rounded"
+                                        placeholder="Child Count"
+                                        className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                     />
                                 </div>
                                 <div className="flex flex-col w-1/2">
-                                    <label className="text-white mb-1">Profile Picture</label>
-                                    <label className="p-2 pl-4 pr-4 bg-[#333333] text-white rounded flex items-center justify-between cursor-pointer">
+                                    <label className="mb-1">Profile Picture</label>
+                                    <label className="p-2 pl-4 pr-4  rounded-xl border border-gray-600 focus:outline-none flex items-center justify-between cursor-pointer">
                                         <div>{fileName}</div>
                                         <svg
                                             width="13"
@@ -355,79 +378,13 @@ const ParentComponent = () => {
 
 
 
-                            <div className="flex gap-4">
-                                <div className="flex flex-col w-1/2">
-                                    <label className="text-white mb-1">Relationship Status</label>
-                                    <select
-                                        name="relationShipStatus"
-                                        value={formData.relationShipStatus}
-                                        onChange={handleChange}
-                                        className="p-2 bg-[#333333] text-white rounded"
-                                    >
-                                        <option value="">Select Relationship</option>
-                                        <option value="single">Single</option>
-                                        <option value="married">Married</option>
-                                        <option value="complicated">Complicated</option>
-                                    </select>
-                                </div>
-                                <div className="flex flex-col w-1/2">
-                                    <label className="text-white mb-1">Date of Anniversary</label>
-                                    <input
-                                        name="dateOfAniversary"
-                                        value={formData.dateOfAniversary}
-                                        onChange={handleChange}
-                                        type="date"
-                                        className="p-2 bg-[#333333] text-white rounded"
-                                    />
-                                </div>
-                            </div>
-                            <div className="flex gap-4">
-                                <div className="flex flex-col w-1/2">
-                                    <label className="text-white mb-1">Blood Group</label>
-                                    <select
-                                        name="bloodGroups"
-                                        value={formData.bloodGroups}
-                                        onChange={handleChange}
-                                        className="p-2 bg-[#333333] text-white rounded"
-                                    >
-                                        <option value="">Select Blood Group</option>
-                                        <option value="A+">A+</option>
-                                        <option value="A-">A-</option>
-                                        <option value="B+">B+</option>
-                                        <option value="B-">B-</option>
-                                        <option value="AB+">AB+</option>
-                                        <option value="AB-">AB-</option>
-                                        <option value="O+">O+</option>
-                                        <option value="O-">O-</option>
-                                    </select>
-                                </div>
-
-                                <div className="flex flex-col w-1/2">
-                                    <label className="text-white mb-1">Child Count</label>
-                                    <select
-                                        name="childCount"
-                                        value={formData.childCount}
-                                        onChange={handleChange}
-                                        className="p-2 bg-[#333333] text-white rounded"
-                                    >
-                                        <option value="">Select Child Count</option>
-                                        <option value="1">1</option>
-                                        <option value="2">2</option>
-                                        <option value="3">3</option>
-                                        <option value="4+">4+</option>
-                                    </select>
-                                </div>
-                            </div>
-
-
-
 
                             <div className="flex gap-4 mt-4 w-full">
                                 {!isSaveDisabled && (
                                     <div className="flex flex-col w-full">
                                         <button
                                             type="submit"
-                                            className="bg-[#F48567] px-4 py-2 rounded-xl text-[#000]"
+                                            className="bg-[#F48567] px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#000]"
                                         >
                                             Save
                                         </button>
@@ -440,7 +397,7 @@ const ParentComponent = () => {
                                     <button
 
                                         onClick={handleClosePopup}
-                                        className="bg-[#C7C7C7] px-4 py-2 rounded-xl text-[#000]"
+                                        className="bg-[#C7C7C7] px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#000]"
                                     >
                                         Cancel
                                     </button>

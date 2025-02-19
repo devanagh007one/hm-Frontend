@@ -1,4 +1,5 @@
 import CryptoJS from 'crypto-js'; // Ensure you have imported CryptoJS
+import { showNotification } from "../actions/notificationActions"; // Import showNotification
 
 export const FETCH_USERS_SUCCESS = "FETCH_USERS_SUCCESS";
 export const FETCH_USERS_FAILURE = "FETCH_USERS_FAILURE";
@@ -65,7 +66,7 @@ export const createUser = (userData) => async (dispatch) => {
     }
 
     const formData = new FormData();
-    
+
     // Append uploaded_by first
     formData.append('uploaded_by', userId);
 
@@ -94,13 +95,17 @@ export const createUser = (userData) => async (dispatch) => {
 
     const data = await response.json();
     console.log("API Response Data:", data);
-
-    if (data.message === "User created successfully" && data.userId) {
-      dispatch({ type: CREATE_USER_SUCCESS, payload: data });
-      return data;
+    
+    if (data.message === "Email or Mobile is already in use.") {
+        dispatch(showNotification(data.message, "error"));
     } else {
-      // throw new Error(data.message || "Failed to create user");
+        dispatch(showNotification(data.message, "success"));
     }
+    
+
+    dispatch({ type: CREATE_USER_SUCCESS, payload: data });
+    return data;
+
   } catch (error) {
     // dispatch({ type: CREATE_USER_FAILURE, payload: error.message });
     throw error;

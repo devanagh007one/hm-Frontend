@@ -8,6 +8,8 @@ import { Button, Select } from "antd";
 
 const EditUser = ({ record }) => {
     const [showPopup, setShowPopup] = useState(false);
+        const darkMode = useSelector((state) => state.theme.darkMode);
+    
     const { licensing, error: licensingError } = useSelector((state) => state.licensing);
     const { users, error } = useSelector((state) => state.user);
     const [selectedLicense, setSelectedLicense] = useState(null);
@@ -169,9 +171,9 @@ const EditUser = ({ record }) => {
             {/* Popup */}
             {showPopup && (
                 <div className="popup-overlay">
-                    <div className="p-8 bg-[rgb(30,30,30)] rounded-lg w-[500px] max-h-[800px] overflow-y-auto">
-                        <div className="flex justify-between align-center">
-                            <h2 className="text-2xl mb-6 text-white">Edit User</h2>
+                    <div className={`rounded-xl border border-gray-600 focus:outline-none-xl border border-gray-600 focus:outline-none-3xl shadow-lg w-] max-w-[70%] overflow-y-scroll pl-10 pr-10 p-8 relative flex flex-col max-h-[95%] ${darkMode ? 'bg-[#222222] text-white text-[16px]' : 'bg-[#fff] text-dark text-[16px]'}`}>
+                    <div className="flex justify-between align-center">
+                            <h2 className="text-2xl mb-6">Edit User</h2>
                             <svg className="cursor-pointer mt-1" onClick={handleClosePopup}
                                 width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <g clip-path="url(#clip0_3261_1019)">
@@ -194,7 +196,7 @@ const EditUser = ({ record }) => {
                                 name="roles"
                                 value={formData.roles}
                                 onChange={handleChange}
-                                className="p-2 bg-[#333333] text-white rounded"
+                                className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                             >
                                 <option value="">Select</option>
                                 <option value="HR">HR</option>
@@ -214,7 +216,7 @@ const EditUser = ({ record }) => {
                                         value={`${formData.firstName} ${formData.lastName}`} onChange={handleFullNameChange}
                                         type="text"
                                         placeholder="Name"
-                                        className="p-2 bg-[#333333] text-white rounded"
+                                        className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                     />
                                 </div>
                                 <div className="flex flex-col w-1/2">
@@ -225,7 +227,7 @@ const EditUser = ({ record }) => {
                                         onChange={handleChange}
                                         type="text"
                                         placeholder="User Name"
-                                        className="p-2 bg-[#333333] text-white rounded"
+                                        className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                     />
                                 </div>
                             </div>
@@ -239,7 +241,7 @@ const EditUser = ({ record }) => {
                                     value={formData.email}
                                     type="email"
                                     placeholder="Enter Email"
-                                    className="p-2 bg-[#333333] text-white rounded"
+                                    className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                 />
                             </div>
 
@@ -252,7 +254,7 @@ const EditUser = ({ record }) => {
                                     value={formData.mobile}
                                     type="text"
                                     placeholder="Enter Phone Number"
-                                    className="p-2 bg-[#333333] text-white rounded"
+                                    className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                 />
                             </div>
 
@@ -265,7 +267,7 @@ const EditUser = ({ record }) => {
                                     value={formData.address}
                                     type="text"
                                     placeholder="Enter Location"
-                                    className="p-2 bg-[#333333] text-white rounded"
+                                    className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                 />
                             </div>
                             <div className="flex flex-col">
@@ -276,7 +278,7 @@ const EditUser = ({ record }) => {
                                     value={formData.department}
                                     type="text"
                                     placeholder="Department"
-                                    className="p-2 bg-[#333333] text-white rounded"
+                                    className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                 />
                             </div>
                             <div className="flex gap-4">
@@ -286,7 +288,7 @@ const EditUser = ({ record }) => {
                                         name="gender"
                                         value={formData.gender}
                                         onChange={handleChange}
-                                        className="p-2 bg-[#333333] text-white rounded"
+                                        className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                     >
                                         <option value="">Select Gender</option>
                                         <option value="female">Female</option>
@@ -300,7 +302,7 @@ const EditUser = ({ record }) => {
                                         value={formData.doB ? formatDate(formData.doB) : ""}
                                         onChange={handleChange}
                                         type="date"
-                                        className="p-2 bg-[#333333] text-white rounded"
+                                        className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                     />
                                 </div>
                             </div>
@@ -312,7 +314,7 @@ const EditUser = ({ record }) => {
                                         value={formData.country}
                                         onChange={handleChange}
                                         placeholder="Country"
-                                        className="p-2 bg-[#333333] text-white rounded"
+                                        className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                     />
                                 </div>
                                 <div className="flex flex-col w-1/2">
@@ -323,7 +325,7 @@ const EditUser = ({ record }) => {
                                         value={formData.password}
                                         type="text"
                                         placeholder="Password"
-                                        className="p-2 bg-[#333333] text-white rounded"
+                                        className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                     />
                                 </div>
                             </div>
@@ -335,7 +337,7 @@ const EditUser = ({ record }) => {
                                         value={formData.interests}
                                         onChange={handleChange}
                                         placeholder="Interests"
-                                        className="p-2 bg-[#333333] text-white rounded"
+                                        className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                     />
                                 </div>
                                 <div className="flex flex-col w-1/2">
@@ -347,39 +349,11 @@ const EditUser = ({ record }) => {
 
                                         type="text"
                                         placeholder="goals"
-                                        className="p-2 bg-[#333333] text-white rounded"
+                                        className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                     />
                                 </div>
                             </div>
-                            <div className="flex gap-4">
 
-                                <div className="flex flex-col w-1/2">
-                                    <label className="text-white mb-1">Company</label>
-                                    <input
-                                        name="Company"
-                                        onChange={handleChange}
-                                        value={formData.company
-                                        }
-                                        readOnly
-                                        type="text"
-                                        placeholder="goals"
-                                        className="p-2 bg-[#333333] text-white rounded"
-                                    />
-                                </div>
-
-
-                                <div className="flex flex-col w-1/2">
-                                    <label className="text-white mb-1">Licenses</label>
-                                    <input
-                                        name="numberOfLicences"
-                                        type="text"
-                                        value={formData.numberOfLicenses}
-                                        disabled
-                                        className="p-2 bg-[#333333] text-white rounded"
-                                    />
-                                </div>
-
-                            </div>
                             <div className="flex gap-4">
                                 <div className="flex flex-col w-1/2">
                                     <label className="text-white mb-1">Employee Count</label>
@@ -390,12 +364,12 @@ const EditUser = ({ record }) => {
 
                                         type="number"
                                         placeholder="Employee Count"
-                                        className="p-2 bg-[#333333] text-white rounded"
+                                        className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                     />
                                 </div>
                                 <div className="flex flex-col w-1/2">
                                     <label className="text-white mb-1">Profile Picture</label>
-                                    <label className="p-2 pl-4 pr-4 bg-[#333333] text-white rounded flex items-center justify-between cursor-pointer">
+                                    <label className="p-2 pl-4 pr-4  rounded-xl border border-gray-600 focus:outline-none flex items-center justify-between cursor-pointer">
                                         <div>{fileName}</div>
                                         <svg
                                             width="13"
@@ -429,7 +403,7 @@ const EditUser = ({ record }) => {
                                         name="relationShipStatus"
                                         value={formData.relationShipStatus}
                                         onChange={handleChange}
-                                        className="p-2 bg-[#333333] text-white rounded"
+                                        className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                     >
                                         <option value="">Select Relationship</option>
 
@@ -459,7 +433,7 @@ const EditUser = ({ record }) => {
                                         value={formData.dateOfAniversary ? formatDate(formData.dateOfAniversary) : ""}
                                         onChange={handleChange}
                                         type="date"
-                                        className="p-2 bg-[#333333] text-white rounded"
+                                        className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                     />
                                 </div>
                             </div>
@@ -470,7 +444,7 @@ const EditUser = ({ record }) => {
                                         name="bloodGroups"
                                         value={formData.bloodGroups}
                                         onChange={handleChange}
-                                        className="p-2 bg-[#333333] text-white rounded"
+                                        className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                     >
                                         <option value="">Select Blood Group</option>
                                         <option value="A+">A+</option>
@@ -490,7 +464,7 @@ const EditUser = ({ record }) => {
                                         name="childCount"
                                         value={formData.childCount}
                                         onChange={handleChange}
-                                        className="p-2 bg-[#333333] text-white rounded"
+                                        className="p-2  rounded-xl border border-gray-600 focus:outline-none"
                                     >
                                         <option value="">Select Child Count</option>
                                         <option value="1">1</option>
@@ -509,7 +483,7 @@ const EditUser = ({ record }) => {
                                     <div className="flex flex-col w-full">
                                         <button
                                             type="submit"
-                                            className="bg-[#F48567] px-4 py-2 rounded-xl text-[#000]"
+                                            className="bg-[#F48567] px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#000]"
                                         >
                                             Save
                                         </button>
@@ -522,7 +496,7 @@ const EditUser = ({ record }) => {
                                     <button
 
                                         onClick={handleClosePopup}
-                                        className="bg-[#C7C7C7] px-4 py-2 rounded-xl text-[#000]"
+                                        className="bg-[#C7C7C7] px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#000]"
                                     >
                                         Cancel
                                     </button>
