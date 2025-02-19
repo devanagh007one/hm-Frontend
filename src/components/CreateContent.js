@@ -1,24 +1,23 @@
 import React, { useState, useEffect } from "react";
-import { Spin } from "antd";
+import { Spin, Progress } from "antd";
 import "./popup.css"; // Import custom CSS
 import "./popup2.css"; // Import custom CSS
 import { useSelector, useDispatch } from "react-redux";
 import { createContent, createchallenge } from "../redux/actions/allContentGet";
-import { fetchAllContent } from "../redux/actions/allContentGet.js";
 import { showNotification } from "../redux/actions/notificationActions"; // Import showNotification
 
 const ParentComponent = () => {
     const dispatch = useDispatch();
-    const { content: fetchedContents } = useSelector((state) => state.content);
+    const darkMode = useSelector((state) => state.theme.darkMode);
 
     const [showPopup, setShowPopup] = useState(false);
     const [isSectionVisible, setIsSectionVisible] = useState(true);
     const [isSection2Visible, setIsSection2Visible] = useState(false);
     const [isCreatedModuleVisible, setisCreatedModuleVisible] = useState(false);
+    const [isCreatedContentVisible, setisCreatedContentVisible] = useState(false);
     const [isSection3Visible, setIsSection3Visible] = useState(false);
+    const [isLoadingLink, setLoadingLink] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
-    const [isOpen2, setIsOpen2] = useState(false);
-    const [isOpenModule, setIsOpenModule] = useState(false);
     const [fileProfile, setFileProfile] = useState("Upload Cover Photo");
     const [selectedContent, setSelectedContent] = useState(null);
     const [isChallengeSelected, setIsChallengeSelected] = useState(false);
@@ -26,16 +25,10 @@ const ParentComponent = () => {
         duration: 0, // Initialize with 0 or any default value you prefer
     });
 
-    // Fetch contents on component mount
-    useEffect(() => {
-        dispatch(fetchAllContent());
-    }, [dispatch]);
 
     const generateUniqueId = () => {
         return Math.floor(1000000 + Math.random() * 9000000).toString();
     };
-
-
 
     const initialModuleData = {
         uniqueUploadId: generateUniqueId(),
@@ -54,6 +47,7 @@ const ParentComponent = () => {
         uniChallengeId: generateUniqueId(),
         challengeName: "",
         module: '',
+        challenge_benefits: '',
         challenge_Description: "",
         duration: time.duration,
         isApproved: "pending",
@@ -61,23 +55,20 @@ const ParentComponent = () => {
         video_or_image: ""
     };
 
-
-
     const [formData, setFormData] = useState(initialModuleData);
     const [challengeData, setChallengeData] = useState(initialChallangeData);
+    const [challenges, setChallenges] = useState([]);
+    const [editingChallengeIndex, setEditingChallengeIndex] = useState(null);
 
-
+    const [progress, setProgress] = useState(0);
     const [modules, setModules] = useState([]);
-    // const [formData, setFormData] = useState(initialFormData);
     const [editingIndex, setEditingIndex] = useState(null);
     const [expandedIndex, setExpandedIndex] = useState(null);
 
-    console.log(modules);
+    console.log(modules, challenges);
 
 
     const toggleDropdown = () => setIsOpen(!isOpen);
-    const toggleDropdown2 = () => setIsOpen2(!isOpen2);
-    const toggleModule = () => setIsOpenModule(!isOpenModule);
 
     const handleSelectTracks = (option) => {
         setFormData(prevData => ({
@@ -88,9 +79,6 @@ const ParentComponent = () => {
         setIsOpen(false); // Close dropdown after selection
     };
 
-
-
-
     const tracks = [
         "Values", "Dance", "Fitness", "Mindfulness", "Music", "Art", "Cooking", "Yoga"
     ];
@@ -100,11 +88,6 @@ const ParentComponent = () => {
         setIsSection2Visible(true);
     };
 
-    const handleMoreNext = () => {
-        setIsSectionVisible(false);
-        setIsSection2Visible(false);
-        setIsSection3Visible(true);
-    };
 
     const handleFileChange = (e, fieldName) => {
         const file = e.target.files[0];
@@ -123,101 +106,70 @@ const ParentComponent = () => {
         }));
     };
 
-
-    const [loading2, setLoading2] = useState(false);
-
-    const handleSave = async () => {
-        setLoading2(true); // Start loading
-
-        const payload = { formData };
-
-        try {
-            const response = await dispatch(createContent(payload));
-
-            if (response?._id) {
-                dispatch(showNotification("Content created successfully.", "success"));
-
-                // Update challenge data with the new content ID directly
-                setChallengeData((prevState) => ({
-                    ...prevState,
-                    module: response._id, // Directly set the module field
-                }));
-
-                handleMoreNext();
-            }
-        } catch (error) {
-            dispatch(showNotification("An error occurred. Please try again.", "error"));
-        } finally {
-            // setLoading2(false); // Stop loading
-        }
-    };
-
-
     const [loading, setLoading] = useState(false);
-
-    const handleSaveChall = async () => {
-        if (!challengeData.challengeName || !challengeData.challenge_Description || !challengeData.difficulty_Level) {
-            dispatch(showNotification("Please fill all required fields.", "error"));
-            return;
-        }
-
-        setLoading(true); // Start loading
-
-        try {
-            const response = await dispatch(createchallenge(challengeData));
-
-            if (response && response.success) {
-                dispatch(showNotification("Challenge created successfully.", "success"));
-                // handleClosePopup();
-                // window.location.reload(); // Reload the page after closing the popup
-            } else {
-                dispatch(showNotification("Failed to create challenge. Please try again.", "error"));
-            }
-        } catch (error) {
-            dispatch(showNotification("An error occurred. Please try again.", "error"));
-        } finally {
-            setLoading(false); // Stop loading
-        }
-    };
-
 
 
     const handleViewPopup = () => setShowPopup(true);
     const handleClosePopup = () => {
         setShowPopup(false);
-        // setFormData(initialFormData);
         setChallengeData(initialChallangeData);
+        setFormData(initialModuleData);
         settime({ duration: 0 }); // Reset time state
         setIsSectionVisible(true);
         setIsSection2Visible(false);
         setIsSection3Visible(false);
+        setisCreatedModuleVisible(false);
         setIsOpen(false);
-        setIsOpen2(false);
-        setIsOpenModule(false);
         setFileProfile("Upload Cover Photo");
         setSelectedContent(null);
         setIsChallengeSelected(false);
+        setModules([]);
+        setChallenges([]);
     };
 
     const adjustTime = (change) => {
         settime((prevData) => {
-            const newDuration = prevData.duration + change;
+            // Extract current hours and minutes
+            const prevDuration = prevData.duration || "0h 00 min";
+            const match = prevDuration.match(/(\d+)h (\d+) min/);
+            let hours = match ? parseInt(match[1], 10) : 0;
+            let minutes = match ? parseInt(match[2], 10) : 0;
+
+            // Calculate new duration
+            let totalMinutes = hours * 60 + minutes + change;
+            if (totalMinutes < 0) totalMinutes = 0; // Prevent negative time
+
+            // Convert back to hours and minutes
+            hours = Math.floor(totalMinutes / 60);
+            minutes = totalMinutes % 60;
+
+            const newDuration = `${hours}h ${minutes.toString().padStart(2, "0")} min`;
+
             setChallengeData((prevChallengeData) => ({
                 ...prevChallengeData,
-                duration: newDuration, // Update the duration in challengeData
+                duration: newDuration,
             }));
-            return { duration: newDuration }; // Adjust the duration in the time state
+
+            return { duration: newDuration };
         });
     };
 
     const handleDurationChange = (e) => {
-        const minutes = parseInt(e.target.value.replace(' min', ''), 10) || 0; // Convert input value to integer
-        settime({ duration: minutes }); // Set the new duration in time state
+        const value = e.target.value.replace(" min", "").replace("h", "").trim();
+        const parts = value.split(" ");
+
+        let hours = parseInt(parts[0], 10) || 0;
+        let minutes = parseInt(parts[1], 10) || 0;
+
+        const newDuration = `${hours}h ${minutes.toString().padStart(2, "0")} min`;
+
+        settime({ duration: newDuration });
         setChallengeData((prevChallengeData) => ({
             ...prevChallengeData,
-            duration: minutes, // Update the duration in challengeData
+            duration: newDuration,
         }));
     };
+
 
 
     const handleAddModule = () => {
@@ -264,13 +216,6 @@ const ParentComponent = () => {
         setEditingIndex(null);
     };
 
-    const handleEditModule = (index) => {
-        setFormData(modules[index]);
-        setEditingIndex(index);
-        setIsSection2Visible(true);
-        setisCreatedModuleVisible(false);
-    };
-
     const handleDeleteModule = (index) => {
         setModules(modules.filter((_, i) => i !== index));
     };
@@ -280,22 +225,87 @@ const ParentComponent = () => {
         setisCreatedModuleVisible(false);
     };
 
-
-
-
-
-    const handleSaveModules = async () => {
-        setLoading(true);
-        console.log("Full Modules Array:", modules); // Logs the complete array
-
-        try {
-            console.log("Full Modules Array:", modules); // Logs the complete array
-            // You can send this array to the backend via API call here
-        } catch (error) {
-            console.error("Error saving modules:", error);
+    const handleAddChallenge = () => {
+        if (!challengeData.challengeName) {
+            dispatch(showNotification("Challenge Name is required.", "error"));
+            return;
         }
-        setLoading(false);
+
+        const newChallenge = {
+            ...challengeData,
+            uniChallengeId: generateUniqueId()
+        };
+
+        if (editingChallengeIndex !== null) {
+            const updatedChallenges = [...challenges];
+            updatedChallenges[editingChallengeIndex] = newChallenge;
+            setChallenges(updatedChallenges);
+            setEditingChallengeIndex(null);
+            settime({
+                duration: 0,
+            })
+        } else {
+            setChallenges([...challenges, newChallenge]);
+        }
+
+        // Reset both challengeData and time
+        setChallengeData({ ...initialChallangeData, uniChallengeId: generateUniqueId() });
+        settime({ duration: "" }); // Reset duration
+        setIsSection3Visible(true);
     };
+
+
+    const handleAddChallengeWithout = () => {
+        if (!challengeData.challengeName) {
+            setIsSection3Visible(false);
+            setisCreatedContentVisible(true);
+            return;
+        }
+        const newChallenge = {
+            ...challengeData,
+            uniChallengeId: generateUniqueId()
+        };
+
+        if (editingChallengeIndex !== null) {
+            const updatedChallenges = [...challenges];
+            updatedChallenges[editingChallengeIndex] = newChallenge;
+            setChallenges(updatedChallenges);
+            setEditingChallengeIndex(null);
+            settime({
+                duration: 0,
+            })
+        } else {
+            setChallenges([...challenges, newChallenge]);
+        }
+
+        // Reset both challengeData and time
+        setChallengeData({ ...initialChallangeData, uniChallengeId: generateUniqueId() });
+        settime({ duration: "" }); // Reset duration
+        setIsSection3Visible(false);
+        setisCreatedContentVisible(true);
+
+    };
+
+    const handleEditChallenge = (index) => {
+        setChallengeData(challenges[index]);
+        setEditingChallengeIndex(index);
+        setIsSection3Visible(true);
+        setisCreatedContentVisible(false);
+
+    };
+
+    const handleDeleteChallenge = (index) => {
+        setChallenges(challenges.filter((_, i) => i !== index));
+    };
+
+
+
+    const handleAddChallengefromavilablenew = () => {
+        setIsSection3Visible(true);
+        setisCreatedContentVisible(false);
+    };
+
+
 
     const handleRemoveFile = (field) => {
         setFormData((prev) => ({
@@ -303,6 +313,86 @@ const ParentComponent = () => {
             [field]: null, // Reset the specific field to null
         }));
     };
+    const handleRemoveChaFile = (field) => {
+        setChallengeData((prev) => ({
+            ...prev,
+            [field]: null, // Reset the specific field to null
+        }));
+    };
+    const handleSave = async () => {
+        if (modules.length !== challenges.length) {
+            const difference = Math.abs(modules.length - challenges.length);
+            const missingType = modules.length > challenges.length ? "Challenge" : "Module";
+            const errorMessage = `${difference} ${missingType}${difference > 1 ? "s are" : " is"} missing. Add ${difference} ${missingType}${difference > 1 ? "s" : ""} to submit.`;
+
+            dispatch(showNotification(errorMessage, "error"));
+            return;
+        }
+
+        // Hide sections and show loading indicator
+        setIsSection2Visible(false);
+        setisCreatedModuleVisible(false);
+        setIsSection3Visible(false);
+        setisCreatedContentVisible(false);
+        setLoadingLink(true);
+
+        let progressCount = 0;
+        const totalSteps = modules.length * 2; // Each module and challenge pair is 2 steps
+
+        const smoothProgressUpdate = (target) => {
+            let current = progress;
+            const interval = setInterval(() => {
+                if (current < target) {
+                    current += 1; // Increment by 1%
+                    setProgress(current);
+                } else {
+                    clearInterval(interval);
+                }
+            }, 50); // Update every 50ms for smooth animation
+        };
+
+        for (let i = 0; i < modules.length; i++) {
+            const payload = modules[i];
+            const response = await dispatch(createContent(payload));
+
+            if (response?._id) {
+                progressCount++;
+                smoothProgressUpdate((progressCount / totalSteps) * 100); // Smooth progress update
+
+                const challengeData = {
+                    ...challenges[i],
+                    module: response._id, // Assigning module ID to challenge
+                };
+
+                const challengeResponse = await dispatch(createchallenge(challengeData));
+
+                if (challengeResponse?.success) {
+                    progressCount++;
+                    smoothProgressUpdate((progressCount / totalSteps) * 100); // Smooth progress update
+                } else {
+                    dispatch(showNotification("Failed to upload challenge.", "error"));
+                    setLoadingLink(false);
+                    return;
+                }
+            } else {
+                dispatch(showNotification("Failed to upload module.", "error"));
+                setLoadingLink(false);
+                return;
+            }
+        }
+
+        setLoadingLink(false);
+        dispatch(showNotification("Your Module and Challenges for Track: Value have been successfully submitted for approval.", "success"));
+        setShowPopup(false);
+        localStorage.setItem("activeComponent", "ContentManagement");
+        handleClosePopup?.();
+        setTimeout(() => {
+            window.location.reload();
+        }, 2000);
+        
+
+    };
+
 
     return (
         <>
@@ -327,45 +417,49 @@ const ParentComponent = () => {
 
             {/* Popup */}
             {showPopup && (
-                <div className="popup-overlay" onClick={handleClosePopup}>
-                    <div
-                        className="popup-container p-8 bg-[rgb(30,30,30)] rounded-lg w-[500px] h-[auto] overflow-y-auto"
+                <div className="popup-overlay">
+                    <div className={`rounded-xl border border-gray-600 focus:outline-none-lg shadow-lg w-[35%] overflow-y-scroll max-w-3xl p-8 relative flex flex-col max-h-[90%] ${darkMode ? 'bg-[#222222] text-white' : 'bg-[#fff] text-dark'}`}
                         onClick={(e) => e.stopPropagation()} // Prevent closing popup on click inside
                     >
                         <div className="flex justify-between items-center">
                             {isSectionVisible && (
-                                <h2 className="text-2xl mb-6 text-white">Upload Content</h2>
+                                <h2 className="text-2xl mb-6 ">Upload Content</h2>
                             )}
                             {isSection2Visible && (
-                                <h2 className="text-2xl mb-6 text-white">Track: Values</h2>
+                                <h2 className="text-2xl mb-6 ">Track: {formData.tracks}</h2>
                             )}
                             {isCreatedModuleVisible && (
-                                <h2 className="text-2xl mb-6 text-white">Track: Values</h2>
+                                <h2 className="text-2xl mb-6 ">Track: {formData.tracks}</h2>
                             )}
                             {isSection3Visible && (
-                                <h2 className="text-2xl mb-6 text-white">Track: Challenge</h2>
+                                <h2 className="text-2xl mb-6 ">Track: {formData.tracks}</h2>
                             )}
-                            <svg
-                                className="cursor-pointer mt-1"
-                                onClick={handleClosePopup}
-                                width="24"
-                                height="25"
-                                viewBox="0 0 24 25"
-                                fill="none"
-                                xmlns="http://www.w3.org/2000/svg"
-                            >
-                                <g clipPath="url(#clip0_3261_1019)">
-                                    <path
-                                        d="M3.516 20.985C2.36988 19.878 1.45569 18.5539 0.826781 17.0898C0.197873 15.6258 -0.133162 14.0511 -0.147008 12.4578C-0.160854 10.8644 0.142767 9.28428 0.746137 7.80953C1.34951 6.33477 2.24055 4.99495 3.36726 3.86823C4.49397 2.74152 5.83379 1.85048 7.30855 1.24711C8.78331 0.643743 10.3635 0.340123 11.9568 0.353969C13.5502 0.367815 15.1248 0.698849 16.5889 1.32776C18.0529 1.95667 19.377 2.87085 20.484 4.01697C22.6699 6.2802 23.8794 9.31143 23.8521 12.4578C23.8247 15.6042 22.5627 18.6139 20.3378 20.8388C18.1129 23.0637 15.1032 24.3257 11.9568 24.3531C8.81045 24.3804 5.77922 23.1709 3.516 20.985ZM5.208 19.293C7.00935 21.0943 9.4525 22.1063 12 22.1063C14.5475 22.1063 16.9906 21.0943 18.792 19.293C20.5933 17.4916 21.6053 15.0485 21.6053 12.501C21.6053 9.95348 20.5933 7.51032 18.792 5.70897C16.9906 3.90762 14.5475 2.89564 12 2.89564C9.4525 2.89564 7.00935 3.90762 5.208 5.70897C3.40665 7.51032 2.39466 9.95348 2.39466 12.501C2.39466 15.0485 3.40665 17.4916 5.208 19.293ZM17.088 9.10497L13.692 12.501L17.088 15.897L15.396 17.589L12 14.193L8.604 17.589L6.912 15.897L10.308 12.501L6.912 9.10497L8.604 7.41297L12 10.809L15.396 7.41297L17.088 9.10497Z"
-                                        fill="#C7C7C7"
-                                    />
-                                </g>
-                                <defs>
-                                    <clipPath id="clip0_3261_1019">
-                                        <rect width="24" height="24" fill="white" transform="translate(0 0.5)" />
-                                    </clipPath>
-                                </defs>
-                            </svg>
+                            {isCreatedContentVisible && (
+                                <h2 className="text-2xl mb-6 ">Track: {formData.tracks}</h2>
+                            )}
+                            {!isLoadingLink && (
+                                <svg
+                                    className="cursor-pointer mb-5"
+                                    onClick={handleClosePopup}
+                                    width="24"
+                                    height="25"
+                                    viewBox="0 0 24 25"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                >
+                                    <g clipPath="url(#clip0_3261_1019)">
+                                        <path
+                                            d="M3.516 20.985C2.36988 19.878 1.45569 18.5539 0.826781 17.0898C0.197873 15.6258 -0.133162 14.0511 -0.147008 12.4578C-0.160854 10.8644 0.142767 9.28428 0.746137 7.80953C1.34951 6.33477 2.24055 4.99495 3.36726 3.86823C4.49397 2.74152 5.83379 1.85048 7.30855 1.24711C8.78331 0.643743 10.3635 0.340123 11.9568 0.353969C13.5502 0.367815 15.1248 0.698849 16.5889 1.32776C18.0529 1.95667 19.377 2.87085 20.484 4.01697C22.6699 6.2802 23.8794 9.31143 23.8521 12.4578C23.8247 15.6042 22.5627 18.6139 20.3378 20.8388C18.1129 23.0637 15.1032 24.3257 11.9568 24.3531C8.81045 24.3804 5.77922 23.1709 3.516 20.985ZM5.208 19.293C7.00935 21.0943 9.4525 22.1063 12 22.1063C14.5475 22.1063 16.9906 21.0943 18.792 19.293C20.5933 17.4916 21.6053 15.0485 21.6053 12.501C21.6053 9.95348 20.5933 7.51032 18.792 5.70897C16.9906 3.90762 14.5475 2.89564 12 2.89564C9.4525 2.89564 7.00935 3.90762 5.208 5.70897C3.40665 7.51032 2.39466 9.95348 2.39466 12.501C2.39466 15.0485 3.40665 17.4916 5.208 19.293ZM17.088 9.10497L13.692 12.501L17.088 15.897L15.396 17.589L12 14.193L8.604 17.589L6.912 15.897L10.308 12.501L6.912 9.10497L8.604 7.41297L12 10.809L15.396 7.41297L17.088 9.10497Z"
+                                            fill="#C7C7C7"
+                                        />
+                                    </g>
+                                    <defs>
+                                        <clipPath id="clip0_3261_1019">
+                                            <rect width="24" height="24" fill="white" transform="translate(0 0.5)" />
+                                        </clipPath>
+                                    </defs>
+                                </svg>
+                            )}
                         </div>
 
 
@@ -376,10 +470,10 @@ const ParentComponent = () => {
                                     {!isChallengeSelected && (
                                         <div className="flex gap-4">
                                             <div className="flex flex-col w-full">
-                                                <label className="text-white mb-1">Choose a Track *</label>
+                                                <label className=" mb-1">Choose a Track *</label>
                                                 <div className="dropdown-container mb-3">
                                                     <div
-                                                        className="dropdown-btn flex p-2 bg-[#333333] text-white rounded mb-2 cursor-pointer"
+                                                        className="dropdown-btn flex p-2   rounded-xl border border-gray-600 focus:outline-none mb-2 cursor-pointer"
                                                         onClick={toggleDropdown}
                                                     >
                                                         <span>{formData.tracks || "Choose a Track"}</span>
@@ -403,11 +497,11 @@ const ParentComponent = () => {
 
                                                     {/* Custom Dropdown Menu */}
                                                     {isOpen && (
-                                                        <div className="dropdown-menu flex flex-col items-center w-full bg-gray-800 p-2 rounded mb-3">
+                                                        <div className="dropdown-menu flex flex-col items-center w-full 800 p-2 rounded-xl border border-gray-600 focus:outline-none mb-3">
                                                             {tracks.map((track, index) => (
                                                                 <div
                                                                     key={index}
-                                                                    className="dropdown-item flex items-start w-[95%] p-2 text-white hover:bg-gray-700 cursor-pointer"
+                                                                    className="dropdown-item flex items-start w-[95%] p-2  cursor-pointer"
                                                                     onClick={() => handleSelectTracks(track)}
                                                                 >
                                                                     {track}
@@ -422,7 +516,7 @@ const ParentComponent = () => {
                                     <div className="flex flex-col w-full">
                                         <button
                                             type="submit"
-                                            className={`px-4 py-2 rounded-xl ${formData.tracks ? "bg-[#F48567] text-black cursor-pointer" : "bg-gray-400 text-gray-700 cursor-not-allowed"
+                                            className={`px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl ${formData.tracks ? "bg-[#F48567] text-black cursor-pointer" : "bg-gray-400 text-gray-700 cursor-not-allowed"
                                                 }`}
                                             onClick={handleNext}
                                             disabled={!formData.tracks}
@@ -443,7 +537,7 @@ const ParentComponent = () => {
                                                 <div className="flex flex-col">
                                                     <button
                                                         type="button"
-                                                        className="bg-[#333333] mb-3 px-4 py-2 rounded-xl text-[#F48567] flex items-center justify-center"
+                                                        className=" mb-3 px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#F48567] flex items-center justify-center"
                                                         onClick={handleAddModulefromavilable}
                                                     >
                                                         Add Module
@@ -453,25 +547,25 @@ const ParentComponent = () => {
 
                                                 {/* Form for adding/editing module */}
                                                 <div className="flex flex-col">
-                                                    <label className="text-white mb-1">Title</label>
+                                                    <label className=" mb-1">Title</label>
                                                     <input
                                                         name="moduleName"
                                                         required
                                                         type="text"
                                                         placeholder="Title"
-                                                        className="p-2 bg-[#333333] text-white rounded"
+                                                        className="p-2   rounded-xl border border-gray-600 focus:outline-none"
                                                         value={formData.moduleName}
                                                         onChange={(e) => setFormData({ ...formData, moduleName: e.target.value })}
                                                     />
                                                 </div>
 
                                                 <div className="flex flex-col mt-3">
-                                                    <label className="text-white mb-1">Description</label>
+                                                    <label className=" mb-1">Description</label>
                                                     <textarea
                                                         name="description"
                                                         required
                                                         placeholder="Enter Description"
-                                                        className="p-2 bg-[#333333] text-white rounded"
+                                                        className="p-2   rounded-xl border border-gray-600 focus:outline-none"
                                                         value={formData.description}
                                                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                                     />
@@ -479,8 +573,8 @@ const ParentComponent = () => {
 
                                                 {/* Upload sections */}
                                                 <div className="flex flex-col w-full  mt-3">
-                                                    <label className="text-white mb-1">Upload Cover Photo (Optional)</label>
-                                                    <label className="p-2 pl-4 pr-4 bg-[#333333] text-white rounded flex items-center justify-between cursor-pointer">
+                                                    <label className=" mb-1">Upload Cover Photo (Optional)</label>
+                                                    <label className="p-2 pl-4 pr-4   rounded-xl border border-gray-600 focus:outline-none flex items-center justify-between cursor-pointer">
                                                         <div>{formData.cover_Photo?.name || "Upload Cover Photo"}</div>
                                                         <div className="flex items-center">
                                                             <input
@@ -489,7 +583,7 @@ const ParentComponent = () => {
                                                                 className="hidden"
                                                                 onChange={(e) => handleFileChange(e, "cover_Photo")}
                                                             />
-                                                            {formData.cover_Photo && (
+                                                            {formData.cover_Photo ? (
                                                                 <svg
                                                                     width="18"
                                                                     height="18"
@@ -498,7 +592,7 @@ const ParentComponent = () => {
                                                                     xmlns="http://www.w3.org/2000/svg"
                                                                     onClick={(e) => {
                                                                         e.stopPropagation(); // Prevent file input dialog from opening
-                                                                        handleRemoveFile("cover_Photo");
+                                                                        handleRemoveChaFile("cover_Photo");
                                                                     }}
                                                                     className="cursor-pointer ml-2"
                                                                 >
@@ -507,14 +601,27 @@ const ParentComponent = () => {
                                                                         fill="#DD441B"
                                                                     />
                                                                 </svg>
+                                                            ) : (
+                                                                <svg
+                                                                    width="13"
+                                                                    height="13"
+                                                                    viewBox="0 0 13 13"
+                                                                    fill="none"
+                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                >
+                                                                    <path
+                                                                        d="M5.8501 9.59998V3.48748L3.9001 5.43748L2.8501 4.34998L6.6001 0.599976L10.3501 4.34998L9.3001 5.43748L7.3501 3.48748V9.59998H5.8501ZM2.1001 12.6C1.6876 12.6 1.3346 12.4532 1.0411 12.1597C0.747598 11.8662 0.600598 11.513 0.600098 11.1V8.84998H2.1001V11.1H11.1001V8.84998H12.6001V11.1C12.6001 11.5125 12.4533 11.8657 12.1598 12.1597C11.8663 12.4537 11.5131 12.6005 11.1001 12.6H2.1001Z"
+                                                                        fill="#C7C7C7"
+                                                                    />
+                                                                </svg>
                                                             )}
                                                         </div>
                                                     </label>
                                                 </div>
 
                                                 <div className="flex flex-col w-full  mt-3">
-                                                    <label className="text-white mb-1">Upload Module Video (Optional)</label>
-                                                    <label className="p-2 pl-4 pr-4 bg-[#333333] text-white rounded flex items-center justify-between cursor-pointer">
+                                                    <label className=" mb-1">Upload Module Video (Optional)</label>
+                                                    <label className="p-2 pl-4 pr-4   rounded-xl border border-gray-600 focus:outline-none flex items-center justify-between cursor-pointer">
                                                         <div>{formData.videoFile_introduction?.name || "Upload Module Video"}</div>
                                                         <div className="flex items-center">
                                                             <input
@@ -523,7 +630,7 @@ const ParentComponent = () => {
                                                                 className="hidden"
                                                                 onChange={(e) => handleFileChange(e, "videoFile_introduction")}
                                                             />
-                                                            {formData.videoFile_introduction && (
+                                                            {formData.videoFile_introduction ? (
                                                                 <svg
                                                                     width="18"
                                                                     height="18"
@@ -532,7 +639,7 @@ const ParentComponent = () => {
                                                                     xmlns="http://www.w3.org/2000/svg"
                                                                     onClick={(e) => {
                                                                         e.stopPropagation(); // Prevent file input dialog from opening
-                                                                        handleRemoveFile("videoFile_introduction");
+                                                                        handleRemoveChaFile("videoFile_introduction");
                                                                     }}
                                                                     className="cursor-pointer ml-2"
                                                                 >
@@ -541,14 +648,27 @@ const ParentComponent = () => {
                                                                         fill="#DD441B"
                                                                     />
                                                                 </svg>
+                                                            ) : (
+                                                                <svg
+                                                                    width="13"
+                                                                    height="13"
+                                                                    viewBox="0 0 13 13"
+                                                                    fill="none"
+                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                >
+                                                                    <path
+                                                                        d="M5.8501 9.59998V3.48748L3.9001 5.43748L2.8501 4.34998L6.6001 0.599976L10.3501 4.34998L9.3001 5.43748L7.3501 3.48748V9.59998H5.8501ZM2.1001 12.6C1.6876 12.6 1.3346 12.4532 1.0411 12.1597C0.747598 11.8662 0.600598 11.513 0.600098 11.1V8.84998H2.1001V11.1H11.1001V8.84998H12.6001V11.1C12.6001 11.5125 12.4533 11.8657 12.1598 12.1597C11.8663 12.4537 11.5131 12.6005 11.1001 12.6H2.1001Z"
+                                                                        fill="#C7C7C7"
+                                                                    />
+                                                                </svg>
                                                             )}
                                                         </div>
                                                     </label>
                                                 </div>
 
                                                 <div className="flex flex-col w-full  mt-3">
-                                                    <label className="text-white mb-1">Upload Explanatory Video (Optional)</label>
-                                                    <label className="p-2 pl-4 pr-4 bg-[#333333] text-white rounded flex items-center justify-between cursor-pointer">
+                                                    <label className=" mb-1">Upload Explanatory Video (Optional)</label>
+                                                    <label className="p-2 pl-4 pr-4   rounded-xl border border-gray-600 focus:outline-none flex items-center justify-between cursor-pointer">
                                                         <div>{formData.videoFile_description?.name || "Upload Explanatory Video"}</div>
                                                         <div className="flex items-center">
                                                             <input
@@ -557,7 +677,7 @@ const ParentComponent = () => {
                                                                 className="hidden"
                                                                 onChange={(e) => handleFileChange(e, "videoFile_description")}
                                                             />
-                                                            {formData.videoFile_description && (
+                                                            {formData.videoFile_description ? (
                                                                 <svg
                                                                     width="18"
                                                                     height="18"
@@ -566,13 +686,26 @@ const ParentComponent = () => {
                                                                     xmlns="http://www.w3.org/2000/svg"
                                                                     onClick={(e) => {
                                                                         e.stopPropagation(); // Prevent file input dialog from opening
-                                                                        handleRemoveFile("videoFile_description");
+                                                                        handleRemoveChaFile("videoFile_description");
                                                                     }}
                                                                     className="cursor-pointer ml-2"
                                                                 >
                                                                     <path
                                                                         d="M9 0.25C4.125 0.25 0.25 4.125 0.25 9C0.25 13.875 4.125 17.75 9 17.75C13.875 17.75 17.75 13.875 17.75 9C17.75 4.125 13.875 0.25 9 0.25ZM12.375 13.375L9 10L5.625 13.375L4.625 12.375L8 9L4.625 5.625L5.625 4.625L9 8L12.375 4.625L13.375 5.625L10 9L13.375 12.375L12.375 13.375Z"
                                                                         fill="#DD441B"
+                                                                    />
+                                                                </svg>
+                                                            ) : (
+                                                                <svg
+                                                                    width="13"
+                                                                    height="13"
+                                                                    viewBox="0 0 13 13"
+                                                                    fill="none"
+                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                >
+                                                                    <path
+                                                                        d="M5.8501 9.59998V3.48748L3.9001 5.43748L2.8501 4.34998L6.6001 0.599976L10.3501 4.34998L9.3001 5.43748L7.3501 3.48748V9.59998H5.8501ZM2.1001 12.6C1.6876 12.6 1.3346 12.4532 1.0411 12.1597C0.747598 11.8662 0.600598 11.513 0.600098 11.1V8.84998H2.1001V11.1H11.1001V8.84998H12.6001V11.1C12.6001 11.5125 12.4533 11.8657 12.1598 12.1597C11.8663 12.4537 11.5131 12.6005 11.1001 12.6H2.1001Z"
+                                                                        fill="#C7C7C7"
                                                                     />
                                                                 </svg>
                                                             )}
@@ -584,7 +717,7 @@ const ParentComponent = () => {
                                                     <div className="flex flex-col w-full">
                                                         <button
                                                             type="button"
-                                                            className="bg-[#F48567] px-4 py-2 rounded-xl text-[#000] flex items-center justify-center"
+                                                            className="bg-[#F48567] px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#000] flex items-center justify-center"
                                                             onClick={handleAddModule}
                                                             disabled={loading}
                                                         >
@@ -597,7 +730,7 @@ const ParentComponent = () => {
                                                     <div className="flex flex-col w-full">
                                                         <button
                                                             onClick={handleClosePopup}
-                                                            className="bg-[#C7C7C7] px-4 py-2 rounded-xl text-[#000]"
+                                                            className="bg-[#C7C7C7] px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#000]"
                                                         >
                                                             Cancel
                                                         </button>
@@ -612,7 +745,7 @@ const ParentComponent = () => {
                                     <section className="flex flex-col space-y-4">
                                         <button
                                             type="button"
-                                            className="bg-[#333333] px-4 py-2 rounded-xl text-[#F48567] flex items-center justify-center"
+                                            className=" px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#F48567] flex items-center justify-center"
                                             onClick={handleAddModulefromavilablenew}                                        >
                                             {editingIndex !== null ? "" : "Add Module"}
                                         </button>
@@ -624,9 +757,9 @@ const ParentComponent = () => {
 
                                             return (
                                                 <div className="">
-                                                    <label className="text-white mb-1">Module {index + 1}</label>
+                                                    <label className=" mb-1">Module {index + 1}</label>
                                                     <div className="flex justify-between items-start gap-2">
-                                                        <div key={module.uniqueUploadId} className="w-full bg-[#333333] p-2 rounded shadow-md">
+                                                        <div key={module.uniqueUploadId} className="w-full  p-2 rounded-xl border border-gray-600 focus:outline-none shadow-md">
                                                             {/* Module Header with Dropdown Toggle */}
                                                             <div
                                                                 className="flex justify-between items-center cursor-pointer"
@@ -656,11 +789,11 @@ const ParentComponent = () => {
                                                             {/* Dropdown Content */}
                                                             {expandedIndex === index && (
 
-                                                                <div className="mt-2 p-2 rounded-lg">
+                                                                <div className="mt-2 p-2 ">
                                                                     <div className="flex justify-between">
                                                                         <span>
                                                                             <p className="text-sm">Title</p>
-                                                                            <p className="text-sm">{module.moduleName}</p>
+                                                                            <p className="text-sm mt-2">{module.moduleName}</p>
                                                                         </span>
                                                                         <svg
                                                                             onClick={() => {
@@ -686,20 +819,20 @@ const ParentComponent = () => {
                                                                         <div>
                                                                             <p className="text-sm">Cover Photo</p>
                                                                             {coverPhotoURL && (
-                                                                                <img src={coverPhotoURL} alt="Cover" className="w-20 h-20 object-cover rounded-md mt-2" />
+                                                                                <img src={coverPhotoURL} alt="Cover" className="w-20 h-20 object-cover rounded-xl border border-gray-600 focus:outline-none-md mt-2" />
                                                                             )}
                                                                         </div>
 
                                                                         <div>
                                                                             <p className="text-sm">Module Video:</p>
                                                                             {videoIntroURL && (
-                                                                                <video src={videoIntroURL} controls className="w-20 h-20 rounded-md object-cover rounded-md mt-2" />
+                                                                                <video src={videoIntroURL} controls className="w-20 h-20 rounded-xl border border-gray-600 focus:outline-none-md object-cover rounded-xl border border-gray-600 focus:outline-none-md mt-2" />
                                                                             )}
                                                                         </div>
                                                                         <div>
                                                                             <p className="text-sm">Explanatory Video:</p>
                                                                             {videoDescURL && (
-                                                                                <video src={videoDescURL} controls className="w-20 h-20 rounded-md object-cover rounded-md mt-2" />
+                                                                                <video src={videoDescURL} controls className="w-20 h-20 rounded-xl border border-gray-600 focus:outline-none-md object-cover rounded-xl border border-gray-600 focus:outline-none-md mt-2" />
                                                                             )}
                                                                         </div>
                                                                     </section>
@@ -722,106 +855,124 @@ const ParentComponent = () => {
                                                 </div>
                                             );
                                         })}
+
+                                        <div className="flex gap-4 mt-4 w-full">
+                                            <div className="flex flex-col w-full">
+                                                <button
+                                                    type="button"
+                                                    className="bg-[#F48567] px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#000] flex items-center justify-center"
+                                                    onClick={() => {
+                                                        setIsSection3Visible(true);
+                                                        setisCreatedModuleVisible(false);
+
+                                                    }}
+                                                >
+                                                    Next
+                                                </button>
+
+
+                                            </div>
+
+                                            <div className="flex flex-col w-full">
+                                                <button
+                                                    onClick={handleClosePopup}
+                                                    className="bg-[#C7C7C7] px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#000]"
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        </div>
                                     </section>
                                 )}
 
 
                                 {isSection3Visible && (
                                     <section>
-                                        {modules.map((module, index) => (
-                                            <div key={module.uniqueUploadId} className="border p-2 m-2 rounded bg-gray-800 text-white">
-                                                <h3>Module {index + 1}: {module.moduleName}</h3>
-                                                <p>{module.description}</p>
-                                                <button onClick={() => handleEditModule(index)} className="bg-blue-500 px-2 py-1 rounded text-white mr-2">
-                                                    Edit
-                                                </button>
-                                                <button onClick={() => handleDeleteModule(index)} className="bg-red-500 px-2 py-1 rounded text-white">
-                                                    Delete
-                                                </button>
-                                            </div>
-                                        ))}
                                         <div className="flex flex-col">
-                                            <label className="text-white mb-1">Challenge Name</label>
+                                            <button
+                                                type="button"
+                                                className=" px-4 py-2 mb-3 rounded-xl border border-gray-600 focus:outline-none-xl text-[#F48567] flex items-center justify-center"
+                                                onClick={handleAddChallenge}                                        >
+                                                {editingIndex !== null ? "" : "Add Challenge"}
+                                            </button>
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <label className=" mb-1">Challenge Name</label>
                                             <input
                                                 name="challengeName"
                                                 required
                                                 type="text"
                                                 placeholder="Challenge Name"
-                                                className="p-2 bg-[#333333] text-white rounded"
+                                                className="p-2   rounded-xl border border-gray-600 focus:outline-none"
                                                 value={challengeData.challengeName}
                                                 onChange={(e) => setChallengeData({ ...challengeData, challengeName: e.target.value })}
                                             />
                                         </div>
 
-                                        <div className="flex flex-col">
-                                            <label className="text-white mb-1">Description</label>
+                                        <div className="flex flex-col mt-2">
+                                            <label className=" mb-1">Description</label>
                                             <textarea
                                                 name="challenge_Description"
                                                 required
                                                 type="text"
                                                 placeholder="How to do the challenge"
-                                                className="p-2 bg-[#333333] text-white rounded"
+                                                className="p-2   rounded-xl border border-gray-600 focus:outline-none"
                                                 value={challengeData.challenge_Description}
                                                 onChange={(e) => setChallengeData({ ...challengeData, challenge_Description: e.target.value })}
                                             />
                                         </div>
-                                        <div className="flex flex-col">
-                                            <label className="text-white mb-1">Benefits</label>
+                                        <div className="flex flex-col mt-2">
+                                            <label className=" mb-1">Benefits</label>
                                             <input
-                                                name="moduleName"
+                                                name="challenge_benefits"
                                                 required
                                                 type="text"
                                                 placeholder="Benefits"
-                                                className="p-2 bg-[#333333] text-white rounded"
-                                                value={challengeData.moduleName}
-                                                onChange={(e) => setChallengeData({ ...challengeData, moduleName: e.target.value })}
+                                                className="p-2   rounded-xl border border-gray-600 focus:outline-none"
+                                                value={challengeData.challenge_benefits}
+                                                onChange={(e) => setChallengeData({ ...challengeData, challenge_benefits: e.target.value })}
                                             />
                                         </div>
-                                        <div className="flex flex-col">
-                                            <label className="text-white mb-1">Duration</label>
+                                        <div className="flex flex-col mt-2">
+                                            <label className=" mb-1">Duration</label>
                                             <div className="flex items-center space-x-2">
                                                 <input
                                                     name="duration"
                                                     required
                                                     type="text"
-                                                    placeholder="Enter time (e.g., 1h 30min)"
-                                                    className="p-2 bg-[#333333] text-white rounded w-full"
-                                                    value={`${time.duration} min`} // Use the time state for value
+                                                    placeholder="3h 00 mn"
+                                                    className="p-2   rounded-xl border border-gray-600 focus:outline-none w-full"
+                                                    value={challengeData.duration || time.duration} // Correct format
                                                     onChange={handleDurationChange}
                                                 />
                                                 <div className="flex flex-col">
                                                     <button
                                                         type="button"
-                                                        className="p-[6.5px] bg-[#333333] text-white rounded"
-                                                        onClick={() => adjustTime(30)} // Add 30 minutes
+                                                        className="p-[6.5px]   rounded-xl border border-gray-600 focus:outline-none"
+                                                        onClick={() => adjustTime(30)} // Add 30 min
                                                     >
                                                         <svg width="11" height="7" viewBox="0 0 11 7" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                            <path fill-rule="evenodd" clip-rule="evenodd" d="M5.8925 0.295001L10.6067 5.00917L9.42833 6.1875L5.30333 2.0625L1.17833 6.1875L0 5.00917L4.71417 0.295001C4.87044 0.138774 5.08236 0.0510116 5.30333 0.0510116C5.5243 0.0510116 5.73623 0.138774 5.8925 0.295001Z" fill="#C7C7C7" />
+                                                            <path fillRule="evenodd" clipRule="evenodd" d="M5.8925 0.295001L10.6067 5.00917L9.42833 6.1875L5.30333 2.0625L1.17833 6.1875L0 5.00917L4.71417 0.295001C4.87044 0.138774 5.08236 0.0510116 5.30333 0.0510116C5.5243 0.0510116 5.73623 0.138774 5.8925 0.295001Z" fill="#C7C7C7" />
                                                         </svg>
                                                     </button>
                                                     <button
                                                         type="button"
-                                                        className="p-[6.5px] bg-[#333333] text-white rounded"
-                                                        onClick={() => adjustTime(-30)} // Subtract 30 minutes
+                                                        className="p-[6.5px]   rounded-xl border border-gray-600 focus:outline-none"
+                                                        onClick={() => adjustTime(-30)} // Subtract 30 min
                                                     >
                                                         <svg width="11" height="7" viewBox="0 0 11 7" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                            <path fill-rule="evenodd" clip-rule="evenodd" d="M5.8925 6.08L10.6067 1.36583L9.42833 0.1875L5.30333 4.3125L1.17833 0.1875L0 1.36583L4.71417 6.08C4.87044 6.23623 5.08236 6.32399 5.30333 6.32399C5.5243 6.32399 5.73623 6.23623 5.8925 6.08Z" fill="#C7C7C7" />
+                                                            <path fillRule="evenodd" clipRule="evenodd" d="M5.8925 6.08L10.6067 1.36583L9.42833 0.1875L5.30333 4.3125L1.17833 0.1875L0 1.36583L4.71417 6.08C4.87044 6.23623 5.08236 6.32399 5.30333 6.32399C5.5243 6.32399 5.73623 6.23623 5.8925 6.08Z" fill="#C7C7C7" />
                                                         </svg>
                                                     </button>
                                                 </div>
                                             </div>
                                         </div>
-
-
-
-
-
-                                        <div className="flex flex-col">
-                                            <label className="text-white mb-1">Difficulty Level</label>
+                                        <div className="flex flex-col mt-2">
+                                            <label className=" mb-1">Difficulty Level</label>
                                             <select
                                                 name="difficulty_Level"
                                                 required
-                                                className="p-2 bg-[#333333] text-white rounded"
+                                                className="p-2   rounded-xl border border-gray-600 focus:outline-none"
                                                 value={challengeData.difficulty_Level}
                                                 onChange={(e) => setChallengeData({ ...challengeData, difficulty_Level: e.target.value })}
                                             >
@@ -831,46 +982,70 @@ const ParentComponent = () => {
                                                 <option value="Low">Low</option>
                                             </select>
                                         </div>
-
-
-
-                                        <div className="flex flex-col w-full">
-                                            <label className="text-white mb-1">Upload Photo or Video</label>
-                                            <label className="p-2 pl-4 pr-4 bg-[#333333] text-white rounded flex items-center justify-between cursor-pointer">
+                                        <div className="flex flex-col w-full mt-2">
+                                            <label className=" mb-1">Upload Photo or Video</label>
+                                            <label className="p-2 pl-4 pr-4   rounded-xl border border-gray-600 focus:outline-none flex items-center justify-between cursor-pointer">
                                                 <div>{challengeData.video_or_image?.name || "Upload Photo or Video"}</div>
-                                                <svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <path
-                                                        d="M5.8501 9.59998V3.48748L3.9001 5.43748L2.8501 4.34998L6.6001 0.599976L10.3501 4.34998L9.3001 5.43748L7.3501 3.48748V9.59998H5.8501ZM2.1001 12.6C1.6876 12.6 1.3346 12.4532 1.0411 12.1597C0.747598 11.8662 0.600598 11.513 0.600098 11.1V8.84998H2.1001V11.1H11.1001V8.84998H12.6001V11.1C12.6001 11.5125 12.4533 11.8657 12.1598 12.1597C11.8663 12.4537 11.5131 12.6005 11.1001 12.6H2.1001Z"
-                                                        fill="#C7C7C7"
-                                                    />
-                                                </svg>
                                                 <input
                                                     name="video_or_image"
                                                     type="file"
                                                     className="hidden"
                                                     onChange={(e) => handleVideoChange(e, 'video_or_image')}
                                                 />
+                                                {challengeData.video_or_image ? (
+                                                    <svg
+                                                        width="18"
+                                                        height="18"
+                                                        viewBox="0 0 18 18"
+                                                        fill="none"
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation(); // Prevent file input dialog from opening
+                                                            handleRemoveChaFile("video_or_image");
+                                                        }}
+                                                        className="cursor-pointer ml-2"
+                                                    >
+                                                        <path
+                                                            d="M9 0.25C4.125 0.25 0.25 4.125 0.25 9C0.25 13.875 4.125 17.75 9 17.75C13.875 17.75 17.75 13.875 17.75 9C17.75 4.125 13.875 0.25 9 0.25ZM12.375 13.375L9 10L5.625 13.375L4.625 12.375L8 9L4.625 5.625L5.625 4.625L9 8L12.375 4.625L13.375 5.625L10 9L13.375 12.375L12.375 13.375Z"
+                                                            fill="#DD441B"
+                                                        />
+                                                    </svg>
+                                                ) : (
+                                                    <svg
+                                                        width="13"
+                                                        height="13"
+                                                        viewBox="0 0 13 13"
+                                                        fill="none"
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                    >
+                                                        <path
+                                                            d="M5.8501 9.59998V3.48748L3.9001 5.43748L2.8501 4.34998L6.6001 0.599976L10.3501 4.34998L9.3001 5.43748L7.3501 3.48748V9.59998H5.8501ZM2.1001 12.6C1.6876 12.6 1.3346 12.4532 1.0411 12.1597C0.747598 11.8662 0.600598 11.513 0.600098 11.1V8.84998H2.1001V11.1H11.1001V8.84998H12.6001V11.1C12.6001 11.5125 12.4533 11.8657 12.1598 12.1597C11.8663 12.4537 11.5131 12.6005 11.1001 12.6H2.1001Z"
+                                                            fill="#C7C7C7"
+                                                        />
+                                                    </svg>
+                                                )}
+
                                             </label>
                                         </div>
-
-
-                                        <div className="flex gap-4 mt-4 w-full">
+                                        <div className="flex gap-4 mt-6 w-full">
                                             <div className="flex flex-col w-full">
                                                 <button
                                                     type="submit"
-                                                    className="bg-[#F48567] px-4 py-2 rounded-xl text-[#000] flex items-center justify-center"
-                                                    onClick={handleSaveChall}
-                                                    disabled={loading}
+                                                    className="bg-[#F48567] px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#000] flex items-center justify-center"
+                                                    onClick={handleAddChallengeWithout}
                                                 >
-                                                    {loading ? <Spin size="small" /> : "Save"}
+                                                    Save
                                                 </button>
 
                                             </div>
 
                                             <div className="flex flex-col w-full">
                                                 <button
-                                                    onClick={handleClosePopup}
-                                                    className="bg-[#C7C7C7] px-4 py-2 rounded-xl text-[#000]"
+                                                    onClick={() => {
+                                                        setisCreatedContentVisible(true);
+
+                                                    }}
+                                                    className="bg-[#C7C7C7] px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#000]"
                                                 >
                                                     Cancel
                                                 </button>
@@ -878,6 +1053,173 @@ const ParentComponent = () => {
                                         </div>
                                     </section>
                                 )}
+
+                                {isCreatedContentVisible && (
+                                    <section className="flex flex-col space-y-4">
+                                        <button
+                                            type="button"
+                                            className=" px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#F48567] flex items-center justify-center"
+                                            onClick={handleAddChallengefromavilablenew}                                        >
+                                            {editingIndex !== null ? "" : "Add Challenge"}
+                                        </button>
+
+                                        {challenges.map((challenge, index) => {
+                                            const videoOrImageURL = challenge.video_or_image ? URL.createObjectURL(challenge.video_or_image) : null;
+
+                                            return (
+                                                <div className="">
+                                                    <label className=" mb-1">Challenge {index + 1}</label>
+                                                    <div className="flex justify-between items-start gap-2">
+                                                        <div key={challenge.uniqueUploadId} className="w-full  p-2 rounded-xl border border-gray-600 focus:outline-none shadow-md">
+                                                            {/* Module Header with Dropdown Toggle */}
+                                                            <div
+                                                                className="flex justify-between items-center cursor-pointer"
+                                                                onClick={() => setExpandedIndex(expandedIndex === index ? null : index)}>
+                                                                <h3 className="">Challenge {index + 1}</h3>
+                                                                <span className="text-gray-400">
+                                                                    {expandedIndex === index}
+                                                                </span>
+
+                                                                <svg
+                                                                    width="12"
+                                                                    height="7"
+                                                                    viewBox="0 0 12 7"
+                                                                    fill="none"
+                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                    className={`transition-transform duration-300 ${expandedIndex === index ? 'rotate-180' : ''}`}
+                                                                >
+                                                                    <path
+                                                                        fillRule="evenodd"
+                                                                        clipRule="evenodd"
+                                                                        d="M5.15828 0.536211L0.444115 5.25038L1.62245 6.42871L5.74745 2.30371L9.87245 6.42871L11.0508 5.25038L6.33662 0.536211C6.18034 0.379985 5.96842 0.292222 5.74745 0.292222C5.52648 0.292222 5.31455 0.379985 5.15828 0.536211Z"
+                                                                        fill="#C7C7C7"
+                                                                    />
+                                                                </svg>
+                                                            </div>
+
+                                                            {/* Dropdown Content */}
+                                                            {expandedIndex === index && (
+
+                                                                <div className="mt-2 p-2 rounded-xl ">
+                                                                    <div className="flex justify-between">
+                                                                        <span>
+                                                                            <p className="text-sm">Challenge Name</p>
+                                                                            <p className="text-sm mt-2">{challenge.challengeName}</p>
+                                                                        </span>
+                                                                        <svg
+                                                                            onClick={() => {
+                                                                                setFormData(module);
+                                                                                handleEditChallenge(index);
+                                                                                setIsSection3Visible(true); // Show edit section
+                                                                                setisCreatedModuleVisible(false); // Hide available modules
+
+                                                                            }}
+                                                                            className="cursor-pointer"
+                                                                            width="21" height="20" viewBox="0 0 21 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                            <path opacity="0.16" d="M4.91732 13.3333L4.08398 16.6667L7.41732 15.8333L15.7507 7.5L13.2507 5L4.91732 13.3333Z" fill="#C7C7C7" />
+                                                                            <path d="M13.2507 5.00007L15.7507 7.50007M11.584 16.6667H18.2507M4.91732 13.3334L4.08398 16.6667L7.41732 15.8334L17.0723 6.17841C17.3848 5.86586 17.5603 5.44201 17.5603 5.00007C17.5603 4.55813 17.3848 4.13429 17.0723 3.82174L16.929 3.67841C16.6164 3.36596 16.1926 3.19043 15.7507 3.19043C15.3087 3.19043 14.8849 3.36596 14.5723 3.67841L4.91732 13.3334Z" stroke="#C7C7C7" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" />
+                                                                        </svg>
+
+
+                                                                    </div>
+                                                                    <div className="mt-4">
+                                                                        <p className="text-sm">Description</p>
+                                                                        <p className="text-sm mt-2">{challenge.challenge_Description}</p>
+                                                                    </div>
+                                                                    <div className="mt-4">
+                                                                        <p className="text-sm">Benefits</p>
+                                                                        <p className="text-sm mt-2">{challenge.challenge_benefits}</p>
+                                                                    </div>
+                                                                    <div className="mt-4">
+                                                                        <p className="text-sm">Duration</p>
+                                                                        <p className="text-sm mt-2">{challenge.duration}</p>
+                                                                    </div>
+                                                                    <div className="mt-4">
+                                                                        <p className="text-sm">Difficulty Level</p>
+                                                                        <p className="text-sm mt-2">{challenge.difficulty_Level}</p>
+                                                                    </div>
+                                                                    <section className="flex justify-between w-[90%] mt-4">
+                                                                        <div>
+                                                                            <p className="text-sm">Challenge Video:</p>
+                                                                            {videoOrImageURL && (
+                                                                                <div className="mt-4">
+                                                                                    <p className="text-sm">Challenge Media:</p>
+                                                                                    {challenge.video_or_image.type.includes("video") ? (
+                                                                                        <video
+                                                                                            src={videoOrImageURL}
+                                                                                            controls
+                                                                                            className="w-20 h-20 rounded-xl border border-gray-600 focus:outline-none-md object-cover mt-2"
+                                                                                        />
+                                                                                    ) : (
+                                                                                        <img
+                                                                                            src={videoOrImageURL}
+                                                                                            alt="Uploaded content"
+                                                                                            className="w-20 h-20 rounded-xl border border-gray-600 focus:outline-none-md object-cover mt-2"
+                                                                                        />
+                                                                                    )}
+                                                                                </div>
+                                                                            )}
+
+                                                                        </div>
+                                                                    </section>
+                                                                </div>
+
+
+                                                            )}
+
+                                                        </div>
+                                                        <svg onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDeleteChallenge(index);
+                                                        }}
+                                                            className="cursor-pointer mt-3"
+                                                            width="17" height="18" viewBox="0 0 17 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M7.3125 2.8125V3.125H10.4375V2.8125C10.4375 2.3981 10.2729 2.00067 9.97985 1.70765C9.68683 1.41462 9.2894 1.25 8.875 1.25C8.4606 1.25 8.06317 1.41462 7.77015 1.70765C7.47712 2.00067 7.3125 2.3981 7.3125 2.8125ZM6.0625 3.125V2.8125C6.0625 2.06658 6.35882 1.35121 6.88626 0.823762C7.41371 0.296316 8.12908 0 8.875 0C9.62092 0 10.3363 0.296316 10.8637 0.823762C11.3912 1.35121 11.6875 2.06658 11.6875 2.8125V3.125H16.375C16.5408 3.125 16.6997 3.19085 16.8169 3.30806C16.9342 3.42527 17 3.58424 17 3.75C17 3.91576 16.9342 4.07473 16.8169 4.19194C16.6997 4.30915 16.5408 4.375 16.375 4.375H15.4325L14.25 14.73C14.1628 15.4926 13.798 16.1965 13.2251 16.7073C12.6522 17.2182 11.9113 17.5004 11.1437 17.5H6.60625C5.83866 17.5004 5.09779 17.2182 4.52491 16.7073C3.95202 16.1965 3.5872 15.4926 3.5 14.73L2.3175 4.375H1.375C1.20924 4.375 1.05027 4.30915 0.933058 4.19194C0.815848 4.07473 0.75 3.91576 0.75 3.75C0.75 3.58424 0.815848 3.42527 0.933058 3.30806C1.05027 3.19085 1.20924 3.125 1.375 3.125H6.0625ZM7.625 7.1875C7.625 7.02174 7.55915 6.86277 7.44194 6.74556C7.32473 6.62835 7.16576 6.5625 7 6.5625C6.83424 6.5625 6.67527 6.62835 6.55806 6.74556C6.44085 6.86277 6.375 7.02174 6.375 7.1875V13.4375C6.375 13.6033 6.44085 13.7622 6.55806 13.8794C6.67527 13.9967 6.83424 14.0625 7 14.0625C7.16576 14.0625 7.32473 13.9967 7.44194 13.8794C7.55915 13.7622 7.625 13.6033 7.625 13.4375V7.1875ZM10.75 6.5625C10.5842 6.5625 10.4253 6.62835 10.3081 6.74556C10.1908 6.86277 10.125 7.02174 10.125 7.1875V13.4375C10.125 13.6033 10.1908 13.7622 10.3081 13.8794C10.4253 13.9967 10.5842 14.0625 10.75 14.0625C10.9158 14.0625 11.0747 13.9967 11.1919 13.8794C11.3092 13.7622 11.375 13.6033 11.375 13.4375V7.1875C11.375 7.02174 11.3092 6.86277 11.1919 6.74556C11.0747 6.62835 10.9158 6.5625 10.75 6.5625Z" fill="#DD441B" />
+                                                        </svg>
+                                                    </div>
+
+                                                </div>
+                                            );
+                                        })}
+
+                                        <div className="flex gap-4 mt-6 w-full">
+                                            <div className="flex flex-col w-full">
+                                                <button
+                                                    type="submit"
+                                                    className="bg-[#F48567] px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#000] flex items-center justify-center"
+                                                    onClick={handleSave}
+                                                >
+                                                    Submit
+                                                </button>
+
+                                            </div>
+
+                                            <div className="flex flex-col w-full">
+                                                <button
+                                                    onClick={() => {
+                                                        setisCreatedContentVisible(true);
+
+                                                    }}
+                                                    className="bg-[#C7C7C7] px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#000]"
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </section>
+                                )}
+
+                                {isLoadingLink && (
+                                    <section className="flex flex-col w-full">
+                                        <Progress
+                                            percent={progress}
+                                            percentPosition={{ align: 'center', type: 'inner' }}
+                                            size={[400, 20]}
+                                            strokeColor="#F48567"
+                                        />
+                                    </section>
+                                )}
+
 
                             </div>
 

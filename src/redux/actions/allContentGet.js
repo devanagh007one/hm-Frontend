@@ -288,7 +288,7 @@ export const createContent = (contentData) => async (dispatch) => {
         return;
       }
       
-      if (data?.message === "Content created successfully" && data?.content?._id) {
+      if (data?.success === true && data?.content?._id) {
         dispatch({ type: CREATE_CONTENT_SUCCESS, payload: data.content }); 
         return data.content;
       } else {

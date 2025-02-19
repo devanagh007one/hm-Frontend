@@ -3,7 +3,7 @@ import CryptoJS from 'crypto-js';
 
 import { fetchAllContent, patchTheContent, patchTheChallenge, deleteChallenge, deleteContent } from '../../redux/actions/allContentGet.js';
 import { useDispatch, useSelector } from 'react-redux';
-import { Table, Badge, Space, Pagination, Select, Spin, Card } from "antd";
+import { Tooltip, Badge, Space, Pagination, Select, Spin, Card } from "antd";
 import CreateContent from "../CreateContent.js";
 import { showNotification } from "../../redux/actions/notificationActions"; // Import showNotification
 import ChallangeMannage from "./ContentMannage.js";
@@ -171,32 +171,22 @@ const ContentManagement = () => {
         // Sorting
         switch (filter) {
             case "newestFirst":
-                filteredCombinedData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                filteredCombinedData.sort((b, a) => new Date(b.createdAt) - new Date(a.createdAt));
                 break;
 
             case "1234":
-                filteredCombinedData.sort((a, b) => a.userId - b.userId);
+                filteredCombinedData.sort((a, b) => {
+                    const idA = a.uniChallengeId ?? a.uniqueUploadId ?? Number.MAX_VALUE;
+                    const idB = b.uniChallengeId ?? b.uniqueUploadId ?? Number.MAX_VALUE;
+                    return idA - idB;
+                });
                 break;
 
             case "ABCD":
                 filteredCombinedData.sort((a, b) => {
-                    const nameA = a.userName || "";
-                    const nameB = b.userName || "";
+                    const nameA = a.challengeName || a.moduleName || "";
+                    const nameB = b.challengeName || b.moduleName || "";
                     return nameA.localeCompare(nameB);
-                });
-                break;
-
-            case "role":
-                const rolePriority = {
-                    "Super Admin": 1,
-                    "Admin": 2,
-                    "Partner": 3,
-                    "Hr": 4,
-                    "End User": 5
-                };
-
-                filteredCombinedData.sort((a, b) => {
-                    return (rolePriority[a.roles?.[0]] || 99) - (rolePriority[b.roles?.[0]] || 99);
                 });
                 break;
 
@@ -215,10 +205,37 @@ const ContentManagement = () => {
                 filteredCombinedData.sort((a, b) => new Date(a.joinedAt) - new Date(b.joinedAt));
                 break;
 
-            case "inactiveFirst":
+            case "type":
                 filteredCombinedData.sort((a, b) => {
-                    return (a.blocked === b.blocked) ? 0 : a.blocked ? 1 : -1;
+                    const typeA = a.challengeName ? "challenge" : a.moduleName ? "module" : "";
+                    const typeB = b.challengeName ? "challenge" : b.moduleName ? "module" : "";
+
+                    return typeA.localeCompare(typeB); // Sort "challenge" before "module"
                 });
+                break;
+
+
+            case "track":
+                filteredCombinedData.sort((a, b) => {
+                    const trackA = a.tracks || a.module?.tracks || ""; // Use `module.tracks` if `tracks` is missing
+                    const trackB = b.tracks || b.module?.tracks || "";
+
+                    return trackA.localeCompare(trackB); // Sort alphabetically
+                });
+                break;
+
+
+            case "inactiveFirst":
+                if (filteredCombinedData.every(item => item.isApproved === "approved")) {
+                    // If currently sorted by "approved", sort by "pending"
+                    filteredCombinedData.sort((a, b) => (a.isApproved === "pending" ? -1 : 1));
+                } else if (filteredCombinedData.every(item => item.isApproved === "pending")) {
+                    // If currently sorted by "pending", sort by "rejected"
+                    filteredCombinedData.sort((a, b) => (a.isApproved === "rejected" ? -1 : 1));
+                } else {
+                    // Default sorting: Approved first
+                    filteredCombinedData.sort((a, b) => (a.isApproved === "approved" ? -1 : 1));
+                }
                 break;
 
             default:
@@ -227,6 +244,7 @@ const ContentManagement = () => {
 
         return filteredCombinedData;
     }, [filter, contents, specificSearchQuery]);
+
 
 
 
@@ -345,7 +363,7 @@ const ContentManagement = () => {
         {
             title: (
                 <div className="flex items-center">
-                    <SvgIcon />
+                    <SvgIcon onClick={() => setFilter(prev => (prev === "1234" ? "" : "1234"))} />
                     <span style={{ color: "#F48567", marginLeft: "8px" }}>Upload ID</span>
                 </div>
             ),
@@ -355,14 +373,23 @@ const ContentManagement = () => {
         {
             title: (
                 <div className="flex items-center">
-                    <SvgIcon />
+                    <SvgIcon onClick={() => setFilter(prev => (prev === "ABCD" ? "" : "ABCD"))} />
                     <span style={{ color: "#F48567", marginLeft: "8px" }}>Content Name</span>
                 </div>
             ),
             dataIndex: "moduleName",
-            key: "moduleName",
             key: "moduleName || challengeName",
-            render: (text, record) => record.moduleName || record.challengeName,
+            render: (text, record) => {
+                const contentName = record.moduleName || record.challengeName || "";
+
+                return contentName.length > 15 ? (
+                    <Tooltip title={contentName}>
+                        <span>{contentName.substring(0, 15)}...</span>
+                    </Tooltip>
+                ) : (
+                    <span>{contentName}</span>
+                );
+            },
         },
         {
             title: (
@@ -371,18 +398,22 @@ const ContentManagement = () => {
                     <span style={{ color: "#F48567", marginLeft: "8px" }}>Uploaded By</span>
                 </div>
             ),
-            dataIndex: "uploaded_by",
-            key: "uploaded_by.firstName",
+            dataIndex: "record",
+            key: "record",
             render: (text, record) => {
-                // Safely accessing firstName and lastName
-                const uploadedBy = record.uploaded_by ?? record.module?.uploaded_by;
+
+                // Directly accessing module.uploaded_by
+                const uploadedBy =
+                    typeof record?.uploaded_by === "object" && record?.uploaded_by !== null
+                        ? record.uploaded_by
+                        : record?.module?.uploaded_by;
 
                 if (!uploadedBy) {
-                    return "N/A"; // or any fallback text
+                    return "N/A"; // Fallback text
                 }
 
-                const firstName = uploadedBy.firstName || "";
-                const lastName = uploadedBy.lastName || "";
+                const firstName = uploadedBy?.firstName ?? "N/A";
+                const lastName = uploadedBy?.lastName ?? "";
 
                 return `${firstName} ${lastName}`.trim() || "N/A";
             },
@@ -390,7 +421,7 @@ const ContentManagement = () => {
         {
             title: (
                 <div className="flex items-center">
-                    <SvgIcon />
+                    <SvgIcon onClick={() => setFilter(prev => (prev === "type" ? "" : "type"))} />
                     <span style={{ color: "#F48567", marginLeft: "8px" }}>Type</span>
                 </div>
             ),
@@ -400,7 +431,7 @@ const ContentManagement = () => {
         {
             title: (
                 <div className="flex items-center">
-                    <SvgIcon />
+                    <SvgIcon onClick={() => setFilter(prev => (prev === "newestFirst" ? "" : "newestFirst"))} />
                     <span style={{ color: "#F48567", marginLeft: "8px" }}>Date Uploaded</span>
                 </div>
             ),
@@ -421,7 +452,7 @@ const ContentManagement = () => {
         {
             title: (
                 <div className="flex items-center">
-                    <SvgIcon />
+                    <SvgIcon onClick={() => setFilter(prev => (prev === "inactiveFirst" ? "" : "inactiveFirst"))} />
                     <span style={{ color: "#F48567", marginLeft: "8px" }}>Status</span>
                 </div>
             ),
@@ -465,7 +496,7 @@ const ContentManagement = () => {
         {
             title: (
                 <div className="flex items-center">
-                    <SvgIcon />
+                    <SvgIcon onClick={() => setFilter(prev => (prev === "track" ? "" : "track"))} />
                     <span style={{ color: "#F48567", marginLeft: "8px" }}>Tracks</span>
                 </div>
             ),
