@@ -65,7 +65,7 @@ const ParentComponent = () => {
     const [editingIndex, setEditingIndex] = useState(null);
     const [expandedIndex, setExpandedIndex] = useState(null);
 
-    console.log(modules, challenges);
+    // console.log(modules, challenges);
 
 
     const toggleDropdown = () => setIsOpen(!isOpen);
