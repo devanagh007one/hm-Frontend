@@ -10,7 +10,8 @@ body {
 }
 
 body.dark-mode {
-  @apply bg-zinc-900 text-zinc-300; /* Adjust background and text color for dark mode */
+  @apply bg-zinc-900 text-zinc-300;
+  /* Adjust background and text color for dark mode */
 }
 
 /* For WebKit browsers (Chrome, Safari, etc.) */
@@ -35,141 +36,175 @@ body.dark-mode {
 
 /* For Firefox */
 * {
-  scrollbar-width: auto; /* 'auto' or 'thin' */
+  scrollbar-width: auto;
+  /* 'auto' or 'thin' */
   scrollbar-color: #F48567 transparent;
 }
+
 body.dark-mode .ant-table-cell-row-hover {
   background-color: #f486673a !important;
 }
 
-body.dark-mode .theusertab .ant-table-row td{
-color: #fff;
+body.dark-mode .theusertab .ant-table-row td {
+  color: #fff;
   padding: 10px !important;
   font-family: Figtree !important;
 
-border-bottom: 0px !important;
+  border-bottom: 0px !important;
 }
-body .theusertab .ant-table-row td{
-color: #000;
+
+body .theusertab .ant-table-row td {
+  color: #000;
   padding: 10px !important;
   font-family: Figtree !important;
 
-border-bottom: 0px !important;
+  border-bottom: 0px !important;
 }
-body .theusertab tr{
-border-radius: 15px !important;
-overflow: hidden;
+
+body .theusertab tr {
+  border-radius: 15px !important;
+  overflow: hidden;
 }
-body .theusertab tr td:first-child{
+
+body .theusertab tr td:first-child {
   border-top-left-radius: 10px !important;
   border-bottom-left-radius: 10px !important;
 }
+
 body .theusertab tr td:last-child {
   border-top-right-radius: 10px !important;
   border-bottom-right-radius: 10px !important;
 }
-.ant-table-row{
+
+.ant-table-row {
   padding-top: 5px !important;
   /* color: #fff; */
 }
-.active-row .ant-table-cell{
+
+.active-row .ant-table-cell {
   color: #000 !important;
   transition: background-color 0.3s ease;
 }
 
-.theusertab tbody td{
+.theusertab tbody td {
   /* height: 70px; */
 }
-body.dark-mode .theusertab thead th{
+
+body.dark-mode .theusertab thead th {
   background: #333333 !important;
 }
-body .theusertab thead th{
+
+body .theusertab thead th {
   background: #f1f5f9 !important;
 }
 
-input:focus{
+input:focus {
   outline: none;
 }
-.rounded-custom th:first-child{
+
+.rounded-custom th:first-child {
   border-top-left-radius: 10px !important;
   border-bottom-left-radius: 10px !important;
 }
+
 .rounded-custom th:last-child {
   border-top-right-radius: 10px !important;
   border-bottom-right-radius: 10px !important;
 }
 
-body.dark-mode .popup-overlay input{
+body.dark-mode .popup-overlay input {
   background: #333333 !important;
 }
-body.dark-mode .popup-overlay select{
+
+body.dark-mode .popup-overlay select {
   background: #333333 !important;
 }
-body.dark-mode .popup-overlay textarea{
+
+body.dark-mode .popup-overlay textarea {
   background: #333333 !important;
 }
+
 .custom-table th {
-  height: max-content ;
+  height: max-content;
 
 }
+
 /* body.dark-mode svg{
   fill:#333333 !important;
   } */
 
-body.dark-mode .the-uploardtable .ant-table-thead tr th{
+body.dark-mode .the-uploardtable .ant-table-thead tr th {
   background: #333333 !important;
   color: #F48567 !important;
 }
-body.dark-mode .maintable-upl{
+
+body.dark-mode .maintable-upl {
   background: #222222 !important;
   color: #F48567 !important;
 }
-body.dark-mode .the-uploardtable .ant-input{
- background-color: #333333;
- color: #fff !important;
+
+body.dark-mode .the-uploardtable .ant-input {
+  background-color: #333333;
+  color: #fff !important;
 
 }
-.headtable1, .headtable3 ,.headtable4 ,.headtable5 ,.headtable6 ,.headtable8 ,.headtable7{
+
+.headtable1,
+.headtable3,
+.headtable4,
+.headtable5,
+.headtable6,
+.headtable8,
+.headtable7 {
   color: #F48567 !important;
 }
-.ant-switch-inner-checked{
+
+.ant-switch-inner-checked {
   color: #0FC20F !important;
 }
-.ant-switch-inner-unchecked{
+
+.ant-switch-inner-unchecked {
   color: #FFFF00 !important;
 }
-.headtextxx{
+
+.headtextxx {
   font-family: Figtree;
-font-weight: 600;
-font-size: 10px;
-line-height: 12px;
-letter-spacing: 0%;
+  font-weight: 600;
+  font-size: 10px;
+  line-height: 12px;
+  letter-spacing: 0%;
 
 }
-.table-text{
+
+.table-text {
   font-family: Figtree;
-font-weight: 400;
-font-size: 12px;
-line-height: 14.4px;
-letter-spacing: 0%;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 14.4px;
+  letter-spacing: 0%;
 
 }
-.choose-org{
+
+.choose-org {
   height: 42px;
 }
-.choose-org .ant-select-selector{
+
+.choose-org .ant-select-selector {
   border: 1px solid #000 !important;
   border-radius: 10px !important;
 
 }
-body.dark-mode .choose-org .ant-select-selector{
+
+body.dark-mode .choose-org .ant-select-selector {
   border: 1px solid rgb(75 85 99 / var(--tw-border-opacity)) !important;
   border-radius: 10px !important;
   background: #333333 !important;
   color: #fff !important;
 }
+
 body.dark-mode .choose-org input::placeholder {
-  color: rgba(255, 255, 255, 0.7) !important; /* Adjust opacity for better visibility */
+  color: rgba(255, 255, 255, 0.7) !important;
+  /* Adjust opacity for better visibility */
 }
 
 
@@ -197,15 +232,47 @@ body.dark-mode .choose-org input::placeholder {
   height: 15px;
   background: #F48567;
   border-radius: 50%;
-  box-shadow: 0px 0px 15px 5px #F48567; /* Strong glow effect */
+  box-shadow: 0px 0px 15px 5px #F48567;
+  /* Strong glow effect */
 }
 
 
-.activetolgs{
+.activetolgs {
   font-family: Figtree;
-font-weight: 400;
-font-size: 16px;
-line-height: 19.2px;
-letter-spacing: 0%;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 19.2px;
+  letter-spacing: 0%;
 
+}
+
+
+body.dark-mode .asign-tem .ant-checkbox-inner {
+  background-color: transparent !important;
+  border: 1px solid #d9d9d9 !important;
+  color: #fff !important;
+  width: 24px !important;
+  height: 24px !important;
+}
+body .asign-tem .ant-checkbox-inner {
+  background-color: transparent !important;
+  
+  width: 24px !important;
+  height: 24px !important;
+}
+body.dark-mode .asign-tem .ant-checkbox-group span {
+  color: #fff !important;
+}
+
+body.dark-mode .asign-tem .ant-checkbox-inner::after {
+  border-color: #34C759 !important;
+  width: 10px !important;
+  height: 1.5px !important;
+  inset-inline-start: 15% !important;
+}
+body .asign-tem .ant-checkbox-inner::after {
+  border-color: #34C759 !important;
+  width: 10px !important;
+  height: 1.5px !important;
+  inset-inline-start: 15% !important;
 }

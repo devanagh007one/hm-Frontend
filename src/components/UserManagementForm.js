@@ -49,29 +49,7 @@ const ParentComponent = () => {
         dispatch(fetchAllUsers());
     }, [dispatch]);
 
-    const handleLicenseChange = (licenseId) => {
-        const selected = licensing.find((license) => license.id === licenseId);
-        setSelectedLicense(selected);
 
-        if (selected) {
-            const { numberOfLicenses } = selected;
-            const userCount = users.filter(
-                (user) => user.company === formData.company
-            ).length;
-
-            if (userCount >= numberOfLicenses) {
-                setIsSaveDisabled(true);
-                dispatch(
-                    showNotification(
-                        `The selected license allows only ${numberOfLicenses} users. Please upgrade your license.`,
-                        "error"
-                    )
-                );
-            } else {
-                setIsSaveDisabled(false);
-            }
-        }
-    };
 
     const handleChange = (e) => {
         const { name, value, files } = e.target;

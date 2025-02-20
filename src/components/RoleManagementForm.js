@@ -74,9 +74,12 @@ const ParentComponent = () => {
     const dispatch = useDispatch();
 
     useEffect(() => {
-        dispatch(fetchAllLicensing());
-        dispatch(fetchAllUsers());
-    }, [dispatch]);
+        if (showPopup) {
+            dispatch(fetchAllLicensing());
+            dispatch(fetchAllUsers());
+        }
+    }, [showPopup, dispatch]);
+    
 
     const handleChange = (e) => {
         const { name, value, files } = e.target;
@@ -102,6 +105,7 @@ const ParentComponent = () => {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (isSaveDisabled) return;
+        if (setShowPopup(false)) return;
     
         const fieldErrors = {};
     

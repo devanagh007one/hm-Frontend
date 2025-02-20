@@ -5,9 +5,9 @@ import { fetchUsers } from '../../redux/actions/authActions';
 import { useDispatch, useSelector } from 'react-redux';
 import { Table, Badge, Button, Space, Pagination, Select, Spin, Card } from "antd";
 import UserManagementFormhr from "../UserManagementFormhr";
-import CsvUser from "../csvUser.js";
 import { showNotification } from "../../redux/actions/notificationActions"; // Import showNotification
-import EyeForm from "./EyeForm.js";
+import EyeForm from "./EyeFormhr";
+import AsignTeam from "./AsignTeam.js";
 import EdituserForm from "../EdituserForm";
 
 import { IconSearch } from '@tabler/icons-react';
@@ -97,34 +97,14 @@ const UserManagement = () => {
             newestFirst: (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
             "1234": (a, b) => a.userId - b.userId,
             ABCD: (a, b) => (a.userName || "").localeCompare(b.userName || ""),
-            Org: (b, a) => {
-                // Function to extract the first word from a string
-                const getFirstWord = (str) => {
-                    return (str || "").trim().split(' ')[0].toLowerCase();  // Split by space and take the first part
-                };
-
-                const firstWordA = getFirstWord(a.company);
-                const firstWordB = getFirstWord(b.company);
-
-                return firstWordA.localeCompare(firstWordB);  // Compare the first words alphabetically
-            },
-            Uploaded: (a, b) => {
-                const rolePriority = ["Super Admin", "Admin", "Partner", "End User"];
-
-                const roleA = a.uploaded_by.roles[0] || "None";  // Default to "None" if the role is empty
-                const roleB = b.uploaded_by.roles[0] || "None";  // Default to "None" if the role is empty
-
-                const roleIndexA = rolePriority.indexOf(roleA);
-                const roleIndexB = rolePriority.indexOf(roleB);
-
-                // If role is "None", assign it the lowest priority (i.e., after all other roles)
-                const indexA = roleA === "None" ? rolePriority.length : roleIndexA;
-                const indexB = roleB === "None" ? rolePriority.length : roleIndexB;
-
-                return indexA - indexB;
-            },
-            endDate: (a, b) => new Date(a.editLogs?.slice(-1)[0]?.date || 0) - new Date(b.editLogs?.slice(-1)[0]?.date || 0),
+            location: (a, b) => (a.country || "").localeCompare(b.country || ""),
+            Department: (a, b) => (a.department || "").localeCompare(b.department || ""),
+            Designation: (a, b) => (a.department || "").localeCompare(b.department || ""),
+            Email: (a, b) => (a.email || "").localeCompare(b.email || ""),
+            Gender: (a, b) => (a.gender|| "").localeCompare(b.gender || ""),
+            Phone: (a, b) => a.mobile - b.mobile,
             startDate: (b, a) => new Date(a.joinedAt) - new Date(b.joinedAt),
+
             inactiveFirst: (b, a) => (a.blocked === b.blocked ? 0 : a.blocked ? 1 : -1)
         };
 
@@ -184,7 +164,7 @@ const UserManagement = () => {
         {
             title: (
                 <div className="flex items-center">
-                    <SvgIcon />
+                    <SvgIcon onClick={() => setFilter(prev => (prev === "ABCD" ? "" : "ABCD"))} />
                     <span style={{ color: "#F48567", marginLeft: "8px" }}>Name</span>
                 </div>
             ),
@@ -196,7 +176,7 @@ const UserManagement = () => {
             title: (
                 <div className="flex items-center">
                     <SvgIcon />
-                    <span style={{ color: "#F48567", marginLeft: "8px" }}>Organization Name</span>
+                    <span style={{ color: "#F48567", marginLeft: "8px" }}>Organization</span>
                 </div>
             ),
             dataIndex: "company",
@@ -205,7 +185,7 @@ const UserManagement = () => {
         {
             title: (
                 <div className="flex items-center">
-                    <SvgIcon />
+                    <SvgIcon onClick={() => setFilter(prev => (prev === "location" ? "" : "location"))} />
                     <span style={{ color: "#F48567", marginLeft: "8px" }}>Location</span>
                 </div>
             ),
@@ -215,7 +195,7 @@ const UserManagement = () => {
         {
             title: (
                 <div className="flex items-center">
-                    <SvgIcon />
+                    <SvgIcon onClick={() => setFilter(prev => (prev === "Department" ? "" : "Department"))} />
                     <span style={{ color: "#F48567", marginLeft: "8px" }}>Department</span>
                 </div>
             ),
@@ -225,7 +205,7 @@ const UserManagement = () => {
         {
             title: (
                 <div className="flex items-center">
-                    <SvgIcon />
+                    <SvgIcon onClick={() => setFilter(prev => (prev === "Designation" ? "" : "Designation"))} />
                     <span style={{ color: "#F48567", marginLeft: "8px" }}>Designation</span>
                 </div>
             ),
@@ -235,6 +215,7 @@ const UserManagement = () => {
         {
             title: (
                 <div className="flex items-center">
+                    <SvgIcon onClick={() => setFilter(prev => (prev === "Email" ? "" : "Email"))} />
                     <span style={{ color: "#F48567", marginLeft: "8px" }}>Email</span>
                 </div>
             ),
@@ -244,6 +225,7 @@ const UserManagement = () => {
         {
             title: (
                 <div className="flex items-center">
+                    <SvgIcon onClick={() => setFilter(prev => (prev === "Gender" ? "" : "Gender"))} />
                     <span style={{ color: "#F48567", marginLeft: "8px" }}>Gender</span>
                 </div>
             ),
@@ -253,7 +235,7 @@ const UserManagement = () => {
         {
             title: (
                 <div className="flex items-center">
-                    <SvgIcon />
+                    <SvgIcon onClick={() => setFilter(prev => (prev === "Phone" ? "" : "Phone"))} />
                     <span style={{ color: "#F48567", marginLeft: "8px" }}>Phone</span>
                 </div>
             ),
@@ -263,7 +245,24 @@ const UserManagement = () => {
         {
             title: (
                 <div className="flex items-center">
-                    <SvgIcon />
+                    <SvgIcon onClick={() => setFilter(prev => (prev === "startDate" ? "" : "startDate"))} />
+                    <span style={{ color: "#F48567", marginLeft: "8px" }}>DOJ</span>
+                </div>
+            ),
+            dataIndex: "joinedAt",
+            key: "joinedAt",
+            render: (text) => {
+                return text ? new Date(text).toLocaleDateString("en-GB", { 
+                    day: "2-digit", 
+                    month: "short", 
+                    year: "numeric" 
+                }) : "N/A";
+            },
+        },
+        {
+            title: (
+                <div className="flex items-center justify-center">
+                    <SvgIcon onClick={() => setFilter(prev => (prev === "inactiveFirst" ? "" : "inactiveFirst"))} />
                     <span style={{ color: "#F48567", marginLeft: "8px" }}>Status</span>
                 </div>
             ),
@@ -274,57 +273,48 @@ const UserManagement = () => {
                 const isLoading = loadingRecordId === record._id;
 
                 return (
-                    <Badge
-                        color={status === "Active" ? "green" : "red"}
-                        text={
-                            isLoading ? (
-                                <Spin size="small" /> // Ant Design spinner
-                            ) : (
-                                status
-                            )
-                        }
-                        style={{
-                            backgroundColor: getStatusBgColor(status),
-                            borderRadius: "10px",
-                            padding: "7px",
-                            color: darkMode ? "white" : "black",
-                            display: "inline-block",
-                            cursor: isLoading ? "not-allowed" : "pointer", // Disable click while loading
-                        }}
-                        onClick={async () => {
-                            if (isLoading) return; // Prevent multiple clicks while loading
-                            setLoadingRecordId(record._id); // Set loading state
-                            try {
-                                await handleToggleStatus(record._id, status); // Call your toggle function
-                            } finally {
-                                setLoadingRecordId(null); // Reset loading state
-                            }
-                        }}
-                    />
+                    <div className="flex items-center gap-3">
+                        <div className="w-[80px]">
+                            <Badge
+                                color={status === "Active" ? "green" : "red"}
+                                text={
+                                    isLoading ? (
+                                        <Spin size="small" /> // Ant Design spinner
+                                    ) : (
+                                        status
+                                    )
+                                }
+                                style={{
+                                    backgroundColor: getStatusBgColor(status),
+                                    borderRadius: "10px",
+                                    padding: "7px",
+                                    color: darkMode ? "white" : "black",
+                                    display: "inline-block",
+                                    cursor: isLoading ? "not-allowed" : "pointer", // Disable click while loading
+                                }}
+                                onClick={async () => {
+                                    if (isLoading) return; // Prevent multiple clicks while loading
+                                    setLoadingRecordId(record._id); // Set loading state
+                                    try {
+                                        await handleToggleStatus(record._id, status); // Call your toggle function
+                                    } finally {
+                                        setLoadingRecordId(null); // Reset loading state
+                                    }
+                                }}
+                            />
+                        </div>
+                        <div>
+                            <Space>
+                                <EyeForm data={record} />
+                                <EdituserForm record={record} />
+                                <AsignTeam record={record} />
+                            </Space>
+                        </div>
+                    </div>
+
                 );
             },
         },
-        {
-            title: (
-                <div className="flex items-center">
-                    <SvgIcon />
-                    <span style={{ color: "#F48567", marginLeft: "8px" }}>Actions</span>
-                </div>
-            ),
-            key: "actions",
-            render: (_, record) => (
-                <div>
-                    <Space>
-                        <EyeForm data={record} />
-                        <EdituserForm record={record} />
-                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M17 16.2653L14.2821 18.9747L13.5128 18.2055L14.906 16.8123H9.65812V15.7183H14.906L13.5128 14.3252L14.2821 13.5559L17 16.2653ZM11.6667 17.9064L12.7607 19.0004H2V3.68413H6.37607C6.37607 3.38213 6.43305 3.10008 6.54701 2.83797C6.66097 2.57587 6.81766 2.34225 7.01709 2.13712C7.21652 1.93199 7.44729 1.7753 7.7094 1.66703C7.97151 1.55877 8.25641 1.50179 8.5641 1.49609C8.8661 1.49609 9.14815 1.55307 9.41026 1.66703C9.67236 1.78099 9.90598 1.93769 10.1111 2.13712C10.3162 2.33655 10.4729 2.56732 10.5812 2.82943C10.6895 3.09154 10.7464 3.37644 10.7521 3.68413H15.1282V12.8551L14.0342 11.7611V4.77815H12.9402V6.96618H4.18803V4.77815H3.09402V17.9064H11.6667ZM5.28205 4.77815V5.87216H11.8462V4.77815H9.65812V3.68413C9.65812 3.53028 9.62963 3.38783 9.57265 3.25678C9.51567 3.12572 9.43875 3.01176 9.34188 2.9149C9.24501 2.81803 9.1282 2.73826 8.99145 2.67558C8.8547 2.6129 8.71225 2.58441 8.5641 2.59011C8.41026 2.59011 8.26781 2.6186 8.13675 2.67558C8.0057 2.73256 7.89174 2.80948 7.79487 2.90635C7.69801 3.00322 7.61823 3.12003 7.55556 3.25678C7.49288 3.39353 7.46439 3.53598 7.47009 3.68413V4.77815H5.28205Z" fill="#C7C7C7"/>
-</svg>
-
-                    </Space>
-                </div>
-            ),
-        }
 
     ];
 

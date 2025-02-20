@@ -9,6 +9,7 @@ import alluserReducer from './alluserReducer';
 import alllicensingReducer from './allLicensingReducer'; 
 import allcontentReducer from './allContentReducer';
 import eventReducer from './alleventReducer';
+import notifications from './allNotificationsReducer';
 
 const rootReducer = combineReducers({
     header: headerReducer,
@@ -22,6 +23,7 @@ const rootReducer = combineReducers({
     hrlicensing: alllicensingReducer,
     content: allcontentReducer,
     events: eventReducer,
+    dashnotifications: notifications,
 
 });
 

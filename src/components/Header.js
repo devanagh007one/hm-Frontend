@@ -1,19 +1,40 @@
-import React from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { SET_ACTIVE_INDEX, SET_ACTIVE_COMPONENT } from '../redux/actions/index';
-import Profilecreads from './Profilecreads'; // Make sure this component is correctly implemented
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { SET_ACTIVE_INDEX, SET_ACTIVE_COMPONENT } from "../redux/actions/index";
+import Profilecreads from "./Profilecreads";
+import { setActiveComponent } from "../redux/actions/index.js";
 
 const Header = () => {
+  const dispatch = useDispatch();
+
+  // Get stored active component from localStorage
+  const storedComponent = localStorage.getItem("activeComponent") || "Dashboard";
+
+  // Get active state from Redux
   const mainTitles = useSelector((state) => state.header.mainTitles);
   const profileTitles = useSelector((state) => state.header.profileTitles);
   const activeIndex = useSelector((state) => state.header.activeIndex);
-  const activeComponent = useSelector((state) => state.header.activeComponent);
+  const activeComponent = useSelector((state) => state.header.activeComponent) || storedComponent;
   const darkMode = useSelector((state) => state.theme.darkMode);
-  const dispatch = useDispatch();
+
+  // Update Redux state from localStorage on component mount
+  useEffect(() => {
+    if (storedComponent) {
+      dispatch(setActiveComponent(storedComponent));
+    }
+
+    // Remove localStorage item after applying it to Redux
+    setTimeout(() => {
+      localStorage.removeItem("activeComponent");
+    }, 100);
+  }, [dispatch, storedComponent]);
 
   const handleTitleClick = (index, component) => {
     dispatch({ type: SET_ACTIVE_INDEX, payload: index });
     dispatch({ type: SET_ACTIVE_COMPONENT, payload: component });
+
+    // Store active component in localStorage before reload
+    localStorage.setItem("activeComponent", component);
   };
 
   return (
@@ -44,29 +65,39 @@ const Header = () => {
           <div>
           <div className='ml-4 mt-4 mb-4'>MAIN MENU</div>
           <div className="flex flex-col gap-1">
-            {mainTitles.map((item, index) => (
-              <div
-                key={index}
-                className={`sidebartab flex items-center ${activeIndex === index && activeComponent === item.component ? 'active' : ''}`}
-                onClick={() => handleTitleClick(index, item.component)}
-              >
-                {item.icon}
-                <span className="ml-2">{item.title}</span>
-              </div>
-            ))}
+          {mainTitles.map((item, index) => (
+                  <div
+                    key={index}
+                    className={`sidebartab flex items-center ${
+                      (activeIndex === index && activeComponent === item.component) ||
+                      storedComponent === item.component
+                        ? "active"
+                        : ""
+                    }`}
+                    onClick={() => handleTitleClick(index, item.component)}
+                  >
+                    {item.icon}
+                    <span className="ml-2">{item.title}</span>
+                  </div>
+                ))}
           </div>
           </div>
           <div className="flex flex-col gap-2">
-            {profileTitles.map((item, index) => (
-              <div
-                key={index}
-                className={`sidebartab flex items-center ${activeIndex === mainTitles.length + index && activeComponent === item.component ? 'active' : ''}`}
-                onClick={() => handleTitleClick(mainTitles.length + index, item.component)}
-              >
-                {item.icon}
-                <span className="ml-2">{item.title}</span>
-              </div>
-            ))}
+          {profileTitles.map((item, index) => (
+                <div
+                  key={index}
+                  className={`sidebartab flex items-center ${
+                    (activeIndex === mainTitles.length + index && activeComponent === item.component) ||
+                    storedComponent === item.component
+                      ? "active"
+                      : ""
+                  }`}
+                  onClick={() => handleTitleClick(mainTitles.length + index, item.component)}
+                >
+                  {item.icon}
+                  <span className="ml-2">{item.title}</span>
+                </div>
+              ))}
           </div>
           </section>
         </section>

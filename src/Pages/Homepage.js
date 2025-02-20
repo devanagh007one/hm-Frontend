@@ -41,9 +41,7 @@ const Homepage = () => {
     dispatch(setActiveComponent(storedComponent)); // Update Redux state
 
     // Remove activeComponent after reload
-    setTimeout(() => {
-      localStorage.removeItem("activeComponent");
-    }, 100); // Delay to ensure component is set before removing
+
   }, [dispatch, storedComponent]);
 
   return (

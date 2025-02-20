@@ -227,8 +227,7 @@ const ParentComponent = () => {
                                     onChange={handleChange}
                                     className="p-2 rounded-xl border border-gray-600 focus:outline-none"
                                 >
-                                    <option >Select</option>
-                                    <option value="HR">HR</option>
+                                    <option >Choose Organization</option>
                                     <option value="End User">End User</option>
                                 </select>
                             </div>

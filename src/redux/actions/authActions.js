@@ -60,6 +60,10 @@ export const loginUser = (credentials) => {
             const encryptedRoles = CryptoJS.AES.encrypt(JSON.stringify(data?.user?.roles), '477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1').toString();
             localStorage.setItem('encryptedRoles', encryptedRoles);
           }
+          if (data?.user?.userId) {
+            const encryptedUser = CryptoJS.AES.encrypt(JSON.stringify(data?.user?.userId), '477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1').toString();
+            localStorage.setItem('uniqueid', encryptedUser);
+          }
           if (data?.user?._id) {
             const encryptedId = CryptoJS.AES.encrypt(JSON.stringify(data?.user?._id), '477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1').toString();
             localStorage.setItem('userId', encryptedId);
