@@ -1,15 +1,38 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchDashboardData } from '../redux/actions/allNotifications';
 
 const ProductivityCard = () => {
-  const totalTasks = 200; // Example total task count
-  const completedTasks = 78; // Example completed tasks
-  const remainingTasks = totalTasks - completedTasks;
-  const progress = (completedTasks / totalTasks) * 100;
+  const darkMode = useSelector((state) => state.theme.darkMode);
+  const { dashboardData, error: licensingError } = useSelector((state) => state.dashnotifications);
+
+  const totalTasks = dashboardData?.data?.tasks?.total || 0;
+  const completedTasks = dashboardData?.data?.tasks?.completed || 0;
+  const remainingTasks = dashboardData?.data?.tasks?.pending || 0;
+  const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+
+  const dispatch = useDispatch();
+  const [selectedFilter, setSelectedFilter] = useState("daily");
+
+  useEffect(() => {
+    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+    const last7Days = new Date();
+    last7Days.setDate(new Date().getDate() - 7);
+    const startDate = last7Days.toISOString().split("T")[0];
+
+    let filterStartDate = today;
+    if (selectedFilter === "monthly") {
+      const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+      filterStartDate = firstDayOfMonth.toISOString().split("T")[0];
+    }
+
+    dispatch(fetchDashboardData(filterStartDate, today));
+  }, [dispatch, selectedFilter]);
 
   return (
-    <div className="bg-zinc-800 text-zinc-300 text-white p-6 rounded-2xl shadow-lg w-[450px] h-[300px] relative">
+    <div className={` p-6 rounded-2xl shadow-lg w-1/2 h-[300px] relative ${darkMode ? 'bg-zinc-800 text-white' : 'bg-slate-100 text-black'}`}>
       {/* Header */}
       <div className="flex justify-between items-center">
         <h2 className="text-lg ">Productivity Level</h2>
@@ -28,7 +51,6 @@ const ProductivityCard = () => {
               pathColor: "#C0D838",
               trailColor: "#FF8C78",
               textSize: "16px",
-              textColor: "#fff",
             })}
           />
         </div>
@@ -36,22 +58,22 @@ const ProductivityCard = () => {
         {/* Centered Text */}
         <div className="absolute top-1/2 transform -translate-y-1/2 text-center">
           <p className="text-3xl font-bold">{remainingTasks}</p>
-          <p className="text-gray-400">Task remaining</p>
+          <p className="">Task remaining</p>
         </div>
       </div>
 
       {/* Legend */}
-      <div className="flex justify-between text-sm text-gray-400 mt-6">
+      <div className="flex justify-between text-sm  mt-6">
         <span className="text-green-400">Completed</span>
         <span className="text-red-400">Pending</span>
       </div>
 
       {/* Dropdown */}
-      <div className="absolute top-4 right-4">
-        <select className="bg-gray-700 px-3 py-1 rounded-md text-white">
-          <option>Daily</option>
-          <option>Weekly</option>
-          <option>Monthly</option>
+      <div className={`absolute top-4 right-4 ${darkMode ? 'bg-zinc-800 text-white' : 'bg-slate-100 text-black'}`}>
+        <select className={`px-3 py-1 rounded-md rounded-xl border border-gray-600 ${darkMode ? 'bg-zinc-800 text-white' : 'bg-slate-100 text-black'}`} value={selectedFilter} onChange={(e) => setSelectedFilter(e.target.value)}>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
         </select>
       </div>
     </div>

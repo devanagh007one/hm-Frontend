@@ -276,3 +276,7 @@ body .asign-tem .ant-checkbox-inner::after {
   height: 1.5px !important;
   inset-inline-start: 15% !important;
 }
+
+.datepicker .css-dev-only-do-not-override-7ny38l{
+  /* display: none !important; */
+}
