@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 
 import Header from '../components/Header';
 import Sidebar from '../components/tobbar';
-import Dashboard from '../components/Modular/Dashboard';
+import Dashboard from '../components/Modular/Dashboard.js';
 import ProfileSettings from '../components/Modular/Profilesettings';
 import ProfileSettingsHR from '../components/Modular/ProfileSettingsHR.js';
 import Usersmanagement from '../components/Modular/Usersmanagement';
