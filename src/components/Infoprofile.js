@@ -41,7 +41,7 @@ const Infoprofile = () => {
             <img
               src={`${process.env.REACT_APP_STATIC_API_URL}${userData.image.replace('/root/happme_adminuser_management', '')}`}
               alt="Notification"
-              className='w-[150px] absolute ml-[200px] '
+              className='w-[150px] absolute ml-[200px] mnaitoimg'
             />
           )}
 

@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import Header from '../components/Header';
 import Sidebar from '../components/tobbar';
 import Dashboard from '../components/Modular/dashboard.js';
+import DashboardPat from '../components/Modular/dashboardPat.js';
 import ProfileSettings from '../components/Modular/Profilesettings';
 import ProfileSettingsHR from '../components/Modular/ProfileSettingsHR.js';
 import Usersmanagement from '../components/Modular/Usersmanagement';
@@ -20,6 +21,7 @@ import {setActiveComponent} from '../redux/actions/index.js';
 
 const components = {
   Dashboard: <Dashboard />,
+  DashboardPat: <DashboardPat />,
   Usersmanagement: <Usersmanagement />,
   SystemLogs: <SystemLogs />,
   ContentManagement: <ContentManagement />,

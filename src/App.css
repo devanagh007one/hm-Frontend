@@ -41,6 +41,10 @@
   .thescreanhe ul::-webkit-scrollbar {
     display: none !important;
   }
+  .mnaitoimg{
+    margin-left: 110px !important;
+    margin-top: 10px !important;
+  }
 
 }
 .headoptions td:nth-child(3){
