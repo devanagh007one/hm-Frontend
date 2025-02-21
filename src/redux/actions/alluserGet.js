@@ -97,9 +97,9 @@ export const createUser = (userData) => async (dispatch) => {
     console.log("API Response Data:", data);
     
     if (data.message === "Email or Mobile is already in use.") {
-        dispatch(showNotification(data.message, "error"));
+        // dispatch(showNotification(data.message, "error"));
     } else {
-        dispatch(showNotification(data.message, "success"));
+        // dispatch(showNotification(data.message, "success"));
     }
     
 

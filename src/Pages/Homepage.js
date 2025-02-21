@@ -7,6 +7,7 @@ import Dashboard from '../components/Modular/Dashboard';
 import ProfileSettings from '../components/Modular/Profilesettings';
 import ProfileSettingsHR from '../components/Modular/ProfileSettingsHR.js';
 import Usersmanagement from '../components/Modular/Usersmanagement';
+import SystemLogs from '../components/Modular/SystemLogs';
 import Rolemanagement from '../components/Modular/Rolemanagement';
 import ContentManagement from '../components/Modular/Contentmanagement';
 import UsersmanagementHR from '../components/Modular/Usersmanagementhr';
@@ -20,6 +21,7 @@ import {setActiveComponent} from '../redux/actions/index.js';
 const components = {
   Dashboard: <Dashboard />,
   Usersmanagement: <Usersmanagement />,
+  SystemLogs: <SystemLogs />,
   ContentManagement: <ContentManagement />,
   Rolemanagement: <Rolemanagement />,
   Licensing: <Licensing />,

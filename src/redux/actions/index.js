@@ -124,7 +124,7 @@ const getHeadersForRole = (role) => {
             </svg>
           },
           {
-            title: 'System Logs & Audit', component: '', icon: <svg className="icon-side" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            title: 'System Logs & Audit', component: 'SystemLogs', icon: <svg className="icon-side" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M3.33325 15V5M16.6666 10V15" stroke="#C7C7C7" stroke-width="1.25" stroke-linecap="round" />
               <path d="M9.99992 8.33341C13.6816 8.33341 16.6666 6.84175 16.6666 5.00008C16.6666 3.15841 13.6816 1.66675 9.99992 1.66675C6.31825 1.66675 3.33325 3.15841 3.33325 5.00008C3.33325 6.84175 6.31825 8.33341 9.99992 8.33341Z" stroke="#C7C7C7" stroke-width="1.25" />
               <path d="M16.6666 10C16.6666 11.8417 13.6816 13.3333 9.99992 13.3333C6.31825 13.3333 3.33325 11.8417 3.33325 10" stroke="#C7C7C7" stroke-width="1.25" stroke-linecap="round" />
@@ -202,7 +202,7 @@ const getHeadersForRole = (role) => {
             </svg>
           },
           {
-            title: 'System Logs & Audit', component: '', icon: <svg className="icon-side" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            title: 'System Logs & Audit', component: 'SystemLogs', icon: <svg className="icon-side" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M3.33325 15V5M16.6666 10V15" stroke="#C7C7C7" stroke-width="1.25" stroke-linecap="round" />
               <path d="M9.99992 8.33341C13.6816 8.33341 16.6666 6.84175 16.6666 5.00008C16.6666 3.15841 13.6816 1.66675 9.99992 1.66675C6.31825 1.66675 3.33325 3.15841 3.33325 5.00008C3.33325 6.84175 6.31825 8.33341 9.99992 8.33341Z" stroke="#C7C7C7" stroke-width="1.25" />
               <path d="M16.6666 10C16.6666 11.8417 13.6816 13.3333 9.99992 13.3333C6.31825 13.3333 3.33325 11.8417 3.33325 10" stroke="#C7C7C7" stroke-width="1.25" stroke-linecap="round" />
