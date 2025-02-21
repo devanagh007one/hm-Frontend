@@ -12,12 +12,7 @@ const Dashboard = () => {
   const dispatch = useDispatch();
 
   const handleFetchData = () => {
-    // const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
-    // const last7Days = new Date();
-    // last7Days.setDate(new Date().getDate() - 7);
-    // const startDate = last7Days.toISOString().split("T")[0];
 
-    // dispatch(fetchDashboardData(startDate, today));
     dispatch(fetchDashboardData("2024-01-01", "2025-02-20"));
 
   };
