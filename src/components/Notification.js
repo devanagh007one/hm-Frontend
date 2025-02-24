@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { IconBell } from '@tabler/icons-react';
+import { fetchAllUsers } from '../redux/actions/alluserGet';
+
 import { fetchAllNotifications, markNotificationAsRead } from '../redux/actions/allNotifications';
 import { useDispatch, useSelector } from 'react-redux';
 import CryptoJS from 'crypto-js';
 
 const Notification = () => {
   const { notifications, error } = useSelector((state) => state.dashnotifications);
+  const { users } = useSelector((state) => state.user);
   const darkMode = useSelector(state => state.theme.darkMode);
   const dispatch = useDispatch();
   const encryptedRoles = localStorage.getItem("uniqueid");
@@ -27,8 +30,10 @@ const Notification = () => {
 
   useEffect(() => {
     dispatch(fetchAllNotifications(userRoles));
-    console.log(notifications.notifications)
+    dispatch(fetchAllUsers());
   }, [dispatch, userRoles]);
+  // console.log(users, notifications)
+
 
   const handleViewPopup = () => setShowPopup(prev => !prev);
   const handleClosePopup = () => setShowPopup(false);
@@ -56,6 +61,18 @@ const Notification = () => {
   };
 
   const formatMessage = (message) => {
+    // Extract the user ID from the message
+    const idMatch = message.match(/by ([a-f0-9]{24})/);
+    if (idMatch) {
+      const userId = idMatch[1]; // Get the matched ID
+      const user = users.find((user) => user._id === userId); // Find user by ID
+  
+      if (user) {
+        // Replace the ID with "firstName,"
+        message = message.replace(userId, `${user.firstName},`);
+      }
+    }
+  
     return message
       .split(/"([^"]+)"/g) // Split at quoted text
       .map((part, index) =>
@@ -65,20 +82,12 @@ const Notification = () => {
           breakLongWords(part)
         )
       );
-  };
+  }; 
+  
 
   const now = new Date();
   const [filter, setFilter] = useState("all"); // Default: Show all notifications
 
-  const newNotifications = notifications?.filter(notification => {
-    const createdAt = new Date(notification.createdAt);
-    return (now - createdAt) / (1000 * 60 * 60) < 24;
-  }) || [];
-
-  const earlierNotifications = notifications?.filter(notification => {
-    const createdAt = new Date(notification.createdAt);
-    return (now - createdAt) / (1000 * 60 * 60) >= 24;
-  }) || [];
 
   const filteredNotifications = filter === "unread"
     ? notifications?.filter((n) => !n.read) || []

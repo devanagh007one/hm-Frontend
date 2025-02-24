@@ -546,7 +546,9 @@ const ParentComponent = () => {
                                                 </div>
 
                                                 {/* Form for adding/editing module */}
-                                                <div className="flex flex-col">
+                                                <label className="mb-5">Module {modules.length + 1}</label>
+
+                                                <div className="flex mt-3 flex-col">
                                                     <label className=" mb-1">Title</label>
                                                     <input
                                                         name="moduleName"
@@ -592,7 +594,7 @@ const ParentComponent = () => {
                                                                     xmlns="http://www.w3.org/2000/svg"
                                                                     onClick={(e) => {
                                                                         e.stopPropagation(); // Prevent file input dialog from opening
-                                                                        handleRemoveChaFile("cover_Photo");
+                                                                        handleRemoveFile("cover_Photo");
                                                                     }}
                                                                     className="cursor-pointer ml-2"
                                                                 >
@@ -639,7 +641,7 @@ const ParentComponent = () => {
                                                                     xmlns="http://www.w3.org/2000/svg"
                                                                     onClick={(e) => {
                                                                         e.stopPropagation(); // Prevent file input dialog from opening
-                                                                        handleRemoveChaFile("videoFile_introduction");
+                                                                        handleRemoveFile("videoFile_introduction");
                                                                     }}
                                                                     className="cursor-pointer ml-2"
                                                                 >
@@ -686,7 +688,7 @@ const ParentComponent = () => {
                                                                     xmlns="http://www.w3.org/2000/svg"
                                                                     onClick={(e) => {
                                                                         e.stopPropagation(); // Prevent file input dialog from opening
-                                                                        handleRemoveChaFile("videoFile_description");
+                                                                        handleRemoveFile("videoFile_description");
                                                                     }}
                                                                     className="cursor-pointer ml-2"
                                                                 >
@@ -896,7 +898,10 @@ const ParentComponent = () => {
                                                 {editingIndex !== null ? "" : "Add Challenge"}
                                             </button>
                                         </div>
-                                        <div className="flex flex-col">
+
+                                        <label className="mb-5">Challenge {challenges.length + 1}</label>
+
+                                        <div className="flex mt-3 flex-col">
                                             <label className=" mb-1">Challenge Name</label>
                                             <input
                                                 name="challengeName"

@@ -16,7 +16,7 @@ const Notification = ({ notification }) => {
         dispatch(hideNotification(notification.id));
         setTimeout(() => {
           dispatch(removeNotification(notification.id));
-        }, 500); // delay for transition effect
+        }, 5000); // delay for transition effect
       }, 5000);
 
       return () => {
@@ -29,7 +29,7 @@ const Notification = ({ notification }) => {
     dispatch(hideNotification(notification.id));
     setTimeout(() => {
       dispatch(removeNotification(notification.id));
-    }, 500); // delay for transition effect
+    }, 5000); // delay for transition effect
   };
 
     const renderIcon = (type) => {

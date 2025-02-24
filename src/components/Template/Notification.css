@@ -1,93 +1,103 @@
 .notifications-container {
-    position: fixed;
-    bottom: 20px;
-    right: -190px;
-    transform: translateX(-50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    z-index: 1000;
-  }
-  
-  .notification {
-    padding: 16px;
-    border-radius: 15px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    opacity: 0;
-    transition: opacity 0.3s, transform 0.3s;
-    transform: translateY(100%);
-    background: rgba(255, 255, 255, 0.35);
-border-radius: 16px;
-box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-backdrop-filter: blur(5.3px);
--webkit-backdrop-filter: blur(5.3px);
-border: 1px solid rgba(255, 255, 255, 0.3);
-  }
-  
-  .notification.visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  
-  .icon {
-    width: 24px;
-    height: 24px;
-  }
-  .icon {
-    color: currentColor; 
-  }
-  
-  .success {
-    color: #28a745; /* Green */
-  }
-  
-  .error {
-    color: #dc3545; /* Red */
-  }
-  
-  .info {
-    color: #17a2b8; /* Blue */
-  }
-  
-  .warning {
-    color: #ffc107; /* Yellow */
-  }
-  
-  .close-button {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 20px;
-    cursor: pointer;
-    margin-left: auto;
-  }
+  position: fixed;
+  bottom: 20px;
+  right: -90px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  z-index: 1000;
+}
 
-  .button-big-in {
-    position: relative;
-    background-color: transparent; /* Make the main background transparent */
-    border-radius: 10px;
-    padding: 10px;
-    overflow: hidden; /* Ensure the overlay doesn't go outside the button */
-    box-shadow: 0 0 100px 10px currentColor; 
-    z-index: -3;
+.notification {
+  padding: 16px;
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.3s, transform 0.3s;
+  transform: translateY(100%);
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 16px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(5.3px);
+  -webkit-backdrop-filter: blur(5.3px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
 
-  }
-  
-  .button-big-in::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: currentColor; /* Use the current text color */
-    opacity: 0.3; /* Set the opacity to 10% */
-    pointer-events: none; /* Ensure it doesn't block clicks */
-    border-radius: inherit; /* Match the border-radius of the button */
-    z-index: -1;
+.notification.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
 
-  }
+.icon {
+  width: 24px;
+  height: 24px;
+}
 
+.icon {
+  color: currentColor;
+}
+
+.success {
+  color: #28a745;
+  /* Green */
+}
+
+.error {
+  color: #dc3545;
+  /* Red */
+}
+
+.info {
+  color: #17a2b8;
+  /* Blue */
+}
+
+.warning {
+  color: #ffc107;
+  /* Yellow */
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.button-big-in {
+  position: relative;
+  background-color: transparent;
+  /* Make the main background transparent */
+  border-radius: 10px;
+  padding: 10px;
+  overflow: hidden;
+  /* Ensure the overlay doesn't go outside the button */
+  box-shadow: 0 0 100px 10px currentColor;
+  z-index: -3;
+
+}
+
+.button-big-in::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: currentColor;
+  /* Use the current text color */
+  opacity: 0.3;
+  /* Set the opacity to 10% */
+  pointer-events: none;
+  /* Ensure it doesn't block clicks */
+  border-radius: inherit;
+  /* Match the border-radius of the button */
+  z-index: -1;
+
+}

@@ -528,3 +528,11 @@ body.dark-mode .thereoledrop.enduser .ant-select-arrow {
 .sidebartab.active path {
   stroke: #F48567;
 }
+
+
+/* Hide arrows for WebKit browsers */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}

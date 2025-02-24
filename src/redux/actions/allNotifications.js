@@ -31,7 +31,7 @@ export const fetchAllNotifications = (encryptedRoles) => async (dispatch) => {
     }
 
     const data = await response.json();
-console.log(data)
+console.log("userdata", data)
     // Dispatch FETCH_NOTIFICATION_SUCCESS with the notification list
     dispatch({ type: FETCH_NOTIFICATION_SUCCESS, payload: data });
   } catch (error) {
@@ -63,7 +63,7 @@ export const markNotificationAsRead = (notificationId) => async (dispatch) => {
     }
 
     const data = await response.json();
-    console.log("Notification marked as read:", data);
+    // console.log("Notification marked as read:", data);
 
     // Dispatch MARK_NOTIFICATION_READ_SUCCESS
     dispatch({ type: MARK_NOTIFICATION_READ_SUCCESS, payload: data });
@@ -115,7 +115,7 @@ export const fetchDashboardData = (startDate, endDate) => async (dispatch) => {
     }
 
     const data = await response.json();
-    console.log("Dashboard data:", data);
+    // console.log("Dashboard data:", data);
 
     // Dispatch action with fetched data
     dispatch({ type: "FETCH_DASHBOARD_SUCCESS", payload: data });

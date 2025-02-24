@@ -17,6 +17,8 @@ const ParentComponent = () => {
     const [userCount, setUserCount] = useState(false);
     const [role, setRole] = useState("Admin");
     const [fileName, setFileName] = useState("Upload");
+    const [customCompany, setCustomCompany] = useState(""); // Store custom input
+
     const [formData, setFormData] = useState({
         firstName: "",
         lastName: "",
@@ -79,7 +81,7 @@ const ParentComponent = () => {
             dispatch(fetchAllUsers());
         }
     }, [showPopup, dispatch]);
-    
+
 
     const handleChange = (e) => {
         const { name, value, files } = e.target;
@@ -90,47 +92,47 @@ const ParentComponent = () => {
     };
     const handleRoleChange = (e) => {
         const { value } = e.target;
-    
+
         setFormData((prevState) => {
             // Ensure prevState is always an object with a default structure
             const safePrevState = prevState && typeof prevState === "object" ? prevState : { roles: "", password: "HAPPME@1234" };
-    
+
             return {
                 ...safePrevState,
                 roles: value,
             };
         });
-    };   
-    
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
         if (isSaveDisabled) return;
         if (setShowPopup(false)) return;
-    
+
         const fieldErrors = {};
-    
+
         if (!formData.email?.trim()) fieldErrors.email = "The Email ID is required.";
         else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email?.trim())) {
             fieldErrors.email = "Invalid email format.";
         }
-        
+
         if (Object.keys(fieldErrors).length > 0) {
             const errorMessage = Object.values(fieldErrors).join(" ");
             dispatch(showNotification(errorMessage, "error"));
             return;
         }
-    
+
         const updatedFormData = {
             ...formData,
             roles: Array.isArray(formData.roles) ? formData.roles : [formData.roles],
         };
-    
+
         dispatch(createUser(updatedFormData))
             .then(() => {
                 dispatch(showNotification("User created successfully", "success"));
                 setShowPopup(false);
                 localStorage.setItem("activeComponent", "Rolemanagement");
-    
+
                 setTimeout(() => {
                     handleClosePopup();
                     window.location.reload();
@@ -141,7 +143,7 @@ const ParentComponent = () => {
                 dispatch(showNotification(error.message || "Failed to create user", "error"));
             });
     };
-    
+
 
 
 
@@ -217,6 +219,8 @@ const ParentComponent = () => {
             }));
         }
     };
+
+
 
 
     const handleChangeSocial = (e) => {
@@ -318,15 +322,25 @@ const ParentComponent = () => {
                                     <label className=" mb-1">Organization Name</label>
                                     <Select
                                         showSearch
-                                        placeholder="Choose Organization"
+                                        placeholder="Choose Organization or Enter Custom"
+                                        value={formData.company}
                                         options={licensing?.map((item) => ({
                                             label: item.organisationName,
                                             value: item.organisationName,
                                         }))}
-                                        required
                                         className="choose-org"
                                         onChange={handleCompanyChange}
+                                        onSearch={(value) => setCustomCompany(value)} // Capture custom input
+                                        onBlur={() => {
+                                            if (customCompany && !licensing.some(item => item.organisationName === customCompany)) {
+                                                handleCompanyChange(customCompany); // Set custom value
+                                            }
+                                        }}
+                                        filterOption={(input, option) =>
+                                            option.label.toLowerCase().includes(input.toLowerCase())
+                                        }
                                     />
+
                                 </div>
                                 <div className="flex gap-4">
                                     <div className="flex flex-col w-1/2">
@@ -438,16 +452,25 @@ const ParentComponent = () => {
                                     <div className="flex flex-col w-1/2">
                                         <label className=" mb-1">Organization Name</label>
                                         <Select
-                                            showSearch
-                                            placeholder="Choose Organization"
-                                            options={licensing?.map((item) => ({
-                                                label: item.organisationName,
-                                                value: item.organisationName,
-                                            }))}
-                                            required
-                                            className="choose-org"
-                                            onChange={handleCompanyChange}
-                                        />
+                                        showSearch
+                                        placeholder="Choose Organization or Enter Custom"
+                                        value={formData.company}
+                                        options={licensing?.map((item) => ({
+                                            label: item.organisationName,
+                                            value: item.organisationName,
+                                        }))}
+                                        className="choose-org"
+                                        onChange={handleCompanyChange}
+                                        onSearch={(value) => setCustomCompany(value)} // Capture custom input
+                                        onBlur={() => {
+                                            if (customCompany && !licensing.some(item => item.organisationName === customCompany)) {
+                                                handleCompanyChange(customCompany); // Set custom value
+                                            }
+                                        }}
+                                        filterOption={(input, option) =>
+                                            option.label.toLowerCase().includes(input.toLowerCase())
+                                        }
+                                    />
                                     </div>
                                 </div>
 
@@ -599,14 +622,23 @@ const ParentComponent = () => {
                                     <label className=" mb-1">Organization Name</label>
                                     <Select
                                         showSearch
-                                        placeholder="Choose Organization"
+                                        placeholder="Choose Organization or Enter Custom"
+                                        value={formData.company}
                                         options={licensing?.map((item) => ({
                                             label: item.organisationName,
                                             value: item.organisationName,
                                         }))}
-                                        required
                                         className="choose-org"
                                         onChange={handleCompanyChange}
+                                        onSearch={(value) => setCustomCompany(value)} // Capture custom input
+                                        onBlur={() => {
+                                            if (customCompany && !licensing.some(item => item.organisationName === customCompany)) {
+                                                handleCompanyChange(customCompany); // Set custom value
+                                            }
+                                        }}
+                                        filterOption={(input, option) =>
+                                            option.label.toLowerCase().includes(input.toLowerCase())
+                                        }
                                     />
                                 </div>
 
@@ -722,14 +754,23 @@ const ParentComponent = () => {
                                     <label className=" mb-1">Organization Name</label>
                                     <Select
                                         showSearch
-                                        placeholder="Choose Organization"
+                                        placeholder="Choose Organization or Enter Custom"
+                                        value={formData.company}
                                         options={licensing?.map((item) => ({
                                             label: item.organisationName,
                                             value: item.organisationName,
                                         }))}
-                                        required
                                         className="choose-org"
                                         onChange={handleCompanyChange}
+                                        onSearch={(value) => setCustomCompany(value)} // Capture custom input
+                                        onBlur={() => {
+                                            if (customCompany && !licensing.some(item => item.organisationName === customCompany)) {
+                                                handleCompanyChange(customCompany); // Set custom value
+                                            }
+                                        }}
+                                        filterOption={(input, option) =>
+                                            option.label.toLowerCase().includes(input.toLowerCase())
+                                        }
                                     />
                                 </div>
 
