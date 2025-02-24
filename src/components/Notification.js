@@ -32,7 +32,7 @@ const Notification = () => {
     dispatch(fetchAllNotifications(userRoles));
     dispatch(fetchAllUsers());
   }, [dispatch, userRoles]);
-  // console.log(users, notifications)
+  console.log(notifications)
 
 
   const handleViewPopup = () => setShowPopup(prev => !prev);
@@ -66,13 +66,13 @@ const Notification = () => {
     if (idMatch) {
       const userId = idMatch[1]; // Get the matched ID
       const user = users.find((user) => user._id === userId); // Find user by ID
-  
+
       if (user) {
         // Replace the ID with "firstName,"
         message = message.replace(userId, `${user.firstName},`);
       }
     }
-  
+
     return message
       .split(/"([^"]+)"/g) // Split at quoted text
       .map((part, index) =>
@@ -82,8 +82,8 @@ const Notification = () => {
           breakLongWords(part)
         )
       );
-  }; 
-  
+  };
+
 
   const now = new Date();
   const [filter, setFilter] = useState("all"); // Default: Show all notifications
@@ -97,12 +97,29 @@ const Notification = () => {
 
   return (
     <>
-      <div onClick={handleViewPopup} className={`cursor-pointer button-big ${darkMode ? 'bg-zinc-800 text-zinc-300' : 'bg-slate-100 text-black'}`}>
-        <IconBell stroke={2} />
+      <div className="relative">
+        <div
+          onClick={handleViewPopup}
+          className={`cursor-pointer flex items-center justify-center button-big ${darkMode ? 'bg-zinc-800 text-zinc-300' : 'bg-slate-100 text-black'}`}
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M16.25 10.3663V8.75H15V10.625C15 10.7907 15.0659 10.9497 15.1831 11.0669L16.875 12.7587V13.75H3.125V12.7587L4.81687 11.0669C4.93409 10.9497 4.99996 10.7907 5 10.625V8.125C4.99837 7.2468 5.2285 6.38372 5.66716 5.62292C6.10583 4.86212 6.73748 4.23054 7.49833 3.79197C8.25919 3.35341 9.12229 3.12337 10.0005 3.12511C10.8787 3.12685 11.7409 3.3603 12.5 3.80188V2.40375C11.905 2.14037 11.2723 1.97247 10.625 1.90625V0.625H9.375V1.90625C7.83411 2.06308 6.4061 2.7857 5.36711 3.93436C4.32811 5.08303 3.75194 6.57615 3.75 8.125V10.3663L2.05812 12.0581C1.94091 12.1753 1.87504 12.3343 1.875 12.5V14.375C1.875 14.5408 1.94085 14.6997 2.05806 14.8169C2.17527 14.9342 2.33424 15 2.5 15H6.875V15.625C6.875 16.4538 7.20424 17.2487 7.79029 17.8347C8.37634 18.4208 9.1712 18.75 10 18.75C10.8288 18.75 11.6237 18.4208 12.2097 17.8347C12.7958 17.2487 13.125 16.4538 13.125 15.625V15H17.5C17.6658 15 17.8247 14.9342 17.9419 14.8169C18.0592 14.6997 18.125 14.5408 18.125 14.375V12.5C18.125 12.3343 18.0591 12.1753 17.9419 12.0581L16.25 10.3663ZM11.875 15.625C11.875 16.1223 11.6775 16.5992 11.3258 16.9508C10.9742 17.3025 10.4973 17.5 10 17.5C9.50272 17.5 9.02581 17.3025 8.67417 16.9508C8.32254 16.5992 8.125 16.1223 8.125 15.625V15H11.875V15.625Z" fill="white" />
+            <path d="M16.25 7.5C17.6307 7.5 18.75 6.38071 18.75 5C18.75 3.61929 17.6307 2.5 16.25 2.5C14.8693 2.5 13.75 3.61929 13.75 5C13.75 6.38071 14.8693 7.5 16.25 7.5Z" fill="white" />
+          </svg>
+
+          {/* Filter only unread notifications */}
+          {notifications?.filter(n => !n.read).length > 0 && (
+            <div className="absolute -top-1 -right-1 bg-[#DD441B] text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+              {notifications.filter(n => !n.read).length}
+            </div>
+          )}
+        </div>
       </div>
 
+
+
       {showPopup && (
-        <div className="flex bottom-0 z-[999] fixed top-[9%] right-[20px] w-[447px]">
+        <div className="flex bottom-0 z-[999] fixed top-[9%] right-[20px] w-[447px] shadow-md">
           <div className={`rounded-2xl border border-gray-600 shadow-lg w-full overflow-y-scroll max-w-[447px] p-4 relative flex flex-col max-h-[90%] ${darkMode ? 'bg-zinc-800 text-white' : 'bg-[#fff] text-dark'}`}>
             <div className="flex justify-between align-center">
               <h2 className="text-2xl">Notification</h2>

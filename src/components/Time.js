@@ -10,7 +10,7 @@ const Time = () => {
   const darkMode = useSelector(state => state.theme.darkMode);
 
   return (
-    <div className={`button-big gap-2 flex justify-center w-36 ${darkMode ? 'bg-zinc-800 text-zinc-300' : 'bg-slate-100 text-black'}`}>
+    <div className={`button-big gap-2 flex justify-center w-36 ${darkMode ? ' text-zinc-300' : ' text-black'}`}>
       <IconCalendarFilled size={24} />
       <span>{formattedDate}</span>
     </div>

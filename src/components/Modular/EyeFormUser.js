@@ -57,7 +57,7 @@ const EyeForm = ({ data }) => {
 
     const fields = [
         { label: "Username", key: "userName" },
-        { label: "Organization", key: "company", editable: false},
+        { label: "Organization", key: "company", editable: false },
         { label: "Email Address", key: "email" },
         { label: "Phone Number", key: "mobile" },
         { label: "Location", key: "address" },
@@ -85,7 +85,13 @@ const EyeForm = ({ data }) => {
                 gender: data?.gender || "",
                 doB: data?.doB || "",
                 bloodGroups: data?.bloodGroups || "",
-                joinedAt: data?.joinedAt || "",
+                joinedAt: data?.joinedAt
+                    ? new Date(data.joinedAt).toLocaleDateString("en-GB", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                    })
+                    : "",
                 relationShipStatus: data?.relationShipStatus || "",
                 dateOfAniversary: data?.dateOfAniversary || "",
                 childCount: data?.childCount || "",
@@ -109,32 +115,32 @@ const EyeForm = ({ data }) => {
             ...formData,
             image: uploadedImage, // Include the uploaded image if available
         };
-    
+
         const formDataToSend = new FormData();
-    
+
         for (const key in updatedData) {
             if (data && updatedData[key] === data[key] && (key === 'userId' || key === 'email')) {
                 continue; // Skip adding unchanged userId and email
             }
             formDataToSend.append(key, updatedData[key]);
         }
-    
+
         if (data?._id) {
             dispatch(editUserProfile(data._id, formDataToSend));
         }
-    
+
         setIsEditing(false);
         handleClosePopup()
-        dispatch(showNotification('Edited License successful!', 'success'));
-    
+        dispatch(showNotification('Edited User successful!', 'success'));
+
         localStorage.setItem("activeComponent", "Usersmanagement"); // Store Licensing before reload
-    
+
         // Refresh the page after 3 seconds
         setTimeout(() => {
             // window.location.reload();
         }, 3000);
     };
-    
+
 
     const [isOpen, setIsOpen] = useState(false);
 
@@ -261,12 +267,11 @@ const EyeForm = ({ data }) => {
                                             />
                                         </div>
                                     )}
-                                   <div
-  onClick={handleEditToggle}
-  className={`absolute mt-[-30px] left-1/2 transform -translate-x-1/2 -translate-y-1/2 ${
-    isOpen ? "ml-[-190px]" : "ml-[80px]"
-  }`}
->
+                                    <div
+                                        onClick={handleEditToggle}
+                                        className={`absolute mt-[-30px] left-1/2 transform -translate-x-1/2 -translate-y-1/2 ${isOpen ? "ml-[-190px]" : "ml-[80px]"
+                                            }`}
+                                    >
 
                                         <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
                                             <circle cx="15" cy="15" r="15" fill="#D9D9D9" />

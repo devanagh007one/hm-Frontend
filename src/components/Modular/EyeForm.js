@@ -83,7 +83,13 @@ const EyeForm = ({ data }) => {
                 title_at_organization: data?.title_at_organization || "",
                 social_twitter: data?.social_twitter || "",
                 type_of_contantSpecilization: data?.type_of_contantSpecilization || "",
-                joinedAt: data?.joinedAt || "",
+                joinedAt: data?.joinedAt
+                    ? new Date(data.joinedAt).toLocaleDateString("en-GB", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                    })
+                    : "",
                 brief_bio: data?.brief_bio || "",
                 contact_method: data?.contact_method || "",
             });
@@ -105,32 +111,32 @@ const EyeForm = ({ data }) => {
             ...formData,
             image: uploadedImage, // Include the uploaded image if available
         };
-    
+
         const formDataToSend = new FormData();
-    
+
         for (const key in updatedData) {
             if (data && updatedData[key] === data[key] && (key === 'userId' || key === 'email')) {
                 continue; // Skip adding unchanged userId and email
             }
             formDataToSend.append(key, updatedData[key]);
         }
-    
+
         if (data?._id) {
             dispatch(editUserProfile(data._id, formDataToSend));
         }
-    
+
         setIsEditing(false);
         handleClosePopup()
-        dispatch(showNotification('Edited License successful!', 'success'));
-    
+        dispatch(showNotification('Edited User successful!', 'success'));
+
         localStorage.setItem("activeComponent", "Rolemanagement"); // Store Licensing before reload
-    
+
         // Refresh the page after 3 seconds
         setTimeout(() => {
             window.location.reload();
         }, 3000);
     };
-    
+
 
     const [isOpen, setIsOpen] = useState(false);
 
@@ -216,7 +222,7 @@ const EyeForm = ({ data }) => {
                             )}
                         </div>
                         <div className="flex activetolgs">
-                            <div>
+                            <div className="w-[450px]">
                                 <div className="flex justify-center">
                                     <svg width="180" height="193" viewBox="0 0 180 193" fill="none">
                                         <path d="M0.5 0.5H179.5V147.408L90 172.481L0.5 147.408V0.5Z" fill="#D9D9D9" stroke="black" />
@@ -257,12 +263,11 @@ const EyeForm = ({ data }) => {
                                             />
                                         </div>
                                     )}
-                                   <div
-  onClick={handleEditToggle}
-  className={`absolute mt-[-30px] left-1/2 transform -translate-x-1/2 -translate-y-1/2 ${
-    isOpen ? "ml-[-190px]" : "ml-[80px]"
-  }`}
->
+                                    <div
+                                        onClick={handleEditToggle}
+                                        className={`absolute mt-[-30px] left-1/2 transform -translate-x-1/2 -translate-y-1/2 ${isOpen ? "ml-[-190px]" : "ml-[80px]"
+                                            }`}
+                                    >
 
                                         <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
                                             <circle cx="15" cy="15" r="15" fill="#D9D9D9" />

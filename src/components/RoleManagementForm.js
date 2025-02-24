@@ -685,7 +685,7 @@ const ParentComponent = () => {
                                     <label className=" mb-1">Function</label>
                                     <Checkbox.Group
                                         options={['Create', 'Update', 'View', 'Delete']}
-                                        className="p-2 flex selectext justify-between rounded-xl w-full"
+                                        className="p-2 flex selectext justify-between rounded-xl w-full colorrr"
                                         value={Object.keys(formData.permissions).filter((key) => formData.permissions[key])}
                                         onChange={handleCheckboxChange}
                                         required

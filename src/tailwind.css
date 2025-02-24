@@ -280,3 +280,7 @@ body .asign-tem .ant-checkbox-inner::after {
 .datepicker .css-dev-only-do-not-override-7ny38l{
   /* display: none !important; */
 }
+
+body.dark-mode .colorrr span {
+  color: #fff;
+}
