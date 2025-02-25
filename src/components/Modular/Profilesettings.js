@@ -161,11 +161,11 @@ const Profilecreads = () => {
                         alt='Descriptive text'
                     />
                     <div className='flex'>
-                    <img
-    src={`${process.env.REACT_APP_STATIC_API_URL}/${userData?.image?.replace(/^.*\/uploads\//, 'uploads/') || 'default.png'}`}
-    className='h-48 relative z-10 mt-[-7rem] w-48 rounded-full ml-16 bg-slate-500'
-    alt='Profile'
-/>
+                        <img
+                            src={`${process.env.REACT_APP_STATIC_API_URL}/${userData?.image?.replace(/^.*\/uploads\//, 'uploads/') || 'default.png'}`}
+                            className='h-48 relative z-10 mt-[-7rem] w-48 rounded-full ml-16 bg-slate-500'
+                            alt='Profile'
+                        />
 
                         <div className='mt-6 ml-[-25px] relative z-20'>
                             <CropImage />
