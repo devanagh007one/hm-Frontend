@@ -8,26 +8,24 @@ const Header = () => {
   const dispatch = useDispatch();
 
   // Get stored active component from localStorage
-  const storedComponent = localStorage.getItem("activeComponent") || "Dashboard";
+  const storedComponent = localStorage.getItem("activeComponent");
 
   // Get active state from Redux
   const mainTitles = useSelector((state) => state.header.mainTitles);
   const profileTitles = useSelector((state) => state.header.profileTitles);
   const activeIndex = useSelector((state) => state.header.activeIndex);
-  const activeComponent = useSelector((state) => state.header.activeComponent) || storedComponent;
+  const activeComponent = useSelector((state) => state.header.activeComponent);
   const darkMode = useSelector((state) => state.theme.darkMode);
 
-  // Update Redux state from localStorage on component mount
+  // Only update Redux state if it's not already set
   useEffect(() => {
-    if (storedComponent) {
+    if (!activeComponent && storedComponent) {
       dispatch(setActiveComponent(storedComponent));
     }
-
-    // Remove localStorage item after applying it to Redux
     setTimeout(() => {
       localStorage.removeItem("activeComponent");
     }, 100);
-  }, [dispatch, storedComponent]);
+  }, [dispatch, activeComponent, storedComponent]);
 
   const handleTitleClick = (index, component) => {
     dispatch({ type: SET_ACTIVE_INDEX, payload: index });
