@@ -51,6 +51,7 @@ const ContentManagement = () => {
     // Fetch users on mount
     useEffect(() => {
         dispatch(fetchAllContent());
+        console.log(contents)
     }, [dispatch]);
 
     const handleApprovalAction = (record, status) => {
@@ -158,15 +159,30 @@ const ContentManagement = () => {
             filteredCombinedData = filteredCombinedData.filter((data) => data.isApproved === "rejected");
         }
 
-        // Apply specific search query filtering
-        if (specificSearchQuery) {
-            filteredCombinedData = filteredCombinedData.filter(item =>
-                [item.userName, item.company].some(val =>
-                    val?.toLowerCase().includes(specificSearchQuery.toLowerCase())
-                ) ||
-                (item.roles || []).some(role => role.toLowerCase().includes(specificSearchQuery.toLowerCase()))
-            );
+// Apply specific search query filtering
+if (specificSearchQuery) {
+    const lowerCaseQuery = specificSearchQuery.toLowerCase();
+
+    filteredCombinedData = filteredCombinedData.filter(item => {
+        const valuesToCheck = [
+            item?.uniChallengeId,
+            item?.challengeName?.uploaded_by?.firstName,
+            item?.challengeName?.uploaded_by?.lastName,
+            item?.moduleName,
+            item?.uploaded_by?.firstName,
+            item?.uploaded_by?.lastName
+        ].filter(Boolean); // Remove undefined/null values
+
+        // Check in values
+        if (valuesToCheck.some(val => val.toLowerCase().includes(lowerCaseQuery))) {
+            return true;
         }
+
+        // Check in roles if available
+        return (item?.roles || []).some(role => role.toLowerCase().includes(lowerCaseQuery));
+    });
+}
+
 
         // Sorting
         switch (filter) {
