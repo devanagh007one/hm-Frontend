@@ -1,46 +1,89 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import "../popup.css"; // Import custom CSS
 import { Modal } from "antd";
 import { useDispatch, useSelector } from 'react-redux';
 
-import { patchTheChallenge, fetchAllContent } from '../../redux/actions/allContentGet.js';
+import { patchTheContent, fetchAllContent } from '../../redux/actions/allContentGet.js';
 
-import { showNotification } from "../../redux/actions/notificationActions";
+import { showNotification } from "../../redux/actions/notificationActions"; // Import showNotification
 
 const ContentManagement = ({ data }) => {
     const [showPopup, setShowPopup] = useState(false);
-    const dispatch = useDispatch();
+    const [selectedModule, setSelectedModule] = useState(null);
+
+    const { content: contents } = useSelector((state) => state.content);
 
     const handleViewPopup = () => setShowPopup(true);
     const handleClosePopup = () => setShowPopup(false);
 
-    // console.log(data)
+    const dispatch = useDispatch();
+
     // Define fields to display dynamically
     const formatDate = (dateString) => {
         if (!dateString) return "N/A";
         return new Date(dateString).toDateString(); // Example: "Mon Oct 09 2023"
     };
+    const challenges = contents?.data?.challenges || [];
 
+    // Fetch content when the component mounts
+    useEffect(() => {
+        dispatch(fetchAllContent());
+    }, [dispatch]);
+
+
+    useEffect(() => {
+        if (data?._id && challenges.length > 0) {
+            const defaultChallenge = challenges.find(challenge => challenge._id === data._id);
+            setSelectedModule(defaultChallenge || null);
+        }
+    }, [data?._id, challenges]);
+
+
+    const handleModuleChange = (event) => {
+        const selectedChallengeId = event.target.value;
+        const newChallenge = challenges.find(challenge => challenge._id === selectedChallengeId);
+        setSelectedModule(newChallenge || null);
+    };
+
+
+    // Dynamically update uploaded_by based on the selected module
+    const uploadedBy = selectedModule?.uploaded_by || data?.uploaded_by || {};
+
+    // Fields array with dynamic Modules field
     const fields = [
-        { label: "Author", value: `${data?.module?.uploaded_by?.firstName} ${data?.module?.uploaded_by?.lastName}` },
-        { label: "Date created", value: formatDate(data?.createdAt) },
-        { label: "Last modified", value: formatDate(data?.updatedAt) },
-        { label: "Track", value: data?.module?.tracks },
-        { label: "Challenges", value: data?.uploadDate },
-        { label: "Challenge Name", value: data?.challengeName },
-        { label: "Descriptions", value: data?.challenge_Description },
-        { label: "Duration", value: data?.duration },
-        { label: "Difficulty Level", value: data?.difficulty_Level },
-        // { label: "Tags", value: data?.tags?.join(", ") },
-        // Add more fields as needed (up to 100+ dynamically)
+        { label: "Author", value: `${selectedModule?.uploaded_by?.firstName || "N/A"} ${selectedModule?.uploaded_by?.lastName || ""}` },
+        { label: "Date created", value: formatDate(selectedModule?.createdAt) },
+        { label: "Last modified", value: formatDate(selectedModule?.updatedAt) },
+        { label: "Track", value: selectedModule?.tracks },
+        { label: "Challenges", value: selectedModule ? selectedModule.challengeName : "Not Found" },
+        { label: "Descriptions", value: selectedModule?.challenge_Description },
+        { label: "Duration", value: selectedModule?.duration },
+        { label: "Difficulty Level", value: selectedModule?.difficulty_Level },
     ];
 
 
 
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [modalContent, setModalContent] = useState(null);
+    const videoRef = useRef(null);
+    const handleOpenModal = (mediaItem) => {
+        setModalContent({
+            src: mediaItem.video_or_image,
+            type: isImage ? "image" : "video",
+        });
+        setIsModalOpen(true);
+    };
+
+    // Function to close modal
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setModalContent(null);
+    };
+
+
 
     const handleUpdateStatus = (id, status) => {
-        dispatch(patchTheChallenge(id, status))
+        dispatch(patchTheContent(id, status))
             .then(() => {
                 dispatch(showNotification(`Successfully updated challenge status to ${status}`, "success"));
                 dispatch(fetchAllContent());
@@ -50,6 +93,14 @@ const ContentManagement = ({ data }) => {
                 dispatch(showNotification(`Failed to update challenge status to ${status}`, "error"));
             });
     };
+    if (!data || !data.video_or_image) return null; // Handle missing data gracefully
+
+    const filePath = data.video_or_image;
+    const fileExtension = filePath.split('.').pop().toLowerCase(); // Get file extension
+    const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension); // List of image extensions
+
+
+
 
     return (
         <>
@@ -61,7 +112,7 @@ const ContentManagement = ({ data }) => {
             </div>
 
             {showPopup && (
-                <div className="popup-overlay">
+                <div className="popup-overlay boldpopup">
                     <div className="p-8 bg-[rgb(30,30,30)] rounded-3xl w-[70%] h-[850px] overflow-y-auto flex">
 
                         <section className="w-1/2 p-6">
@@ -73,47 +124,75 @@ const ContentManagement = ({ data }) => {
                                 {fields.map((field, index) => (
                                     <div key={index} className="flex justify-start items-center p-1">
                                         <span className="font-medium capitalize w-[150px]">{field.label}:</span>
-                                        <span className="ml-4">{field.value || "N/A"}</span>
+
+                                        {field.label === "Track" ? (
+                                            <select
+                                                className="border p-2 rounded"
+                                                onChange={handleModuleChange}
+                                                value={selectedModule?._id || ""}
+                                            >
+                                                <option value="" disabled>Select a challenge</option>
+                                                {challenges.map((challenge, i) => (
+                                                    <option key={challenge._id} value={challenge._id}>
+                                                        {`Challenge ${i + 1}`}
+                                                    </option>
+                                                ))}
+                                            </select>
+
+                                        ) : (
+                                            <span className="ml-4 w-[80%] capitalize font-thin">{field.value || "N/A"}</span>
+                                        )}
                                     </div>
                                 ))}
+
+
                             </div>
                             <div className="space-y-3 mt-3">
                                 <div className="flex justify-start items-center p-1">
                                     <span className="font-medium capitalize w-[150px]">Photo or Video</span>
                                 </div>
-                                <div className="flex justify-start items-center p-1">
-                                    {data && (
-                                        <>
-                                            <video
-                                                src={
-                                                    data?.video_or_image
-                                                        ? `${process.env.REACT_APP_STATIC_API_URL}/${data?.video_or_image.replace(/^\/root\/happme_adminuser_management\//, '')}`
-                                                        : "/fallback-image.jpg"
-                                                }
-                                                className="w-24 h-24 object-cover cursor-pointer"
-                                                onClick={() => setIsModalOpen(true)} // Open modal on click
-                                            />
+                                <div className="flex justify-start items-center p-1 gap-3">
+                                    {isImage ? (
+                                        <img
+                                            src={`${process.env.REACT_APP_STATIC_API_URL}/${filePath.replace(/^\/root\/happme_adminuser_management\//, '')}` || "/fallback-image.jpg"}
+                                            className="w-24 h-24 object-cover cursor-pointer"
+                                            onClick={() => handleOpenModal(data)}
+                                            alt="Uploaded Content"
+                                        />
+                                    ) : (
+                                        <video
+                                            src={`${process.env.REACT_APP_STATIC_API_URL}/${filePath.replace(/^\/root\/happme_adminuser_management\//, '')}` || "/fallback-image.jpg"}
+                                            className="w-24 h-24 object-cover cursor-pointer"
+                                            controls
+                                            onClick={() => handleOpenModal(data)}
+                                        />
+                                    )}
 
-                                            <Modal
-                                                open={isModalOpen}
-                                                onCancel={() => setIsModalOpen(false)}
-                                                footer={null}
-                                                centered
-                                                bodyStyle={{ height: "830px", backgroundColor: "rgb(30,30,30)", overflow: "hidden" }}
-                                            >
+                                    {/* Modal for Enlarged Media */}
+                                    <Modal
+                                        open={isModalOpen}
+                                        onCancel={handleCloseModal}
+                                        footer={null}
+                                        centered
+                                        bodyStyle={{ height: "830px", backgroundColor: "rgb(30,30,30)", overflow: "hidden" }}
+                                    >
+                                        {modalContent?.src ? (
+                                            modalContent.type === "image" ? (
+                                                <img
+                                                    src={`${process.env.REACT_APP_STATIC_API_URL}/${modalContent.src.replace(/^\/root\/happme_adminuser_management\//, '')}` || "/fallback-image.jpg"}
+                                                    className="h-[830px] w-auto"
+                                                />
+                                            ) : (
                                                 <video
-                                                    src={
-                                                        data?.video_or_image
-                                                            ? `${process.env.REACT_APP_STATIC_API_URL}/${data?.video_or_image.replace(/^\/root\/happme_adminuser_management\//, '')}`
-                                                            : "/fallback-image.jpg"
-                                                    }
+                                                    ref={videoRef}
+                                                    src={`${process.env.REACT_APP_STATIC_API_URL}/${modalContent.src.replace(/^\/root\/happme_adminuser_management\//, '')}` || "/fallback-image.jpg"}
                                                     controls
                                                     autoPlay
-                                                    className="h-[830px] w-auto "
+                                                    className="h-[830px] w-auto"
                                                 />
-                                            </Modal>
-                                        </>
-                                    )}
+                                            )
+                                        ) : null}
+                                    </Modal>
                                 </div>
                             </div>
                             <div className="flex gap-4 mt-12 w-full items-center justify-center">
@@ -139,6 +218,7 @@ const ContentManagement = ({ data }) => {
                                     </button>
                                 </div>
                             </div>
+
                         </section>
                         <div className="mt-9 mr-[50px] ml-[50px]"><svg width="8" height="600" viewBox="0 0 8 600" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <line x1="4.5" x2="4.5" y2="600" stroke="white" />
@@ -179,8 +259,8 @@ const ContentManagement = ({ data }) => {
                                             width="180"
                                             height="173"
                                             href={
-                                                data?.module?.uploaded_by.image
-                                                    ? `${process.env.REACT_APP_STATIC_API_URL}${data.module.uploaded_by.image.replace(/^\/root\/happme_adminuser_management/, '')}`
+                                                uploadedBy?.image
+                                                    ? `${process.env.REACT_APP_STATIC_API_URL}${uploadedBy.image.replace(/^\/root\/happme_adminuser_management/, '')}`
                                                     : "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/No_image_available.svg/1024px-No_image_available.svg.png"
                                             }
                                         />
@@ -191,23 +271,25 @@ const ContentManagement = ({ data }) => {
                             {/* Content Section */}
                             <div className="overflow-y-auto flex flex-col space-y-6 text-[#C7C7C7] h-[50vh]">
                                 <div className="space-y-3">
-                                    {Object.entries(data?.module?.uploaded_by)
-                                        .filter(([key]) => !["_id", "blocked", "editLogs", "__v", "activityLogs", "availability", "totalAvailabilityHours", "password", "image", "roles", "macAddresses", "passwordChangedAt"].includes(key)) // Exclude unwanted keys
+                                    {Object.entries(uploadedBy)
+                                        .filter(([key]) => !["_id", "blocked", "editLogs", "__v", "activityLogs", "availability", "totalAvailabilityHours", "password", "image", "roles", "macAddresses", "passwordChangedAt"].includes(key))
                                         .map(([key, value]) => (
-                                            <div className="flex justify-start items-center ml-34 p-1" key={key}>
+                                            <div className="flex justify-start items-center p-1" key={key}>
                                                 <span className="font-medium capitalize w-[150px]">
                                                     {key.replace(/([A-Z])/g, " $1")}:
                                                 </span>
                                                 <span className="ml-4">
                                                     {typeof value === "object" && value !== null
-                                                        ? JSON.stringify(value, null, 2) // Format objects as JSON
+                                                        ? JSON.stringify(value, null, 2)
                                                         : value || "N/A"}
                                                 </span>
                                             </div>
-                                        ))}
-
+                                        ))
+                                    }
                                 </div>
                             </div>
+
+
                         </section>
                     </div>
                 </div>

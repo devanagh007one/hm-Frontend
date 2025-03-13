@@ -45,7 +45,7 @@ export const fetchAllContent = () => async (dispatch) => {
     if (Array.isArray(challenges) && Array.isArray(modules)) {
       // Combine challenges and modules into one array
       const combinedData = [...challenges, ...modules];
-      console.log("Combined Data:", combinedData);
+      // console.log("Combined Data:", combinedData);
 
       // Dispatch FETCH_CONTENT_SUCCESS with the combined data
       dispatch({ type: FETCH_CONTENT_SUCCESS, payload: data });

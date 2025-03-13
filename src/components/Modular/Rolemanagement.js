@@ -48,9 +48,6 @@ const UserManagement = () => {
     const [loadingRecordId, setLoadingRecordId] = useState(null);
 
 
-    const [showForm, setShowForm] = useState(false);
-    const [showDownloadForm, setshowDownloadForm] = useState(false);
-    const [showEyeForm, setShowEyeForm] = useState(false);
     const [showImportForm, setshowImportForm] = useState(false);
     const [selectedIndices, setSelectedIndices] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
@@ -96,13 +93,22 @@ const UserManagement = () => {
         setSpecificSearchQuery(e.target.value);
     };
 
+    let userId = null;
+    const encryptedId = localStorage.getItem('userId');
+    if (encryptedId) {
+        const bytes = CryptoJS.AES.decrypt(encryptedId, '477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1');
+        userId = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+    }
 
     const filteredData = useMemo(() => {
-        let filtered = [...users]; // Avoid mutating state
-        
-       // Remove users with the role "End User"
-       filtered = filtered.filter(item => !item.roles.includes("End User"));        
-        // Apply organization, SPOC, or location-based search
+        let filtered = [...users];
+
+        filtered = filtered.filter(item => !item.roles.includes("End User"));
+
+        if (userId) {
+            filtered = filtered.filter(item => item._id !== userId);
+        }
+        filtered = filtered.filter(item => !item.roles.includes("End User"));
         if (specificSearchQuery) {
             filtered = filtered.filter(item =>
                 [item.userName, item.company].some(val =>
@@ -111,17 +117,17 @@ const UserManagement = () => {
                 item.roles.some(role => role.toLowerCase().includes(specificSearchQuery.toLowerCase()))
             );
         }
-        
+
         // Apply sorting/filtering based on the selected filter option
         switch (filter) {
             case "newestFirst":
                 filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
                 break;
-    
+
             case "1234":
                 filtered.sort((a, b) => a.userId - b.userId);
                 break;
-    
+
             case "ABCD":
                 filtered.sort((a, b) => {
                     const nameA = a.userName || "";
@@ -129,7 +135,7 @@ const UserManagement = () => {
                     return nameA.localeCompare(nameB);
                 });
                 break;
-    
+
             case "role":
                 const rolePriority = {
                     "Super Admin": 1,
@@ -138,41 +144,41 @@ const UserManagement = () => {
                     "Hr": 4,
                     "End User": 5
                 };
-    
+
                 filtered.sort((a, b) => {
                     return (rolePriority[a.roles[0]] || 99) - (rolePriority[b.roles[0]] || 99);
                 });
                 break;
-    
+
             case "endDate":
                 filtered.sort((a, b) => {
                     const getLastEditDate = (logs) => {
                         if (!Array.isArray(logs) || logs.length === 0) return new Date(0); // Default to oldest date
                         return new Date(logs[logs.length - 1].date); // Use the last element's date
                     };
-    
+
                     return getLastEditDate(a.editLogs) - getLastEditDate(b.editLogs);
                 });
                 break;
-    
+
             case "startDate":
                 filtered.sort((b, a) => new Date(a.joinedAt) - new Date(b.joinedAt));
                 break;
-    
+
             case "inactiveFirst":
                 filtered.sort((b, a) => {
                     return (a.blocked === b.blocked) ? 0 : a.blocked ? 1 : -1;
                 });
                 break;
-    
+
             default:
                 break;
         }
-    
+
         return filtered;
     }, [filter, specificSearchQuery, users]);
-    
-    
+
+
 
 
     // Calculate Metrics
@@ -213,15 +219,15 @@ const UserManagement = () => {
         const selectedRows = filteredData
             .filter((_, index) => selectedIndices.includes(index))
             .map(({ _id, __v, passwordChangedAt, macAddresses, editLogs, ...row }) => row);
-    
+
         if (selectedFormat === ".pdf") {
             const doc = new jsPDF({ orientation: "landscape" });
             doc.setFontSize(8);
             doc.text("HappMe", 5, 10);
-    
+
             const tableHeaders = Object.keys(selectedRows[0] || {});
             const tableData = selectedRows.map((row) => tableHeaders.map((header) => row[header] || ""));
-    
+
             doc.autoTable({
                 head: [tableHeaders],
                 body: tableData,
@@ -232,19 +238,19 @@ const UserManagement = () => {
                 bodyStyles: { textColor: [0, 0, 0] },
                 theme: "striped",
             });
-    
+
             doc.save("HappMe-data.pdf");
         } else if ([".xls", ".xlsx"].includes(selectedFormat)) {
             const worksheet = XLSX.utils.json_to_sheet(selectedRows);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "HappMe Data");
-    
+
             XLSX.writeFile(workbook, `HappMe-data.${selectedFormat.replace(".", "")}`);
         } else {
             alert("Please select a format.");
         }
     };
-    
+
 
     const handleSelection = (index) => {
         const absoluteIndex = (currentPage - 1) * pageSize + index; // Convert paginated index to absolute index
@@ -261,8 +267,8 @@ const UserManagement = () => {
             return allSelected ? [] : filteredData.map((_, i) => i); // Select all or deselect all
         });
     };
-    
-    
+
+
 
     const handleToggleStatus = async (userIds, currentStatus) => {
         try {
@@ -689,7 +695,7 @@ const UserManagement = () => {
                     <div className="relative">
                         {/* Select All Checkbox */}
                         <div className="absolute z-50 left-[-22px] top-6">
-                        <input
+                            <input
                                 className="custom-checkbox border-[#F48567] rounded-full"
                                 type="checkbox"
                                 checked={paginatedData.length > 0 && paginatedData.every((_, index) => selectedIndices.includes((currentPage - 1) * pageSize + index))} // Check if all on the page are selected

@@ -37,7 +37,7 @@ const SvgIcon = ({ onClick }) => (
 
 
 
-const ContentManagement = () => {
+const Myuploardsmanagement = () => {
     const darkMode = useSelector((state) => state.theme.darkMode);
     const { content: contents } = useSelector((state) => state.content);
     const dispatch = useDispatch();
@@ -53,9 +53,9 @@ const ContentManagement = () => {
     // Fetch users on mount
     useEffect(() => {
         dispatch(fetchAllContent());
+        console.log(contents)
     }, [dispatch]);
 
-    console.log(contents)
 
     const handleApprovalAction = (record, status) => {
         const { _id, challengeName, moduleName, currentStatus, typeOfEvent } = record;
@@ -158,15 +158,15 @@ const ContentManagement = () => {
 
     const filteredData = useMemo(() => {
         const { challenges = [], modules = [], events = [] } = contents.data || {}; // Default to empty arrays
-
+    
         let combinedData = [];
         let unmatchedChallenges = [];
         let unmatchedModules = [];
-
+    
         // Combine challenges and modules in pairs
         challenges.forEach((challenge, index) => {
             const matchingModule = modules[index];
-
+    
             if (matchingModule) {
                 combinedData.push({ ...challenge });
                 combinedData.push({ ...matchingModule });
@@ -174,17 +174,17 @@ const ContentManagement = () => {
                 unmatchedChallenges.push({ ...challenge });
             }
         });
-
+    
         // Add remaining modules that don't have matching challenges
         modules.slice(challenges.length).forEach((module) => {
             unmatchedModules.push({ ...module });
         });
-
+    
         // Add events to the combined data
         const formattedEvents = events.map(event => ({ ...event }));
-
+    
         combinedData = [...combinedData, ...unmatchedChallenges, ...unmatchedModules, ...formattedEvents];
-
+    
         // Filtering based on approval status
         let filteredCombinedData = combinedData;
         if (filter === "active") {
@@ -194,7 +194,21 @@ const ContentManagement = () => {
         } else if (filter === "rejected") {
             filteredCombinedData = filteredCombinedData.filter((data) => data.isApproved === "rejected");
         }
-
+    
+        // Get user ID from localStorage and decrypt it
+        let userId = null;
+        const encryptedId = localStorage.getItem('userId');
+        if (encryptedId) {
+            const bytes = CryptoJS.AES.decrypt(encryptedId, '477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1');
+            userId = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+        }
+    
+        // Filter data by user ID
+        if (userId) {
+            filteredCombinedData = filteredCombinedData.filter(
+                (data) => data.createdBy?._id === userId || data.uploaded_by?._id === userId
+            );
+        }
 
         // Apply specific search query filtering
         if (specificSearchQuery) {
@@ -321,44 +335,54 @@ const ContentManagement = () => {
         }
     };
 
+    const userId = (() => {
+        const encryptedId = localStorage.getItem('userId');
+        if (encryptedId) {
+            const bytes = CryptoJS.AES.decrypt(encryptedId, '477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1');
+            return JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+        }
+        return null;
+    })();
+    
     const cardData = [
         {
             title: "Total Content",
             value: (
-                (Array.isArray(contents?.data?.challenges) ? contents.data.challenges.length : 0) +
-                (Array.isArray(contents?.data?.modules) ? contents.data.modules.length : 0) +
-                (Array.isArray(contents?.data?.events) ? contents.data.events.length : 0)
+                (Array.isArray(contents?.data?.challenges) ? contents.data.challenges.filter((content) => content.createdBy?._id === userId || content.uploaded_by?._id === userId).length : 0) +
+                (Array.isArray(contents?.data?.modules) ? contents.data.modules.filter((content) => content.createdBy?._id === userId || content.uploaded_by?._id === userId).length : 0) +
+                (Array.isArray(contents?.data?.events) ? contents.data.events.filter((content) => content.createdBy?._id === userId || content.uploaded_by?._id === userId).length : 0)
             ),
             filter: "all"
         },
         {
             title: "Approved Content",
             value: (
-                (Array.isArray(contents?.data?.challenges) ? contents.data.challenges.filter((content) => content.isApproved === "approved").length : 0) +
-                (Array.isArray(contents?.data?.modules) ? contents.data.modules.filter((content) => content.isApproved === "approved").length : 0) +
-                (Array.isArray(contents?.data?.events) ? contents.data.events.filter((content) => content.status === "Approved").length : 0)
+                (Array.isArray(contents?.data?.challenges) ? contents.data.challenges.filter((content) => (content.createdBy?._id === userId || content.uploaded_by?._id === userId) && content.isApproved === "approved").length : 0) +
+                (Array.isArray(contents?.data?.modules) ? contents.data.modules.filter((content) => (content.createdBy?._id === userId || content.uploaded_by?._id === userId) && content.isApproved === "approved").length : 0) +
+                (Array.isArray(contents?.data?.events) ? contents.data.events.filter((content) => (content.createdBy?._id === userId || content.uploaded_by?._id === userId) && content.status === "Approved").length : 0)
             ),
             filter: "active"
         },
         {
             title: "Pending Content",
             value: (
-                (Array.isArray(contents?.data?.challenges) ? contents.data.challenges.filter((content) => content.isApproved === "pending").length : 0) +
-                (Array.isArray(contents?.data?.modules) ? contents.data.modules.filter((content) => content.isApproved === "pending").length : 0) +
-                (Array.isArray(contents?.data?.events) ? contents.data.events.filter((content) => content.status === "Pending").length : 0)
+                (Array.isArray(contents?.data?.challenges) ? contents.data.challenges.filter((content) => (content.createdBy?._id === userId || content.uploaded_by?._id === userId) && content.isApproved === "pending").length : 0) +
+                (Array.isArray(contents?.data?.modules) ? contents.data.modules.filter((content) => (content.createdBy?._id === userId || content.uploaded_by?._id === userId) && content.isApproved === "pending").length : 0) +
+                (Array.isArray(contents?.data?.events) ? contents.data.events.filter((content) => (content.createdBy?._id === userId || content.uploaded_by?._id === userId) && content.status === "Pending").length : 0)
             ),
             filter: "inactive"
         },
         {
             title: "Rejected Content",
             value: (
-                (Array.isArray(contents?.data?.challenges) ? contents.data.challenges.filter((content) => content.isApproved === "rejected").length : 0) +
-                (Array.isArray(contents?.data?.modules) ? contents.data.modules.filter((content) => content.isApproved === "rejected").length : 0) +
-                (Array.isArray(contents?.data?.events) ? contents.data.events.filter((content) => content.status === "Rejected").length : 0)
+                (Array.isArray(contents?.data?.challenges) ? contents.data.challenges.filter((content) => (content.createdBy?._id === userId || content.uploaded_by?._id === userId) && content.isApproved === "rejected").length : 0) +
+                (Array.isArray(contents?.data?.modules) ? contents.data.modules.filter((content) => (content.createdBy?._id === userId || content.uploaded_by?._id === userId) && content.isApproved === "rejected").length : 0) +
+                (Array.isArray(contents?.data?.events) ? contents.data.events.filter((content) => (content.createdBy?._id === userId || content.uploaded_by?._id === userId) && content.status === "Rejected").length : 0)
             ),
             filter: "rejected"
         },
     ];
+    
 
 
 
@@ -666,7 +690,7 @@ const ContentManagement = () => {
 
                 {/* Page Header */}
                 <div className={`flex justify-between items-center mb-6 px-12 py-1 rounded-lg mt- ${darkMode ? 'bg-[#333333]' : 'bg-[#f1f5f9]'}`}>
-                    <h1 className="text-2xl ml-[-20px] text-[#F48567]">Content</h1>
+                    <h1 className="text-2xl ml-[-20px] text-[#F48567]">My Uploads</h1>
                     <div className="flex gap-6">
 
                         <CreateContent />
@@ -864,4 +888,4 @@ const ContentManagement = () => {
     );
 };
 
-export default ContentManagement;
+export default Myuploardsmanagement;

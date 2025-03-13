@@ -249,6 +249,38 @@ const ParentComponent = () => {
         }));
     };
 
+    const [selectedCompany, setSelectedCompany] = useState("");
+    const [showDropdown, setShowDropdown] = useState(false);
+
+    const handleSelectChange = (value) => {
+        setSelectedCompany(value);
+        setCustomCompany(""); // Clear custom input when selecting from dropdown
+        setShowDropdown(false); // Hide dropdown after selection
+    };
+
+    const handleCustomChange = (e) => {
+        const value = e.target.value;
+        setCustomCompany(value);
+        setSelectedCompany(""); // Clear selected company when typing
+        setShowDropdown(true); // Show dropdown while typing
+    };
+    
+
+    const handleKeyDown = (e) => {
+        if (e.key === "Enter") {
+            e.preventDefault(); // Prevent form submission or unintended selection
+    
+            // Find the current input and shift focus to the next input field
+            const formElements = Array.from(document.querySelectorAll("input, select, textarea, button"));
+            const currentIndex = formElements.indexOf(e.target);
+    
+            if (currentIndex >= 0 && currentIndex < formElements.length - 1) {
+                formElements[currentIndex + 1].focus();
+            }
+        }
+    };
+    
+
     return (
         <>
             <Button
@@ -320,26 +352,34 @@ const ParentComponent = () => {
 
                                 <div className="flex flex-col mt-3">
                                     <label className=" mb-1">Organization Name</label>
-                                    <Select
-                                        showSearch
-                                        placeholder="Choose Organization or Enter Custom"
-                                        value={formData.company}
-                                        options={licensing?.map((item) => ({
-                                            label: item.organisationName,
-                                            value: item.organisationName,
-                                        }))}
-                                        className="choose-org"
-                                        onChange={handleCompanyChange}
-                                        onSearch={(value) => setCustomCompany(value)} // Capture custom input
-                                        onBlur={() => {
-                                            if (customCompany && !licensing.some(item => item.organisationName === customCompany)) {
-                                                handleCompanyChange(customCompany); // Set custom value
-                                            }
-                                        }}
-                                        filterOption={(input, option) =>
-                                            option.label.toLowerCase().includes(input.toLowerCase())
-                                        }
-                                    />
+                                    <div className="relative w-full">
+                                        <input
+                                            type="text"
+                                            placeholder="Choose Organization"
+                                            value={customCompany || selectedCompany}
+                                            onChange={handleCustomChange}
+                                            onFocus={() => setShowDropdown(true)}
+                                            onKeyDown={handleKeyDown} // Prevent selection on Enter
+                                            onBlur={() => setTimeout(() => setShowDropdown(false), 200)} // Delay hiding to allow selection
+                                            className="w-full p-2 rounded-xl border border-gray-600 focus:outline-none "
+                                        />
+                                        {showDropdown && (
+                                            <ul className={`absolute w-full mt-1 border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto z-10 ${darkMode ? 'bg-[#222222] text-white' : 'bg-[#fff] text-dark'}`}>
+                                                {licensing.map((item) => (
+                                                    <li
+                                                        key={item.organisationName}
+                                                        onMouseDown={() => handleSelectChange(item.organisationName)}
+                                                        className="p-2 cursor-pointer hover:bg-gray-400"
+                                                    >
+                                                        {item.organisationName}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </div>
+
+
+
 
                                 </div>
                                 <div className="flex gap-4">
@@ -451,26 +491,31 @@ const ParentComponent = () => {
                                     </div>
                                     <div className="flex flex-col w-1/2">
                                         <label className=" mb-1">Organization Name</label>
-                                        <Select
-                                        showSearch
-                                        placeholder="Choose Organization or Enter Custom"
-                                        value={formData.company}
-                                        options={licensing?.map((item) => ({
-                                            label: item.organisationName,
-                                            value: item.organisationName,
-                                        }))}
-                                        className="choose-org"
-                                        onChange={handleCompanyChange}
-                                        onSearch={(value) => setCustomCompany(value)} // Capture custom input
-                                        onBlur={() => {
-                                            if (customCompany && !licensing.some(item => item.organisationName === customCompany)) {
-                                                handleCompanyChange(customCompany); // Set custom value
-                                            }
-                                        }}
-                                        filterOption={(input, option) =>
-                                            option.label.toLowerCase().includes(input.toLowerCase())
-                                        }
-                                    />
+                                        <div className="relative w-full">
+                                        <input
+                                            type="text"
+                                            placeholder="Choose Organization"
+                                            value={customCompany || selectedCompany}
+                                            onChange={handleCustomChange}
+                                            onFocus={() => setShowDropdown(true)}
+                                            onKeyDown={handleKeyDown} // Prevent selection on Enter
+                                            onBlur={() => setTimeout(() => setShowDropdown(false), 200)} // Delay hiding to allow selection
+                                            className="w-full p-2 rounded-xl border border-gray-600 focus:outline-none "
+                                        />
+                                        {showDropdown && (
+                                            <ul className={`absolute w-full mt-1 border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto z-10 ${darkMode ? 'bg-[#222222] text-white' : 'bg-[#fff] text-dark'}`}>
+                                                {licensing.map((item) => (
+                                                    <li
+                                                        key={item.organisationName}
+                                                        onMouseDown={() => handleSelectChange(item.organisationName)}
+                                                        className="p-2 cursor-pointer hover:bg-gray-400"
+                                                    >
+                                                        {item.organisationName}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </div>
                                     </div>
                                 </div>
 
@@ -620,26 +665,31 @@ const ParentComponent = () => {
 
                                 <div className="flex flex-col">
                                     <label className=" mb-1">Organization Name</label>
-                                    <Select
-                                        showSearch
-                                        placeholder="Choose Organization or Enter Custom"
-                                        value={formData.company}
-                                        options={licensing?.map((item) => ({
-                                            label: item.organisationName,
-                                            value: item.organisationName,
-                                        }))}
-                                        className="choose-org"
-                                        onChange={handleCompanyChange}
-                                        onSearch={(value) => setCustomCompany(value)} // Capture custom input
-                                        onBlur={() => {
-                                            if (customCompany && !licensing.some(item => item.organisationName === customCompany)) {
-                                                handleCompanyChange(customCompany); // Set custom value
-                                            }
-                                        }}
-                                        filterOption={(input, option) =>
-                                            option.label.toLowerCase().includes(input.toLowerCase())
-                                        }
-                                    />
+                                    <div className="relative w-full">
+                                        <input
+                                            type="text"
+                                            placeholder="Choose Organization"
+                                            value={customCompany || selectedCompany}
+                                            onChange={handleCustomChange}
+                                            onFocus={() => setShowDropdown(true)}
+                                            onKeyDown={handleKeyDown} // Prevent selection on Enter
+                                            onBlur={() => setTimeout(() => setShowDropdown(false), 200)} // Delay hiding to allow selection
+                                            className="w-full p-2 rounded-xl border border-gray-600 focus:outline-none "
+                                        />
+                                        {showDropdown && (
+                                            <ul className={`absolute w-full mt-1 border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto z-10 ${darkMode ? 'bg-[#222222] text-white' : 'bg-[#fff] text-dark'}`}>
+                                                {licensing.map((item) => (
+                                                    <li
+                                                        key={item.organisationName}
+                                                        onMouseDown={() => handleSelectChange(item.organisationName)}
+                                                        className="p-2 cursor-pointer hover:bg-gray-400"
+                                                    >
+                                                        {item.organisationName}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </div>
                                 </div>
 
 
@@ -752,26 +802,31 @@ const ParentComponent = () => {
 
                                 <div className="flex flex-col">
                                     <label className=" mb-1">Organization Name</label>
-                                    <Select
-                                        showSearch
-                                        placeholder="Choose Organization or Enter Custom"
-                                        value={formData.company}
-                                        options={licensing?.map((item) => ({
-                                            label: item.organisationName,
-                                            value: item.organisationName,
-                                        }))}
-                                        className="choose-org"
-                                        onChange={handleCompanyChange}
-                                        onSearch={(value) => setCustomCompany(value)} // Capture custom input
-                                        onBlur={() => {
-                                            if (customCompany && !licensing.some(item => item.organisationName === customCompany)) {
-                                                handleCompanyChange(customCompany); // Set custom value
-                                            }
-                                        }}
-                                        filterOption={(input, option) =>
-                                            option.label.toLowerCase().includes(input.toLowerCase())
-                                        }
-                                    />
+                                    <div className="relative w-full">
+                                        <input
+                                            type="text"
+                                            placeholder="Choose Organization"
+                                            value={customCompany || selectedCompany}
+                                            onChange={handleCustomChange}
+                                            onFocus={() => setShowDropdown(true)}
+                                            onKeyDown={handleKeyDown} // Prevent selection on Enter
+                                            onBlur={() => setTimeout(() => setShowDropdown(false), 200)} // Delay hiding to allow selection
+                                            className="w-full p-2 rounded-xl border border-gray-600 focus:outline-none "
+                                        />
+                                        {showDropdown && (
+                                            <ul className={`absolute w-full mt-1 border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto z-10 ${darkMode ? 'bg-[#222222] text-white' : 'bg-[#fff] text-dark'}`}>
+                                                {licensing.map((item) => (
+                                                    <li
+                                                        key={item.organisationName}
+                                                        onMouseDown={() => handleSelectChange(item.organisationName)}
+                                                        className="p-2 cursor-pointer hover:bg-gray-400"
+                                                    >
+                                                        {item.organisationName}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </div>
                                 </div>
 
 

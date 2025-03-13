@@ -7,10 +7,12 @@ import Dashboard from '../components/Modular/dashboard.js';
 import DashboardPat from '../components/Modular/dashboardPat.js';
 import ProfileSettings from '../components/Modular/Profilesettings';
 import ProfileSettingsHR from '../components/Modular/ProfileSettingsHR.js';
+import ProfileSettingsPat from '../components/Modular/ProfileSettingsPat.js';
 import Usersmanagement from '../components/Modular/Usersmanagement';
 import SystemLogs from '../components/Modular/SystemLogs';
 import Rolemanagement from '../components/Modular/Rolemanagement';
 import ContentManagement from '../components/Modular/Contentmanagement';
+import Myuploardsmanagement from '../components/Modular/Myuploardsmanagement';
 import UsersmanagementHR from '../components/Modular/Usersmanagementhr';
 import Eventsmanagement from '../components/Modular/Eventsmanagement';
 import AnalyticsDashboard from '../components/Modular/AnalyticsDashboard';
@@ -25,10 +27,12 @@ const components = {
   Usersmanagement: <Usersmanagement />,
   SystemLogs: <SystemLogs />,
   ContentManagement: <ContentManagement />,
+  Myuploardsmanagement: <Myuploardsmanagement />,
   Rolemanagement: <Rolemanagement />,
   Licensing: <Licensing />,
   ProfileSettings: <ProfileSettings />,
   ProfileSettingsHR: <ProfileSettingsHR />,
+  ProfileSettingsPat: <ProfileSettingsPat />,
   UsersmanagementHR: <UsersmanagementHR />,
   Eventsmanagement: <Eventsmanagement />,
   AnalyticsDashboard: <AnalyticsDashboard />,

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import "../popup.css"; // Import custom CSS
 import { Modal } from "antd";
 import { useDispatch, useSelector } from 'react-redux';
@@ -9,31 +9,57 @@ import { showNotification } from "../../redux/actions/notificationActions"; // I
 
 const ContentManagement = ({ data }) => {
     const [showPopup, setShowPopup] = useState(false);
+    const [selectedModule, setSelectedModule] = useState(null);
+
+    const { content: contents } = useSelector((state) => state.content);
 
     const handleViewPopup = () => setShowPopup(true);
     const handleClosePopup = () => setShowPopup(false);
 
     const dispatch = useDispatch();
 
-    // console.log(data)
     // Define fields to display dynamically
     const formatDate = (dateString) => {
         if (!dateString) return "N/A";
         return new Date(dateString).toDateString(); // Example: "Mon Oct 09 2023"
     };
+    const modules = contents?.data?.modules || [];
 
+    // Fetch content when the component mounts
+    useEffect(() => {
+        dispatch(fetchAllContent());
+    }, [dispatch]);
+
+
+    useEffect(() => {
+        if (data?._id && modules.length > 0) {
+            const defaultModule = modules.find(module => module._id === data._id);
+            setSelectedModule(defaultModule || null);
+        }
+    }, [data?._id, modules]);
+
+    // Handle module selection change
+    const handleModuleChange = (event) => {
+        const selectedModuleId = event.target.value;
+        const newModule = modules.find(module => module._id === selectedModuleId);
+        setSelectedModule(newModule || null);
+    };
+
+    // Dynamically update uploaded_by based on the selected module
+    const uploadedBy = selectedModule?.uploaded_by || data?.uploaded_by || {};
+
+    // Fields array with dynamic Modules field
     const fields = [
-        { label: "Author", value: `${data?.uploaded_by?.firstName} ${data?.uploaded_by?.lastName}` },
-        { label: "Date created", value: formatDate(data?.createdAt) },
-        { label: "Last modified", value: formatDate(data?.updatedAt) },
-        { label: "Track", value: data?.tracks },
-        { label: "Challenges", value: data?.uploadDate },
-        { label: "Module Name", value: data?.moduleName },
-        { label: "Descriptions", value: data?.description },
-        { label: "Uploard ID", value: data?.uniqueUploadId },
-        { label: "Approve", value: data?.isApproved },
-        // { label: "Tags", value: data?.tags?.join(", ") },
-        // Add more fields as needed (up to 100+ dynamically)
+        { label: "Author", value: `${uploadedBy?.firstName} ${uploadedBy?.lastName}` },
+        { label: "Date created", value: formatDate(selectedModule?.createdAt || data?.createdAt) },
+        { label: "Last modified", value: formatDate(selectedModule?.updatedAt || data?.updatedAt) },
+        { label: "Track", value: selectedModule?.tracks || data?.tracks },
+        { label: "Modules", value: selectedModule ? selectedModule.moduleName : "Not Found" },
+        { label: "Challenges", value: selectedModule?.uploadDate || data?.uploadDate },
+        { label: "Module Name", value: selectedModule?.moduleName || data?.moduleName },
+        { label: "Descriptions", value: selectedModule?.description || data?.description },
+        { label: "Upload ID", value: selectedModule?.uniqueUploadId || data?.uniqueUploadId },
+        { label: "Approve", value: selectedModule?.isApproved || data?.isApproved },
     ];
 
 
@@ -87,25 +113,49 @@ const ContentManagement = ({ data }) => {
             </div>
 
             {showPopup && (
-                <div className="popup-overlay">
+                <div className="popup-overlay boldpopup">
                     <div className="p-8 bg-[rgb(30,30,30)] rounded-3xl w-[70%] h-[850px] overflow-y-auto flex">
 
                         <section className="w-1/2 p-6">
                             <h2 className="text-2xl mb-6 text-white flex gap-4"><svg width="29" height="31" viewBox="0 0 29 31" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M23 30.5L20.9 28.3625L23.2625 26H14V23H23.2625L20.9 20.6L23 18.5L29 24.5L23 30.5ZM27.5 15.5H24.5V6.5H21.5V11H6.5V6.5H3.5V27.5H11V30.5H3.5C2.675 30.5 1.969 30.2065 1.382 29.6195C0.795 29.0325 0.501 28.326 0.5 27.5V6.5C0.5 5.675 0.794 4.969 1.382 4.382C1.97 3.795 2.676 3.501 3.5 3.5H9.7625C10.0375 2.625 10.575 1.9065 11.375 1.3445C12.175 0.7825 13.05 0.501 14 0.5C15 0.5 15.894 0.7815 16.682 1.3445C17.47 1.9075 18.001 2.626 18.275 3.5H24.5C25.325 3.5 26.0315 3.794 26.6195 4.382C27.2075 4.97 27.501 5.676 27.5 6.5V15.5ZM14 6.5C14.425 6.5 14.7815 6.356 15.0695 6.068C15.3575 5.78 15.501 5.424 15.5 5C15.499 4.576 15.355 4.22 15.068 3.932C14.781 3.644 14.425 3.5 14 3.5C13.575 3.5 13.219 3.644 12.932 3.932C12.645 4.22 12.501 4.576 12.5 5C12.499 5.424 12.643 5.7805 12.932 6.0695C13.221 6.3585 13.577 6.502 14 6.5Z" fill="#F48567" />
                             </svg>
-                                <span>CHALLENGE DETAILS</span></h2>
+                                <span>MODULE DETAILS</span></h2>
                             <div className="space-y-3">
                                 {fields.map((field, index) => (
                                     <div key={index} className="flex justify-start items-center p-1">
                                         <span className="font-medium capitalize w-[150px]">{field.label}:</span>
-                                        <span className="ml-4">{field.value || "N/A"}</span>
+
+                                        {field.label === "Track" ? (
+                                            <select
+                                                className="border p-2 rounded ml-4 w-[80%]"
+                                                onChange={handleModuleChange}
+                                                value={selectedModule?._id || ""}
+                                            >
+                                                <option value="" disabled>Select a module</option>
+                                                {modules.map((module, i) => (
+                                                    <option key={module._id} value={module._id}>
+                                                        {`Module ${i + 1}`}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <span className="ml-4 w-[80%] capitalize font-thin">{field.value || "N/A"}</span>
+                                        )}
                                     </div>
                                 ))}
+
+
                             </div>
                             <div className="space-y-3 mt-3">
-                                <div className="flex justify-start items-center p-1">
-                                    <span className="font-medium capitalize w-[150px]">Photo or Video</span>
+                            <div className="flex justify-start items-center p-1">
+                                    {mediaItems.length === 3 ? (
+                                        <span className="font-medium capitalize w-[550px]">Cover Photo&nbsp;&nbsp;&nbsp;  Module Video&nbsp;&nbsp;  Explanatory Video</span>
+                                    ) : mediaItems.length === 2 ? (
+                                        <span className="font-medium capitalize w-[550px]">Cover Photo &nbsp;&nbsp; Module Video</span>
+                                    ) : (
+                                        <span className="font-medium capitalize w-[550px]">Cover Photo</span>
+                                    )}
                                 </div>
                                 <div className="flex justify-start items-center p-1 gap-3">
                                     {mediaItems.map((item, index) => (
@@ -216,8 +266,8 @@ const ContentManagement = ({ data }) => {
                                             width="180"
                                             height="173"
                                             href={
-                                                data?.uploaded_by.image
-                                                    ? `${process.env.REACT_APP_STATIC_API_URL}${data.uploaded_by.image.replace(/^\/root\/happme_adminuser_management/, '')}`
+                                                uploadedBy?.image
+                                                    ? `${process.env.REACT_APP_STATIC_API_URL}${uploadedBy.image.replace(/^\/root\/happme_adminuser_management/, '')}`
                                                     : "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/No_image_available.svg/1024px-No_image_available.svg.png"
                                             }
                                         />
@@ -228,21 +278,21 @@ const ContentManagement = ({ data }) => {
                             {/* Content Section */}
                             <div className="overflow-y-auto flex flex-col space-y-6 text-[#C7C7C7] h-[50vh]">
                                 <div className="space-y-3">
-                                    {Object.entries(data?.uploaded_by)
-                                        .filter(([key]) => !["_id", "blocked", "editLogs", "__v", "activityLogs", "availability", "totalAvailabilityHours", "password", "image", "roles", "macAddresses", "passwordChangedAt"].includes(key)) // Exclude unwanted keys
+                                    {Object.entries(uploadedBy)
+                                        .filter(([key]) => !["_id", "blocked", "editLogs", "__v", "activityLogs", "availability", "totalAvailabilityHours", "password", "image", "roles", "macAddresses", "passwordChangedAt"].includes(key))
                                         .map(([key, value]) => (
-                                            <div className="flex justify-start items-center ml-34 p-1" key={key}>
+                                            <div className="flex justify-start items-center p-1" key={key}>
                                                 <span className="font-medium capitalize w-[150px]">
                                                     {key.replace(/([A-Z])/g, " $1")}:
                                                 </span>
                                                 <span className="ml-4">
                                                     {typeof value === "object" && value !== null
-                                                        ? JSON.stringify(value, null, 2) // Format objects as JSON
+                                                        ? JSON.stringify(value, null, 2)
                                                         : value || "N/A"}
                                                 </span>
                                             </div>
-                                        ))}
-
+                                        ))
+                                    }
                                 </div>
                             </div>
 

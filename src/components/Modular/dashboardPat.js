@@ -1,11 +1,11 @@
 import React from 'react'
 import InfoprofilePat from '../Infoprofilepat.js';
-import MyProjects from '../MyProjects';
+import MyProjects from '../MyProjects2.js';
 import Statistic from '../Statistic';
-import Reports from '../Reports';
+import Reports from '../Reports2';
 import { useSelector, useDispatch } from 'react-redux';
-import Meeting from '../Meeting';
-import Bars from '../Bars';
+import Meeting from '../Meeting2';
+import Bars from '../Bars2';
 import { fetchDashboardData } from '../../redux/actions/allNotifications'
 
 const Dashboard = () => {

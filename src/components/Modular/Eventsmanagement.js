@@ -1,12 +1,16 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { deleteUser, toggleUserStatus } from '../../redux/actions/alluserGet.js';
-import { fetchAllEvents ,updateEventStatus } from '../../redux/actions/alleventGet.js';
+import { fetchAllEvents, updateEventStatus } from '../../redux/actions/alleventGet.js';
 import { useDispatch, useSelector } from 'react-redux';
 import { Badge, Space, Pagination, Select, Spin, Card } from "antd";
 import EventManagementForm from "../EventManagementForm";
 import { showNotification } from "../../redux/actions/notificationActions.js"; // Import showNotification
-import EyeForm from "./EyeForm.js";
+import EyeForm from "./EditEventForm.js";
 import "jspdf-autotable";
+import { IconSearch } from '@tabler/icons-react';
+import CryptoJS from 'crypto-js'; // Ensure you have imported CryptoJS
+
+
 
 
 const SvgIcon = () => (
@@ -61,32 +65,70 @@ const UserManagement = () => {
         setPageSize(size);
         setCurrentPage(1); // Reset to page 1 when the page size changes
     };
+    const [specificSearchQuery, setSpecificSearchQuery] = useState('');
+
+    const handleSpecificSearchQueryChange = (e) => {
+        setSpecificSearchQuery(e.target.value);
+    };
 
 
-
-
-
+    // Get the userId from local storage
+    let userId = null;
+    const encryptedId = localStorage.getItem('userId');
+    if (encryptedId) {
+        const bytes = CryptoJS.AES.decrypt(encryptedId, '477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1');
+        userId = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+    }
 
     const filteredData = useMemo(() => {
-        let filtered = events || [];
+        if (!events) return [];
+
+        let filtered = [...events];
+
+        // Filter by userId first
+        if (userId) {
+            filtered = filtered.filter((event) => event.createdBy?._id === userId);
+        }
 
         // Apply the filter for different event statuses
         if (filter && filter !== "all") {
             filtered = filtered.filter((event) => event.status?.toLowerCase() === filter.toLowerCase());
         }
 
-        // Apply the search query filter (searching specific fields)
+        // Apply specific search query filtering
+        if (specificSearchQuery.trim()) {
+            const lowerCaseQuery = specificSearchQuery.toLowerCase();
+
+            filtered = filtered.filter((item) => {
+                const valuesToCheck = [
+                    item?.uniChallengeId,
+                    item?.challengeName?.uploaded_by?.firstName,
+                    item?.challengeName?.uploaded_by?.lastName,
+                    item?.moduleName,
+                    item?.uploaded_by?.firstName,
+                    item?.uploaded_by?.lastName
+                ].filter(Boolean);
+
+                // Check in values
+                if (valuesToCheck.some((val) => val.toLowerCase().includes(lowerCaseQuery))) {
+                    return true;
+                }
+
+                // Check in roles if available
+                return item?.roles?.some((role) => role.toLowerCase().includes(lowerCaseQuery));
+            });
+        }
 
         return filtered;
-    }, [filter, events]);
-
+    }, [filter, events, specificSearchQuery, userId]);
 
     // Calculate Metrics
-    const totalEvents = events?.length || 0;
-    const completedEvents = events?.filter((event) => event.status === "Completed").length || 0;
-    const scheduledEvents = events?.filter((event) => event.status === "Scheduled").length || 0;
-    const pendingEvents = events?.filter((event) => event.status === "Pending").length || 0;
-    const cancelledEvents = events?.filter((event) => event.status === "Cancelled").length || 0;
+    const totalEvents = filteredData.length;
+    const completedEvents = filteredData.filter((event) => event.status === "Completed").length;
+    const scheduledEvents = filteredData.filter((event) => event.status === "Scheduled").length;
+    const pendingEvents = filteredData.filter((event) => event.status === "Pending").length;
+    const cancelledEvents = filteredData.filter((event) => event.status === "Cancelled").length;
+
 
     // Card data to map
     const cardData = [
@@ -134,24 +176,20 @@ const UserManagement = () => {
 
 
     // Handle row selection
-    const handleRowSelection = (index) => {
-        const newSelectedIndices = [...selectedIndices];
-        if (newSelectedIndices.includes(index)) {
-            newSelectedIndices.splice(newSelectedIndices.indexOf(index), 1); // Deselect
-        } else {
-            newSelectedIndices.push(index); // Select
-        }
-        setSelectedIndices(newSelectedIndices);
+    const handleSelection = (index) => {
+        const absoluteIndex = (currentPage - 1) * pageSize + index; // Convert paginated index to absolute index
+        setSelectedIndices((prev) =>
+            prev.includes(absoluteIndex)
+                ? prev.filter((i) => i !== absoluteIndex) // Remove if already selected
+                : [...prev, absoluteIndex] // Add if not selected
+        );
     };
 
-
-    // Select all logic
     const handleSelectAll = () => {
-        if (selectedIndices.length === paginatedData.length) {
-            setSelectedIndices([]); // Deselect all
-        } else {
-            setSelectedIndices(paginatedData.map((_, index) => index)); // Select all on current page
-        }
+        setSelectedIndices((prev) => {
+            const allSelected = prev.length === filteredData.length; // Check if all items are selected
+            return allSelected ? [] : filteredData.map((_, i) => i); // Select all or deselect all
+        });
     };
 
 
@@ -165,7 +203,7 @@ const UserManagement = () => {
         } else if (currentStatus === "Rejected") {
             nextStatus = "Approved";
         }
-    
+
         try {
             setLoadingRecordId(eventId); // Show spinner while updating
             await dispatch(updateEventStatus(eventId, nextStatus)); // Dispatch update
@@ -176,8 +214,8 @@ const UserManagement = () => {
             setLoadingRecordId(null); // Reset loading state
         }
     };
-    
-    
+
+
 
 
 
@@ -191,7 +229,7 @@ const UserManagement = () => {
                     <span style={{ color: "#F48567", marginLeft: "8px" }}>Event ID</span>
                 </div>
             ),
-            key: "event_id",
+            key: "_id",
             render: (_, __, index) => (typeof index === "number" ? index + 1 : "-"),
         },
         {
@@ -247,7 +285,7 @@ const UserManagement = () => {
             key: "status",
             render: (status, record) => {
                 const isLoading = loadingRecordId === record._id;
-        
+
                 return (
                     <Badge
                         color={getStatusColor(status)}
@@ -264,16 +302,13 @@ const UserManagement = () => {
                             padding: "7px",
                             color: darkMode ? "white" : "black",
                             display: "inline-block",
-                            cursor: isLoading ? "not-allowed" : "pointer", // Disable click while loading
+                            cursor: isLoading ? "not-allowed" : "not-allowed", // Disable click while loading
                         }}
-                        onClick={async () => {
-                            if (isLoading) return; // Prevent multiple clicks while loading
-                            await handleToggleStatus(record._id, status); // Toggle status dynamically
-                        }}
+                      
                     />
                 );
             },
-        },        
+        },
         {
             title: (
                 <div className="flex items-center">
@@ -305,189 +340,216 @@ const UserManagement = () => {
 
 
 
-        // <div className="w-[80%] flex flex-col h-full">
-        <div className='flex flex-col  p-5  thescreanhe'>
-
-
-            {/* Page Header */}
-            <div className={`flex justify-between items-center mb-6 px-12 py-3 rounded-lg mt- ${darkMode ? 'bg-[#333333]' : 'bg-white'}`}>
-                <h1 className="text-2xl ml-[-20px] text-[#F48567]">My Events</h1>
-                <div className="flex gap-7">
-
-
-
-
-                    <EventManagementForm />
-
+        <>
+            <div className={`flex justify-center content-center rounded-lg max-h-14 absolute right-[300px] top-[25px] ${darkMode ? 'bg-zinc-800 text-zinc-300' : 'bg-slate-100 text-black'} transition-colors duration-300`}>
+                <input
+                    value={specificSearchQuery}
+                    onChange={handleSpecificSearchQueryChange}
+                    type="text"
+                    placeholder="Search by Content ID, Title or Author"
+                    className="px-4 py-3 pl-10 rounded-lg focus:outline-none bg-transparent w-96"
+                />
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3">
+                    <IconSearch size={20} strokeWidth={1.5} className="" />
                 </div>
             </div>
+            <div className='flex flex-col  p-5  thescreanhe'>
 
-            {/* User Metrics Section */}
-            <div className="flex justify-between space-x-4 mb-6 px-8">
-                {cardData.map((card, index) => (
-                    <Card
-                        key={index}
-                        className={`flex-grow ${darkMode ? "bg-[#1E1E1E] text-[#C7C7C7]" : "bg-gray-100 text-black"
-                            } shadow-lg rounded-lg transition-all duration-300 ease-in-out rounded-[10px]
-                        ${selectedCard === index ? "bg-[#FFC9BB33] bg-opacity-30 border-[#F48567]" : "hover:bg-[#f486673a]"}`}
-                        bordered={true}
-                        onClick={() => {
-                            setSelectedCard(selectedCard === index ? null : index); // Toggle the selected card
-                            setFilter(card.filter);
-                        }}
-                    >
-                        <h2 className={`text-xl font-semibold ${darkMode ? "text-white" : "text-black"}`}>{card.title}</h2>
-                        <p className="text-3xl" style={{ color: "#F48567" }}>
-                            {card.value}
-                        </p>
-                    </Card>
-                ))}
-            </div>
-            <div className="flex-grow overflow-x-auto h-11 px-8 theusertab">
-                <div className={darkMode ? "dark-mode" : "light-mode"}></div>
-                <div className="relative">
-                    {/* Select All Checkbox */}
-                    <div className="absolute z-50 left-[-22px] top-6">
-                        <input
-                            className="custom-checkbox border-[#F48567] rounded-full"
-                            type="checkbox"
-                            checked={selectedIndices.length === paginatedData.length} // Check if all are selected
-                            onChange={handleSelectAll} // Handler for toggling select all
-                        />
+
+                {/* Page Header */}
+                <div className={`flex justify-between items-center mb-6 px-12 py-3 rounded-lg mt- ${darkMode ? 'bg-[#333333]' : 'bg-[#f1f5f9]'}`}>
+                    <h1 className="text-2xl ml-[-20px] text-[#F48567]">My Events</h1>
+                    <div className="flex gap-7">
+                        <EventManagementForm />
                     </div>
+                </div>
 
-                    <div className={`table-container ${darkMode ? "bg-[#333333]" : "bg-white"} rounded-lg`}>
-                        <table
-                            className="custom-table bg-[#18181b]"
-                            style={{
-                                width: "100%",
-                                borderCollapse: "separate",
-                                borderSpacing: "0 10px",
+
+
+                <div className="flex justify-between space-x-4 mb-6 px-8">
+                    {cardData.map((card, index) => (
+                        <Card
+                            key={index}
+                            className={`flex-grow ${darkMode ? "bg-[#1E1E1E] text-[#C7C7C7]" : "bg-gray-100 text-black"
+                                } shadow-lg rounded-lg transition-all duration-300 ease-in-out rounded-[10px]
+                                                   ${selectedCard === index ? "bg-[#FFC9BB33] bg-opacity-30 border-[#F48567]" : "hover:bg-[#f486673a]"}`}
+                            bordered={true}
+                            onClick={() => {
+                                setSelectedCard(selectedCard === index ? null : index); // Toggle the selected card
+                                setFilter(card.filter);
                             }}
                         >
-                            <thead className="bg-[#18181b]">
-                                <tr className="rounded-custom">
-                                    {columns.map((column, index) => (
-                                        <th
-                                            key={index}
-                                            className={`${darkMode ? "bg-[#333333]" : "bg-white"} text-white`}
-                                            style={{
-                                                cursor: "default",
-                                                userSelect: "none",
-                                                backgroundColor: selectedIndices.length > 0
-                                                    ? "#F48567"
-                                                    : darkMode
-                                                        ? "#333333"
-                                                        : "#ffffff",
-                                                color: selectedIndices.length > 0 ? "#ffffff" : "#F48567",
-                                                padding: "10px",
-                                                border: "none",
-                                            }}
-                                        >
-                                            {typeof column.title === "string" ? column.title : column.title}
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredData.map((row, rowIndex) => (
-                                    <tr key={row.key || rowIndex} className={`${darkMode ? "bg-[#333333]" : "bg-white"} text-white`}>
-                                        {columns.map((column, colIndex) => (
-                                            <td key={colIndex} style={{ padding: "10px", textAlign: column.align || "left" }}>
-                                                {column.render
-                                                    ? column.render(row[column.dataIndex], row, rowIndex) // Pass rowIndex manually
-                                                    : row[column.dataIndex] || "N/A"}
-                                            </td>
+                            <h2 className={`text-xl font-semibold ${darkMode ? "text-white" : "text-black"}`}>{card.title}</h2>
+                            <p className="text-3xl" style={{ color: "#F48567" }}>
+                                {card.value}
+                            </p>
+                        </Card>
+                    ))}
+                </div>
+                <div className="flex-grow overflow-x-auto h-11 px-8 theusertab">
+                    <div className={darkMode ? "dark-mode" : "light-mode"}></div>
+                    <div className="relative">
+                        {/* Select All Checkbox */}
+                        <div className="absolute z-50 left-[-22px] top-6">
+                            <input
+                                className="custom-checkbox border-[#F48567] rounded-full"
+                                type="checkbox"
+                                checked={paginatedData.length > 0 && paginatedData.every((_, index) => selectedIndices.includes((currentPage - 1) * pageSize + index))} // Check if all on the page are selected
+                                onChange={handleSelectAll}
+                            />
+                        </div>
+
+                        <div className={`table-container ${darkMode ? "bg-[#333333]" : "bg-[#f1f5f9]"} rounded-lg`}>
+                            <table
+                                className={`custom-table ${darkMode ? "bg-[#18181b]" : "bg-white"}`}
+                                style={{
+                                    width: "100%",
+                                    borderCollapse: "separate",
+                                    borderSpacing: "0 10px",
+                                }}
+                            >
+
+                                <thead className={`custom-table ${darkMode ? "bg-[#18181b]" : "bg-[#f1f5f9]"}`}>
+                                    <tr className={`rounded-custom ${darkMode ? "bg-[#18181b]" : "bg-[#f1f5f9]"}`}>
+                                        {columns.map((column, index) => (
+                                            <th
+                                                key={index}
+                                                className={`headtextxx headtable${index + 1} ${darkMode ? "bg-[#333333]" : "bg-white"} text-white`}
+                                                style={{
+                                                    cursor: "default",
+                                                    userSelect: "none",
+                                                    backgroundColor: selectedIndices.length > 0
+                                                        ? "#F48567"
+                                                        : darkMode
+                                                            ? "#333333"
+                                                            : "#ffffff",
+                                                    color: selectedIndices.length > 0 ? "#ffffff" : "#F48567",
+                                                    padding: "10px",
+                                                    border: "none",
+                                                }}
+                                            >
+                                                {typeof column.title === "string" ? column.title : column.title}
+                                            </th>
                                         ))}
+
                                     </tr>
-                                ))}
-                            </tbody>
+                                </thead>
+                                <tbody>
+                                    {paginatedData.map((row, rowIndex) => (
+                                        <tr
+                                            key={row.key || rowIndex}
+                                            className={`table-text rounded-lg ${darkMode ? "bg-[#333333] text-white" : "bg-[#f1f5f9]"}  ${selectedIndices.includes(rowIndex) ? "bg-[#f486673a]" : ""} headoptions`}
+                                            style={{ cursor: "pointer" }}
+                                        >
+                                            {columns.map((column, colIndex) => (
+                                                <td
+                                                    key={colIndex}
+                                                    style={{
+                                                        padding: "10px 10px",
+                                                        border: "none",
+                                                    }}
+                                                >
+                                                    {column.render
+                                                        ? column.render(row[column.dataIndex], row)
+                                                        : row[column.dataIndex] || "N/A"}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))}
 
-                        </table>
-                    </div>
+                                </tbody>
+                            </table>
+                        </div>
 
 
 
 
-                    {/* Pagination */}
-                    <div className="absolute left-[-20px] bottom-0 flex flex-col items-center justify h-full  pt-[59px]">
-                        {paginatedData.map((_, index) => (
-                            <span key={index} className="h-[65px] flex justify-center items-center">
-                                <input
-                                    className="custom-checkbox peer/draft border-[#F48567] rounded-full"
-                                    type="checkbox"
-                                    checked={selectedIndices.includes(index)}
-                                    onChange={() => handleRowSelection(index)}
-                                />
-                            </span>
-                        ))}
+                        {/* Pagination */}
+                        <div className="absolute left-[-20px] bottom-0 flex flex-col items-center justify h-full pt-[45px]">
+                            {paginatedData.map((_, index) => {
+                                const absoluteIndex = (currentPage - 1) * pageSize + index; // Convert paginated index to absolute
+                                return (
+                                    <span key={absoluteIndex} className="h-[60px] flex justify-center items-center">
+                                        <input
+                                            className="custom-checkbox peer/draft border-[#F48567] rounded-full"
+                                            type="checkbox"
+                                            checked={selectedIndices.includes(absoluteIndex)}
+                                            onChange={() => handleSelection(index)}
+                                        />
+                                    </span>
+                                );
+                            })}
+
+                        </div>
                     </div>
                 </div>
-            </div>
-            {/* Pagination Controls */}
-            <div className="flex justify-center gap-5 items-center mt-6 px-8">
                 {/* Pagination Controls */}
-                <Pagination
-                    current={currentPage}
-                    pageSize={pageSize}
-                    total={filteredData.length} // Total number of items in your data
-                    onChange={handleChangePage}
-                    onShowSizeChange={(_, size) => handlePageSizeChange(size)}
+                <div className="flex justify-center gap-5 items-center mt-6 px-8">
+                    {/* Pagination Controls */}
+                    <Pagination
+                        current={currentPage}
+                        pageSize={pageSize}
+                        total={filteredData.length} // Total number of items in your data
+                        onChange={handleChangePage}
+                        onShowSizeChange={(_, size) => handlePageSizeChange(size)}
 
-                    itemRender={(page, type, originalElement) => {
-                        if (type === 'page') {
-                            return (
-                                <span
-                                    className={`inline-flex items-center justify-center w-8 h-8 cursor-pointer ${page === currentPage
-                                        ? 'bg-[#F48567] text-white hover:text-white'
-                                        : 'bg-transparent text-black hover:bg-[#F48567] hover:text-white'
-                                        }`}
-                                >
-                                    {page}
-                                </span>
-                            );
-                        }
-                        if (type === 'prev') {
-                            return (
-                                <span
-                                    className={`inline-flex items-center justify-center w-20 h-8 cursor-pointer bg-[#333333] text-white border hover:bg-[#F48567] hover:text-white`}
-                                >
-                                    Back
-                                </span>
-                            );
-                        }
-                        if (type === 'next') {
-                            return (
-                                <span
-                                    className={`inline-flex items-center justify-center w-20 h-8 cursor-pointer bg-[#333333] text-white border hover:bg-[#F48567] hover:text-white`}
-                                >
-                                    Next
-                                </span>
-                            );
-                        }
-                        return originalElement;
-                    }}
-                />
-
-                {/* Page Size Selector */}
-                <div className="flex items-center space-x-4">
-                    <span className="text-sm text-gray-400 whitespace-nowrap">Results per page</span>
-                    <Select
-                        defaultValue={pageSize}
-                        value={pageSize}
-                        onChange={handlePageSizeChange}
-                        style={{ width: 100, backgroundColor: '#333333', color: '#fff' }}
-                        options={[
-                            { value: 10, label: '10' },
-                            { value: 20, label: '20' },
-                            { value: 30, label: '30' },
-                            { value: 50, label: '50' },
-                        ]}
+                        itemRender={(page, type, originalElement) => {
+                            if (type === 'page') {
+                                return (
+                                    <span
+                                        className={`inline-flex items-center justify-center w-8 h-8 cursor-pointer ${page === currentPage
+                                            ? 'bg-[#F48567] text-white hover:text-white'
+                                            : 'bg-transparent text-black hover:bg-[#F48567] hover:text-white'
+                                            }`}
+                                    >
+                                        {page}
+                                    </span>
+                                );
+                            }
+                            if (type === 'prev') {
+                                return (
+                                    <span
+                                        className={`inline-flex items-center justify-center w-20 h-8 cursor-pointer bg-[#333333] text-white border hover:bg-[#F48567] hover:text-white`}
+                                    >
+                                        Back
+                                    </span>
+                                );
+                            }
+                            if (type === 'next') {
+                                return (
+                                    <span
+                                        className={`inline-flex items-center justify-center w-20 h-8 cursor-pointer bg-[#333333] text-white border hover:bg-[#F48567] hover:text-white`}
+                                    >
+                                        Next
+                                    </span>
+                                );
+                            }
+                            return originalElement;
+                        }}
                     />
-                </div>
-            </div>
-        </div>
 
+                    {/* Page Size Selector */}
+                    <div className="flex items-center space-x-4">
+                        <span className="text-sm text-gray-400 whitespace-nowrap">Results per page</span>
+                        <Select
+                            defaultValue={pageSize}
+                            value={pageSize}
+                            onChange={handlePageSizeChange}
+                            style={{ width: 100, backgroundColor: '#333333', color: '#fff' }}
+                            options={[
+                                { value: 10, label: '10' },
+                                { value: 20, label: '20' },
+                                { value: 30, label: '30' },
+                                { value: 50, label: '50' },
+                            ]}
+                        />
+                    </div>
+                </div>
+
+                {/* User Metrics Section */}
+
+            </div>
+        </>
     );
 };
 

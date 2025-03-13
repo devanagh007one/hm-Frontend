@@ -6,6 +6,8 @@ export const CREATE_EVENT_SUCCESS = "CREATE_EVENT_SUCCESS";
 export const CREATE_EVENT_FAILURE = "CREATE_EVENT_FAILURE";
 export const UPDATE_EVENT_STATUS_SUCCESS = "UPDATE_EVENT_STATUS_SUCCESS";
 export const UPDATE_EVENT_STATUS_FAILURE = "UPDATE_EVENT_STATUS_FAILURE";
+export const DELETE_CHALLENGE_SUCCESS = "DELETE_CHALLENGE_SUCCESS";
+export const DELETE_CHALLENGE_FAILURE = "DELETE_CHALLENGE_FAILURE";
 
 
 // Action for fetching all Events without filtering
@@ -133,10 +135,10 @@ export const createEvent = (eventData) => async (dispatch) => {
 export const updateEventStatus = (eventId, status) => async (dispatch) => {
   try {
     const authToken = localStorage.getItem("authToken");
-    console.log(eventId, status)
+    console.log({ status })
 
     const response = await fetch(
-      `${process.env.REACT_APP_STATIC_API_URL}/api/E1/approve/${eventId}`,
+      `${process.env.REACT_APP_STATIC_API_URL}/api/v1/approve-reject/event/${eventId}`,
       {
         method: "PUT",
         headers: {
@@ -160,5 +162,37 @@ export const updateEventStatus = (eventId, status) => async (dispatch) => {
   } catch (error) {
     console.error("Error updating event status:", error);
     dispatch({ type: UPDATE_EVENT_STATUS_FAILURE, payload: error.message });
+  }
+};
+
+// Action for deleting a challenge
+export const deleteEvent = (challengeId) => async (dispatch) => {
+  try {
+    const authToken = localStorage.getItem("authToken");
+
+    const response = await fetch(
+      `${process.env.REACT_APP_STATIC_API_URL}/api/v1/delete/event/${challengeId}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to delete challenge");
+    }
+
+    // Optionally, handle the response
+    const data = await response.json();
+    console.log("Challenge Deleted:", data);
+
+    // Dispatch a success action (if needed)
+    dispatch({ type: "DELETE_CHALLENGE_SUCCESS", payload: challengeId });
+
+  } catch (error) {
+    console.error("Error in deleteChallenge:", error);
+    dispatch({ type: "DELETE_CHALLENGE_FAILURE", payload: error.message });
   }
 };
