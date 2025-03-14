@@ -256,14 +256,28 @@ const ParentComponent = () => {
         setSelectedCompany(value);
         setCustomCompany(""); // Clear custom input when selecting from dropdown
         setShowDropdown(false); // Hide dropdown after selection
+    
+        // Update formData
+        setFormData((prevData) => ({
+            ...prevData,
+            company: value,
+        }));
     };
+    
 
     const handleCustomChange = (e) => {
         const value = e.target.value;
         setCustomCompany(value);
         setSelectedCompany(""); // Clear selected company when typing
         setShowDropdown(true); // Show dropdown while typing
+    
+        // Update formData
+        setFormData((prevData) => ({
+            ...prevData,
+            company: value,
+        }));
     };
+    
     
 
     const handleKeyDown = (e) => {

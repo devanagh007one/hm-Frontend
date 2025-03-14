@@ -5,6 +5,7 @@ import Header from '../components/Header';
 import Sidebar from '../components/tobbar';
 import Dashboard from '../components/Modular/dashboard.js';
 import DashboardPat from '../components/Modular/dashboardPat.js';
+import DashboardHr from '../components/Modular/DashboardHr.js';
 import ProfileSettings from '../components/Modular/Profilesettings';
 import ProfileSettingsHR from '../components/Modular/ProfileSettingsHR.js';
 import ProfileSettingsPat from '../components/Modular/ProfileSettingsPat.js';
@@ -20,10 +21,13 @@ import Licensing from '../components/Modular/Licencing';
 import Messages from '../components/Modular/Messages';
 import {setActiveComponent} from '../redux/actions/index.js';
 // import Policies from './Policies';
+import CryptoJS from "crypto-js";
+
 
 const components = {
   Dashboard: <Dashboard />,
   DashboardPat: <DashboardPat />,
+  DashboardHr: <DashboardHr />,
   Usersmanagement: <Usersmanagement />,
   SystemLogs: <SystemLogs />,
   ContentManagement: <ContentManagement />,
@@ -42,14 +46,37 @@ const components = {
 
 const Homepage = () => {
   const dispatch = useDispatch();
-  const storedComponent = localStorage.getItem("activeComponent") || "Dashboard"; // Default to Licensing
+
+  // Decrypt roles and determine the default component
+  const encryptedRoles = localStorage.getItem("encryptedRoles");
+  let defaultComponent = "Dashboard"; // Default component
+
+  if (encryptedRoles) {
+    try {
+      const bytes = CryptoJS.AES.decrypt(
+        encryptedRoles,
+        '477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1'
+      );
+      const roles = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+
+      const validRoles = ['super admin', 'admin', 'partner', 'hr'];
+      const role = roles.find(r => validRoles.includes(r.toLowerCase()));
+
+      if (role) {
+        if (role.toLowerCase() === "partner") defaultComponent = "DashboardPat";
+        else if (role.toLowerCase() === "hr") defaultComponent = "DashboardHr";
+      }
+
+    } catch (error) {
+      console.error("Error decrypting roles:", error);
+    }
+  }
+
+  const storedComponent = localStorage.getItem("activeComponent") || defaultComponent;
   const activeComponent = useSelector(state => state.header.activeComponent) || storedComponent;
 
   useEffect(() => {
     dispatch(setActiveComponent(storedComponent)); // Update Redux state
-
-    // Remove activeComponent after reload
-
   }, [dispatch, storedComponent]);
 
   return (
@@ -66,4 +93,3 @@ const Homepage = () => {
 };
 
 export default Homepage;
-

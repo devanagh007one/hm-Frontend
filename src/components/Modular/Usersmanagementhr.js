@@ -9,6 +9,8 @@ import { showNotification } from "../../redux/actions/notificationActions"; // I
 import EyeForm from "./EyeFormhr";
 import AsignTeam from "./AsignTeam.js";
 import EdituserForm from "../EdituserForm";
+import CryptoJS from 'crypto-js';
+
 
 import { IconSearch } from '@tabler/icons-react';
 
@@ -81,47 +83,81 @@ const UserManagement = () => {
 
     const filteredData = useMemo(() => {
         let filtered = users.filter((user) => user.company === userData?.company);
-
-        if (filter === "active") filtered = filtered.filter(user => !user.blocked);
-        else if (filter === "inactive") filtered = filtered.filter(user => user.blocked);
-
+    
+        if (filter === "active") {
+            filtered = filtered.filter(user => !user.blocked);
+        } else if (filter === "inactive") {
+            filtered = filtered.filter(user => user.blocked);
+        }
+    
         if (specificSearchQuery) {
             const query = specificSearchQuery.toLowerCase();
             filtered = filtered.filter(({ userName, company, roles }) =>
-                [userName, company].some(val => val?.toLowerCase().includes(query)) ||
-                roles.some(role => role.toLowerCase().includes(query))
+                (userName && userName.toLowerCase().includes(query)) ||
+                (company && company.toLowerCase().includes(query)) ||
+                (roles && roles.some(role => role.toLowerCase().includes(query)))
             );
         }
-
+        
+        
+    
+        // Decrypt userId from localStorage
+        let userId = null;
+        const encryptedId = localStorage.getItem('userId');
+        if (encryptedId) {
+            try {
+                const bytes = CryptoJS.AES.decrypt(encryptedId, '477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1');
+                userId = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+            } catch (error) {
+                console.error('Failed to decrypt userId:', error);
+            }
+        }
+    
+        // Remove the current user from the filtered list
+        if (userId) {
+            filtered = filtered.filter(user => user._id !== userId);
+        }
+    
         const sorters = {
             newestFirst: (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
             "1234": (a, b) => a.userId - b.userId,
             ABCD: (a, b) => (a.userName || "").localeCompare(b.userName || ""),
             location: (a, b) => (a.country || "").localeCompare(b.country || ""),
             Department: (a, b) => (a.department || "").localeCompare(b.department || ""),
-            Designation: (a, b) => (a.department || "").localeCompare(b.department || ""),
+            Designation: (a, b) => (a.designation || "").localeCompare(b.designation || ""),
             Email: (a, b) => (a.email || "").localeCompare(b.email || ""),
-            Gender: (a, b) => (a.gender|| "").localeCompare(b.gender || ""),
+            Gender: (a, b) => (a.gender || "").localeCompare(b.gender || ""),
             Phone: (a, b) => a.mobile - b.mobile,
             startDate: (b, a) => new Date(a.joinedAt) - new Date(b.joinedAt),
-
             inactiveFirst: (b, a) => (a.blocked === b.blocked ? 0 : a.blocked ? 1 : -1)
         };
-
+    
         if (sorters[filter]) filtered.sort(sorters[filter]);
-
+    
         return filtered;
     }, [filter, specificSearchQuery, users]);
-
-
-
-
+    
+    // Decrypt userId for metrics as well
+    let currentUserId = null;
+    const encryptedId = localStorage.getItem('userId');
+    if (encryptedId) {
+        try {
+            const bytes = CryptoJS.AES.decrypt(encryptedId, '477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1');
+            currentUserId = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+        } catch (error) {
+            console.error('Failed to decrypt userId:', error);
+        }
+    }
+    
     // Calculate Metrics
-    const filteredUsers = users?.filter((user) => user.company === userData?.company) || []; // Filter users by company
-
+    const filteredUsers = users?.filter(
+        (user) => user.company === userData?.company && user._id !== currentUserId
+    ) || [];
+    
     const totalUsers = filteredUsers.length; // Total users for the company
     const activeUsers = filteredUsers.filter((user) => !user.blocked).length; // Active users (not blocked)
     const inactiveUsers = filteredUsers.filter((user) => user.blocked).length; // Inactive users (blocked)
+    
 
 
     // Function to determine the background color for the status
@@ -327,7 +363,7 @@ const UserManagement = () => {
                     value={specificSearchQuery}
                     onChange={handlesetSpecificSearchQueryChange}
                     type="text"
-                    placeholder="Search by Content ID, Title or Author"
+                    placeholder="Search by Username, Role or Content"
                     className="px-4 py-3 pl-10 rounded-lg focus:outline-none bg-transparent w-96"
                 />
                 <div className="absolute inset-y-0 left-0 flex items-center pl-3">

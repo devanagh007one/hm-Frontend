@@ -6,6 +6,8 @@ import "react-circular-progressbar/dist/styles.css";
 import { fetchAllUsers } from '../redux/actions/alluserGet';
 import { fetchAllContent } from '../redux/actions/allContentGet.js';
 import CryptoJS from 'crypto-js';
+import { hrLicenseGet } from "../redux/actions/allLicensingGet.js";
+
 
 
 const Infoprofile = () => {
@@ -14,6 +16,8 @@ const Infoprofile = () => {
     const { content } = useSelector((state) => state.content);
 
     const { users, error } = useSelector((state) => state.user);
+    const { hrlicensing, error: licensingError } = useSelector((state) => state.licensing);
+
 
     const dispatch = useDispatch();
 
@@ -21,12 +25,15 @@ const Infoprofile = () => {
         dispatch(fetchUsers());
         dispatch(fetchAllUsers());
         dispatch(fetchAllContent());
+        dispatch(hrLicenseGet());
+
 
     }, [dispatch]);
 
     if (!userData) {
         return <div>Loading...</div>;
     }
+    console.log(hrlicensing)
 
     // Filtering users with role "Partner"
     const partnerUsers = users ? users.filter(user => user.roles && user.roles.includes('Partner')) : [];
@@ -71,10 +78,6 @@ const Infoprofile = () => {
     return (
         <section
             className="gap-4 flex flex-col w-1/2"
-            onClick={() => {
-                localStorage.setItem("activeComponent", "Rolemanagement");
-                window.location.reload();
-            }}
         >
             <div className='flex gap-3 h-full'>
                 <div
@@ -107,32 +110,18 @@ const Infoprofile = () => {
                         </div>
                     </div>
                 </div>
-                <div className={`card flex flex-col w-1/2 overflow-hidden items-center justify-center gap-10 relative ${cardClass}`}>
-                    <div className='flex flex-col h-full items-center pb-5 justify-evenly w-full'>
-                        <h1 className="text-lg text-left">My Uploads</h1>
-                        <div className="relative w-[200px] ">
-                            <CircularProgressbar
-                                value={progress}
-                                strokeWidth={15}  // Increased stroke width
-                                styles={buildStyles({
-                                    rotation: 0.60,
-                                    strokeLinecap: "butt",
-                                    pathColor: "#C0D838", // Approved color
-                                    trailColor: "#FF8C78", // Rejected color
-                                    textSize: "16px",
-                                })}
-                            />
-
-                            {/* Display text in center */}
-                            <div className="absolute inset-0 flex flex-col items-center justify-center text-2xl  mt-[-50px]">
-                                <span>{totalContents}</span>
-                                <span className="text-xs">Total Content</span>
-                            </div>
-                            <div className='flex flex-row w-full'>
-                                <div className='w-1/2 flex text-xs'>Approved Content</div>
-                                <div className='w-1/2 flex text-xs'>Rejected Content</div>
-                            </div>
-                        </div>
+                <div className={`card flex flex-col w-1/2 overflow-hidden items-start justify-center gap-4 relative text-xl `}>
+                    <span className='font-bold'>Total Licenses : {hrlicensing?.totalLicenses}</span>
+                    <span className='font-bold'>Licenses used : {hrlicensing?.assignedLicenses}</span>
+                    <span className='font-bold'>Balance licenses : {hrlicensing?.remainingLicenses}</span>
+                    <span className='font-bold'>License</span>
+                    <span className='text-[#F48567]'>Alert Message Alert Message Alert Message</span>
+                    <div className="flex flex-col w-[70%]">
+                        <button
+                            className="bg-[#F48567] text-base px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#fff]"
+                        >
+                            Contact Admin
+                        </button>
                     </div>
                 </div>
             </div>

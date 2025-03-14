@@ -101,12 +101,12 @@ const UserManagement = () => {
 
             filtered = filtered.filter((item) => {
                 const valuesToCheck = [
-                    item?.uniChallengeId,
-                    item?.challengeName?.uploaded_by?.firstName,
-                    item?.challengeName?.uploaded_by?.lastName,
+                    item?.title,
+                    item?.location,
+                    item?.mode,
                     item?.moduleName,
-                    item?.uploaded_by?.firstName,
-                    item?.uploaded_by?.lastName
+                    item?.typeOfEvent,
+                    item?.description
                 ].filter(Boolean);
 
                 // Check in values
@@ -346,7 +346,7 @@ const UserManagement = () => {
                     value={specificSearchQuery}
                     onChange={handleSpecificSearchQueryChange}
                     type="text"
-                    placeholder="Search by Content ID, Title or Author"
+                    placeholder="Search by Username, Role or Content"
                     className="px-4 py-3 pl-10 rounded-lg focus:outline-none bg-transparent w-96"
                 />
                 <div className="absolute inset-y-0 left-0 flex items-center pl-3">
