@@ -375,7 +375,9 @@ const UserManagement = () => {
         {
             title: (
                 <div className="flex items-center">
-                    <SvgIcon onClick={() => setFilter(prev => (prev === "role" ? "" : "role"))} />
+                    {isAdmin && (
+                        <SvgIcon onClick={() => setFilter(prev => (prev === "role" ? "" : "role"))} />
+                    )}
                     <span style={{ color: "#F48567", marginLeft: "8px" }}>ROLE</span>
                 </div>
             ),
@@ -385,7 +387,9 @@ const UserManagement = () => {
                 const roleClass = Array.isArray(roles)
                     ? roles[0].toLowerCase().replace(/\s/g, "")
                     : roles.toLowerCase().replace(/\s/g, "");
-
+        
+                const isSuperAdmin = Array.isArray(roles) ? roles.includes("Super Admin") : roles === "Super Admin";
+        
                 return (
                     <Select
                         mode="single"
@@ -394,10 +398,12 @@ const UserManagement = () => {
                         value={roles[0]} // Ensure correct role is displayed
                         placeholder="Select roles"
                         onChange={(newRole) => handleRoleChange(record._id, newRole)} // Handle role change
+                        disabled={!isAdmin || isSuperAdmin} // Disable dropdown if not admin or role is Super Admin
                     />
                 );
             },
         },
+        
         {
             title: (
                 <div className="flex items-center">
@@ -529,6 +535,14 @@ const UserManagement = () => {
                 <div className="flex items-center justify-center">
                     <Space>
                         <EyeForm data={record} />
+                        {isAdmin && (
+                            <svg className="cursor-pointer" onClick={() => handleDelete(record._id)}  width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3.125 5.9375V15.9375C3.12624 16.3515 3.29125 16.7482 3.58401 17.041C3.87677 17.3337 4.27348 17.4988 4.6875 17.5H15.3125C15.7265 17.4988 16.1232 17.3337 16.416 17.041C16.7087 16.7482 16.8738 16.3515 16.875 15.9375V5.9375" stroke="#C7C7C7" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" />
+                                <path d="M17.0312 2.5H2.96875C2.36469 2.5 1.875 2.98969 1.875 3.59375V4.53125C1.875 5.13531 2.36469 5.625 2.96875 5.625H17.0312C17.6353 5.625 18.125 5.13531 18.125 4.53125V3.59375C18.125 2.98969 17.6353 2.5 17.0312 2.5Z" stroke="#C7C7C7" stroke-width="1.25" stroke-linejoin="round" />
+                                <path d="M12.5 11.875L10 14.375L7.5 11.875M10 13.5113V8.75" stroke="#C7C7C7" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+
+                        )}
                         {!isAdmin && ( // Hide the delete button if the user is an Admin
                             <div className="cursor-pointer" onClick={() => handleDelete(record._id)}>
                                 <svg

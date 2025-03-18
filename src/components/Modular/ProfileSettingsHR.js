@@ -193,7 +193,7 @@ const Profilecreads = () => {
             <section className={`flex ml-3 flex-col mailemt mr-3 justify-between items-center ${darkMode ? 'bg-[#333333]' : 'text-black'}`}>
 
                 {showLicence && (
-                    <div className={`flex w-full mr-3  justify-between items-center h-[95vh] ${darkMode ? 'text-white' : 'text-black'}`}>
+                    <div className={`flex w-full mr-3  justify-between items-center ${darkMode ? 'text-white' : 'text-black'}`}>
                         <section className='w-full flex-col flex items-center justify-center'>
                             <div className='flex items-center justify-center'>
                                 <img
@@ -262,8 +262,8 @@ const Profilecreads = () => {
                 )}
 
                 {showProfile && (
-                    <div className={`flex w-full mr-3  justify-between items-center h-[95vh] ${darkMode ? 'text-white' : 'text-black'}`}>
-                        <section className='w-full flex-col flex items-center justify-center'>
+                    <div className={`flex w-full mr-3  justify-between items-center h-[70vh] overflow-scroll ${darkMode ? 'text-white' : 'text-black'}`}>
+                        <section className='w-full flex-col flex items-center justify-center h-[100vh] mt-[300px]'>
                             <div className='flex items-center justify-center'>
                                 <img
                                     src={`${process.env.REACT_APP_STATIC_API_URL}/${userData?.image?.replace(/^.*\/uploads\//, 'uploads/') || 'default.png'}`}

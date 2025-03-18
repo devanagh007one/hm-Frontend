@@ -5,6 +5,8 @@ import { fetchAllUsers, createUser } from "../redux/actions/alluserGet.js";
 import { showNotification } from "../redux/actions/notificationActions.js"; // Import showNotification
 import "./popup.css"; // Import custom CSS
 import { Button, Select, Checkbox, Radio } from "antd";
+import CryptoJS from 'crypto-js';
+
 
 const ParentComponent = () => {
     const darkMode = useSelector((state) => state.theme.darkMode);
@@ -293,6 +295,38 @@ const ParentComponent = () => {
             }
         }
     };
+
+
+    
+        const rolesOptions = ["Admin", "Super Admin", "Partner", "HR"];
+    
+        // Retrieve encrypted roles from localStorage
+        const encryptedRoles = localStorage.getItem("encryptedRoles");
+    
+        let userRoles = [];
+    
+        if (encryptedRoles) {
+            try {
+                const bytes = CryptoJS.AES.decrypt(
+                    encryptedRoles,
+                    "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1"
+                );
+                userRoles = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+            } catch (error) {
+                console.error("Error decrypting roles:", error);
+            }
+        }
+    
+        // Define valid roles for checking
+        const validRoles = ["super admin", "admin", "partner", "hr"];
+        const hasValidRole = userRoles.some((role) => validRoles.includes(role.toLowerCase()));
+    
+        // Check if the user is an Admin
+        const isAdmin = userRoles.some((role) => role.toLowerCase() === "admin");
+        const filteredRolesOptions = isAdmin
+        ? rolesOptions.filter((role) => role !== "Super Admin" && role !== "Admin")
+        : rolesOptions;
+    
     
 
     return (
@@ -344,22 +378,24 @@ const ParentComponent = () => {
 
 
                         {/* Choose Role */}
-                        <div className="flex flex-col">
-                            <label className=" mb-1">Choose Role *</label>
-                            <select
-                                name="roles"
-                                value={formData.roles}
-                                onChange={handleRoleChange}
-                                className="p-2 rounded-xl border border-gray-600 focus:outline-none"
-                            >
-                                <option value="">Choose Role</option>
-                                <option value="HR">HR</option>
-                                <option value="Partner">Partner</option>
-                                <option value="Admin">Admin</option>
-                                <option value="Super Admin">Super Admin</option>
-                            </select>
+                        {/* Choose Role */}
+<div className="flex flex-col">
+    <label className="mb-1">Choose Role *</label>
+    <select
+        name="roles"
+        value={formData.roles}
+        onChange={handleRoleChange}
+        className="p-2 rounded-xl border border-gray-600 focus:outline-none"
+    >
+        <option value="">Choose Role</option>
+        {filteredRolesOptions.map((role) => (
+            <option key={role} value={role}>
+                {role}
+            </option>
+        ))}
+    </select>
+</div>
 
-                        </div>
 
                         {formData.roles === "HR" && (
                             <form className="flex flex-col gap-4" onSubmit={handleSubmit}>

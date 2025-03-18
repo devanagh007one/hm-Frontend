@@ -59,18 +59,21 @@ const ContentManagement = () => {
 
     const handleApprovalAction = (record, status) => {
         const { _id, challengeName, moduleName, currentStatus, typeOfEvent } = record;
-
-        // Convert status to Title Case (first letter uppercase, rest lowercase)
+    
+        // Convert status to Title Case for display
         const formattedStatus = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
-
+    
+        // Convert status to lowercase for API requests
+        const lowerCaseStatus = status.toLowerCase();
+    
         // Check if the current status is already the one you're trying to update to
         if (currentStatus === formattedStatus) {
             dispatch(showNotification(`${challengeName || moduleName || typeOfEvent || "Record"} is already ${formattedStatus}`, "info"));
-            return; // Early return to stop further processing
+            return;
         }
-
+    
         if (typeof typeOfEvent === "string" && typeOfEvent.trim() !== "") {
-            dispatch(updateEventStatus(_id, formattedStatus)) // Use title case status
+            dispatch(updateEventStatus(_id, formattedStatus)) // Keep title case for event updates
                 .then(() => {
                     dispatch(showNotification(`Successfully updated event status to ${formattedStatus}`, "success"));
                     dispatch(fetchAllContent());
@@ -79,7 +82,7 @@ const ContentManagement = () => {
                     dispatch(showNotification(`Failed to update event status to ${formattedStatus}`, "error"));
                 });
         } else if (typeof challengeName === "string" && challengeName.trim() !== "") {
-            dispatch(patchTheChallenge(_id, formattedStatus))
+            dispatch(patchTheChallenge(_id, lowerCaseStatus)) // Use lowercase for API
                 .then(() => {
                     dispatch(showNotification(`Successfully updated challenge status to ${formattedStatus}`, "success"));
                     dispatch(fetchAllContent());
@@ -88,7 +91,7 @@ const ContentManagement = () => {
                     dispatch(showNotification(`Failed to update challenge status to ${formattedStatus}`, "error"));
                 });
         } else if (typeof moduleName === "string" && moduleName.trim() !== "") {
-            dispatch(patchTheContent(_id, formattedStatus))
+            dispatch(patchTheContent(_id, lowerCaseStatus)) // Use lowercase for API
                 .then(() => {
                     dispatch(showNotification(`Successfully updated content status to ${formattedStatus}`, "success"));
                     dispatch(fetchAllContent());
@@ -100,6 +103,7 @@ const ContentManagement = () => {
             dispatch(showNotification("Invalid record type", "error"));
         }
     };
+    
 
 
 
