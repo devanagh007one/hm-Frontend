@@ -398,7 +398,7 @@ const UserManagement = () => {
                         value={roles[0]} // Ensure correct role is displayed
                         placeholder="Select roles"
                         onChange={(newRole) => handleRoleChange(record._id, newRole)} // Handle role change
-                        disabled={!isAdmin || isSuperAdmin} // Disable dropdown if not admin or role is Super Admin
+                        disabled={isSuperAdmin}// Disable dropdown if not admin or role is Super Admin
                     />
                 );
             },
