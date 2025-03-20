@@ -391,15 +391,15 @@ const UserManagement = () => {
                 const isSuperAdmin = Array.isArray(roles) ? roles.includes("Super Admin") : roles === "Super Admin";
         
                 return (
-                    <Select
-                        mode="single"
-                        className={`thereoledrop ${roleClass}`}
-                        options={filteredRolesOptions.map((role) => ({ label: role, value: role }))}
-                        value={roles[0]} // Ensure correct role is displayed
-                        placeholder="Select roles"
-                        onChange={(newRole) => handleRoleChange(record._id, newRole)} // Handle role change
-                        disabled={isSuperAdmin}// Disable dropdown if not admin or role is Super Admin
-                    />
+                   <Select
+    mode="single"
+    className={`thereoledrop ${roleClass}`}
+    options={filteredRolesOptions.map((role) => ({ label: role, value: role }))}
+    value={roles[0]} 
+    placeholder="Select roles"
+    onChange={(newRole) => handleRoleChange(record._id, newRole)}
+/>
+
                 );
             },
         },
