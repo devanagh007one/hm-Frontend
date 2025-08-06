@@ -301,93 +301,44 @@ export const createContent = (contentData) => async (dispatch) => {
   }
 };
 
-export const createchallenge = (challengeData) => async (dispatch) => {
+export const createchallenge = (formData) => async (dispatch) => {
   try {
     const authToken = localStorage.getItem("authToken");
-    console.log(challengeData);
 
-    const encryptedId = localStorage.getItem("userId");
-    if (!encryptedId) {
-      console.error("Encrypted user ID is missing.");
-      return null;
+    // Debug: Log the FormData before sending
+    for (let [key, value] of formData.entries()) {
+      console.log(key, value);
     }
 
-    let userId = null;
-    try {
-      const bytes = CryptoJS.AES.decrypt(
-        encryptedId,
-        "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1"
-      );
-      userId = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
-    } catch (error) {
-      console.error("Error decrypting user ID:", error);
-      return null;
+    const response = await fetch(
+      `${process.env.REACT_APP_STATIC_API_URL}/api/challenge/create-challenge`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: formData, // Directly use the FormData object
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Failed to create challenge. Server response:", errorText);
+      throw new Error(errorText || "Failed to create challenge");
     }
 
-    const formData = new FormData();
-    formData.append("uploaded_by", userId);
+    const data = await response.json();
 
-    // Check and append other content data
-    for (const key in challengeData) {
-      if (challengeData.hasOwnProperty(key)) {
-        if (
-          key === "formData" &&
-          typeof challengeData[key] === "object" &&
-          !Array.isArray(challengeData[key])
-        ) {
-          // Handle the nested formData object
-          for (const subKey in challengeData[key]) {
-            if (challengeData[key].hasOwnProperty(subKey)) {
-              formData.append(subKey, challengeData[key][subKey]);
-            }
-          }
-        } else if (key !== "formData" && challengeData[key] !== null) {
-          formData.append(key, challengeData[key]);
-        }
-      }
+    if (!data.success) {
+      console.error("Challenge creation failed:", data.message);
+      throw new Error(data.message || "Challenge creation failed");
     }
 
-    try {
-      const response = await fetch(
-        `${process.env.REACT_APP_STATIC_API_URL}/api/challenge/create-challenge`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
-          body: formData,
-        }
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Failed to create content. Server response:", errorText);
-        throw new Error("Failed to create content");
-      }
-
-      let data;
-      try {
-        data = await response.json();
-        console.log("Content created successfully:", data);
-      } catch (error) {
-        const rawResponse = await response.text();
-        console.error(
-          "Failed to parse response JSON. Raw response:",
-          rawResponse
-        );
-        return;
-      }
-
-      if (data) {
-        dispatch({ type: CREATE_CHALLENGE_SUCCESS, payload: data });
-        return data; // Return content object including _id
-      }
-    } catch (error) {
-      console.error("Error in createContent:", error);
-      dispatch({ type: CREATE_CHALLENGE_FAILURE, payload: error.message });
-    }
+    dispatch({ type: CREATE_CHALLENGE_SUCCESS, payload: data });
+    return data;
   } catch (error) {
-    console.error("Unexpected error in createContent:", error);
+    console.error("Error in createchallenge:", error);
     dispatch({ type: CREATE_CHALLENGE_FAILURE, payload: error.message });
+    throw error; // Re-throw to handle in the component
   }
 };

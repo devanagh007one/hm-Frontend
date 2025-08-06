@@ -135,14 +135,18 @@ const ParentComponent = () => {
   ];
 
   const handleSelectModule = (module) => {
-    setSelectedModule(module); // optional
-
+    setSelectedModule(module);
     localStorage.setItem("selectedModule", JSON.stringify(module));
 
     setFormData((prevData) => ({
       ...prevData,
       module: module.id,
       moduleName: module.name,
+    }));
+
+    setChallengeData((prevData) => ({
+      ...prevData,
+      module: module.id,
     }));
 
     setIsOpenModule(false);
@@ -437,170 +441,74 @@ const ParentComponent = () => {
   };
 
   const handleSave = async () => {
-    // Retrieve the selected module from localStorage
     const selectedModule = JSON.parse(localStorage.getItem("selectedModule"));
 
-    if (!selectedModule || !selectedModule.id) {
-      dispatch(
-        showNotification(
-          "No module selected. Please select a module first.",
-          "error"
-        )
-      );
+    if (!selectedModule?.id) {
+      dispatch(showNotification("No module selected", "error"));
       return;
     }
 
-    // Validate we have matching modules and challenges
-    if (modules.length !== challenges.length) {
-      const difference = Math.abs(modules.length - challenges.length);
-      const missingType =
-        modules.length > challenges.length ? "Challenge" : "Module";
-      const errorMessage = `${difference} ${missingType}${
-        difference > 1 ? "s are" : " is"
-      } missing. Add ${difference} ${missingType}${
-        difference > 1 ? "s" : ""
-      } to submit.`;
-
-      dispatch(showNotification(errorMessage, "error"));
-      return;
-    }
-
-    // Hide sections and show loading indicator
-    setIsSection2Visible(false);
-    setisCreatedModuleVisible(false);
-    setIsSection3Visible(false);
-    setisCreatedContentVisible(false);
     setLoadingLink(true);
 
-    let progressCount = 0;
-    const totalSteps = modules.length * 2; // Each module and challenge pair is 2 steps
-
-    const smoothProgressUpdate = (target) => {
-      let current = progress;
-      const interval = setInterval(() => {
-        if (current < target) {
-          current += 1;
-          setProgress(current);
-        } else {
-          clearInterval(interval);
-        }
-      }, 50);
-    };
-
     try {
-      for (let i = 0; i < modules.length; i++) {
-        const moduleFormData = new FormData();
-        moduleFormData.append("tracks", modules[i].tracks);
-        moduleFormData.append("moduleName", modules[i].moduleName);
-        moduleFormData.append("moduleType", modules[i].moduleType);
-        moduleFormData.append("description", modules[i].description);
-        if (modules[i].cover_Photo) {
-          moduleFormData.append("cover_Photo", modules[i].cover_Photo);
+      for (const challenge of challenges) {
+        const formData = new FormData();
+
+        // Required fields
+        formData.append(
+          "uniChallengeId",
+          challenge.uniChallengeId || generateUniqueId()
+        );
+        formData.append("challengeName", challenge.challengeName || "");
+        formData.append("module", selectedModule.id);
+        formData.append(
+          "challenge_Description",
+          challenge.challenge_Description || ""
+        );
+
+        // Optional fields with defaults
+        formData.append("duration", challenge.duration || "0h 00 min");
+        formData.append(
+          "challenge_benefits",
+          challenge.challenge_benefits || ""
+        );
+        formData.append(
+          "difficulty_Level",
+          challenge.difficulty_Level || "Medium"
+        );
+        formData.append("uploaded_by", "68807e3d156bc704ef0b5a49"); // Hardcoded user ID or get from auth
+
+        // File upload
+        if (challenge.video_or_image) {
+          formData.append("video_or_image", challenge.video_or_image);
         }
-        if (modules[i].videoFile_introduction) {
-          moduleFormData.append(
-            "videoFile_introduction",
-            modules[i].videoFile_introduction
-          );
-        }
-        if (modules[i].videoFile_description) {
-          moduleFormData.append(
-            "videoFile_description",
-            modules[i].videoFile_description
-          );
+
+        // Debug: Log FormData contents
+        for (let [key, value] of formData.entries()) {
+          console.log(key, value);
         }
 
-        const moduleResponse = await dispatch(createContent(moduleFormData));
+        const response = await dispatch(createchallenge(formData));
 
-        if (moduleResponse?._id) {
-          progressCount++;
-          smoothProgressUpdate((progressCount / totalSteps) * 100);
-
-          // 2. Create the associated challenge with module ID from localStorage
-          const challengeFormData = new FormData();
-          challengeFormData.append(
-            "uniChallengeId",
-            challenges[i].uniChallengeId
-          );
-          challengeFormData.append(
-            "challengeName",
-            challenges[i].challengeName
-          );
-          challengeFormData.append("module", selectedModule.id);
-          challengeFormData.append(
-            "challenge_Description",
-            challenges[i].challenge_Description
-          );
-          challengeFormData.append("duration", challenges[i].duration);
-          challengeFormData.append(
-            "challenge_benefits",
-            challenges[i].challenge_benefits
-          );
-          challengeFormData.append(
-            "difficulty_Level",
-            challenges[i].difficulty_Level
-          );
-
-          if (challenges[i].video_or_image) {
-            challengeFormData.append(
-              "video_or_image",
-              challenges[i].video_or_image
-            );
-          }
-
-          const challengeResponse = await dispatch(
-            createchallenge(challengeFormData)
-          );
-
-          if (challengeResponse?.success) {
-            progressCount++;
-            smoothProgressUpdate((progressCount / totalSteps) * 100);
-          } else {
-            dispatch(showNotification("Failed to upload challenge.", "error"));
-            setLoadingLink(false);
-            return;
-          }
-        } else {
-          dispatch(showNotification("Failed to upload module.", "error"));
-          setLoadingLink(false);
-          return;
+        if (!response?.success) {
+          console.error("API Error Response:", response);
+          throw new Error(response?.message || "Challenge submission failed");
         }
       }
 
-      // Success handling
-      setLoadingLink(false);
       dispatch(
-        showNotification(
-          "Your Module and Challenges have been successfully submitted for approval.",
-          "success"
-        )
+        showNotification("Challenges submitted successfully!", "success")
       );
-      setShowPopup(false);
-      localStorage.setItem("activeComponent", "ContentManagement");
-      handleClosePopup?.();
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
+      handleClosePopup();
     } catch (error) {
       console.error("Submission error:", error);
-      dispatch(
-        showNotification("An error occurred during submission.", "error")
-      );
+      dispatch(showNotification(error.message, "error"));
+    } finally {
       setLoadingLink(false);
     }
   };
-
   const handleCreateContent = async () => {
     // Before the for-loop in handleSave()
-    if (modules.length === 0 || challenges.length === 0) {
-      dispatch(
-        showNotification(
-          "Please add at least one module and challenge",
-          "error"
-        )
-      );
-      return;
-    }
     setIsSection2Visible(false);
     setisCreatedModuleVisible(false);
     setLoadingLink(true);
