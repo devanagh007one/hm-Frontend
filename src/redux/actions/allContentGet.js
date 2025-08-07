@@ -42,10 +42,9 @@ export const fetchAllContent = () => async (dispatch) => {
       const moduleMap = modules.map((mod) => ({
         id: mod._id,
         name: mod.moduleName,
-        uploadedById: mod.uploaded_by?._id,
+        uploadedById: mod.uploaded_by?._id, // Make sure this is included
       }));
 
-      // You can store it as a stringified JSON array
       localStorage.setItem("moduleInfo", JSON.stringify(moduleMap));
 
       // Optional: Log it to verify

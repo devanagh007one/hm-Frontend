@@ -10,6 +10,7 @@ import {
 } from "../redux/actions/allContentGet";
 import { showNotification } from "../redux/actions/notificationActions"; // Import showNotification
 import { SquarePlus, Pencil, Upload } from "lucide-react";
+import ConfirmationModal from "./ConfirmationModal";
 
 const ParentComponent = () => {
   const dispatch = useDispatch();
@@ -76,8 +77,24 @@ const ParentComponent = () => {
   const [expandedIndex, setExpandedIndex] = useState(null);
   const [modulesFromStorage, setModulesFromStorage] = useState([]);
 
-  // console.log(modules, challenges);
+  //confirmation model
+  const [moduleToDelete, setModuleToDelete] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
+  const [showSubmitConfirmation, setShowSubmitConfirmation] = useState(false);
+  const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  const [showChallengeSubmitConfirmation, setShowChallengeSubmitConfirmation] =
+    useState(false);
+  const [showChallengeCancelConfirmation, setShowChallengeCancelConfirmation] =
+    useState(false);
+  const [showChallengeSuccess, setShowChallengeSuccess] = useState(false);
+  const [challengeToDelete, setChallengeToDelete] = useState(null);
+  const [showChallengeDeleteModal, setShowChallengeDeleteModal] =
+    useState(false);
+
+  // console.log(modules, challenges);
   const toggleTrackOpen = () => setIsOpenTrack(!isOpenTrack);
   const togglePartnerOpen = () => setIsOpenPartner(!isOpenPartner);
   const toggleModuleOpen = () => setIsOpenModule(!isOpenModule);
@@ -339,7 +356,16 @@ const ParentComponent = () => {
   };
 
   const handleDeleteModule = (index) => {
-    setModules(modules.filter((_, i) => i !== index));
+    setModuleToDelete(index);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteModule = () => {
+    if (moduleToDelete !== null) {
+      setModules(modules.filter((_, i) => i !== moduleToDelete));
+      setModuleToDelete(null);
+      setShowDeleteModal(false);
+    }
   };
 
   const handleAddModulefromavilablenew = () => {
@@ -418,10 +444,6 @@ const ParentComponent = () => {
     setisCreatedContentVisible(false);
   };
 
-  const handleDeleteChallenge = (index) => {
-    setChallenges(challenges.filter((_, i) => i !== index));
-  };
-
   const handleAddChallengefromavilablenew = () => {
     setIsSection3Visible(true);
     setisCreatedContentVisible(false);
@@ -440,6 +462,23 @@ const ParentComponent = () => {
     }));
   };
 
+  const handleDeleteChallenge = (index) => {
+    setChallengeToDelete(index);
+    setShowChallengeDeleteModal(true);
+  };
+
+  const confirmDeleteChallenge = () => {
+    if (challengeToDelete !== null) {
+      setChallenges(challenges.filter((_, i) => i !== challengeToDelete));
+      setChallengeToDelete(null);
+      setShowChallengeDeleteModal(false);
+    }
+  };
+
+  const handleSubmitChallange = () => {
+    setShowChallengeSubmitConfirmation(true);
+  };
+
   const handleSave = async () => {
     const selectedModule = JSON.parse(localStorage.getItem("selectedModule"));
 
@@ -449,6 +488,7 @@ const ParentComponent = () => {
     }
 
     setLoadingLink(true);
+    setShowChallengeSubmitConfirmation(false);
 
     try {
       for (const challenge of challenges) {
@@ -466,6 +506,9 @@ const ParentComponent = () => {
           challenge.challenge_Description || ""
         );
 
+        // Use the uploadedById from the selected module
+        formData.append("uploaded_by", selectedModule.uploadedById);
+
         // Optional fields with defaults
         formData.append("duration", challenge.duration || "0h 00 min");
         formData.append(
@@ -476,16 +519,10 @@ const ParentComponent = () => {
           "difficulty_Level",
           challenge.difficulty_Level || "Medium"
         );
-        formData.append("uploaded_by", "68807e3d156bc704ef0b5a49"); // Hardcoded user ID or get from auth
 
         // File upload
         if (challenge.video_or_image) {
           formData.append("video_or_image", challenge.video_or_image);
-        }
-
-        // Debug: Log FormData contents
-        for (let [key, value] of formData.entries()) {
-          console.log(key, value);
         }
 
         const response = await dispatch(createchallenge(formData));
@@ -507,8 +544,32 @@ const ParentComponent = () => {
       setLoadingLink(false);
     }
   };
+
+  const handleCancelConfirmation = () => {
+    setShowCancelConfirmation(true);
+  };
+
+  const confirmCancel = () => {
+    // Clear all data and close the modal
+    setShowCancelConfirmation(false);
+    handleClosePopup(); // Your existing function that resets everything
+  };
+
+  const rejectCancel = () => {
+    setShowCancelConfirmation(false);
+    // User chose not to cancel, so we stay in the current state
+  };
+
+  const handleConfirmSubmitModule = async () => {
+    setShowSubmitConfirmation(true);
+  };
+
   const handleCreateContent = async () => {
     // Before the for-loop in handleSave()
+    setShowSubmitConfirmation(false);
+    setIsSection2Visible(false);
+    setisCreatedModuleVisible(false);
+    setLoadingLink(true);
     setIsSection2Visible(false);
     setisCreatedModuleVisible(false);
     setLoadingLink(true);
@@ -554,12 +615,36 @@ const ParentComponent = () => {
       setTimeout(() => {
         window.location.reload();
       }, 2000);
+      setShowSuccessModal(true);
     } catch (error) {
       dispatch(
         showNotification("An error occurred during submission.", "error")
       );
       setLoadingLink(false);
     }
+  };
+
+  const handleChallengeCancelConfirmation = () => {
+    if (challenges.length > 0) {
+      setShowChallengeCancelConfirmation(true);
+    } else {
+      handleClosePopup();
+    }
+  };
+
+  const confirmChallengeCancel = () => {
+    setShowChallengeCancelConfirmation(false);
+    handleClosePopup();
+  };
+
+  const handleChallengeSuccessOK = () => {
+    setShowChallengeSuccess(false);
+    // Reset to initial state but keep popup open
+    setIsSectionVisible(true);
+    setIsSection3Visible(false);
+    setisCreatedContentVisible(false);
+    setChallenges([]);
+    setChallengeData(initialChallangeData);
   };
 
   return (
@@ -1421,15 +1506,15 @@ const ParentComponent = () => {
                         <button
                           type="button"
                           className="bg-[#F48567] px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#000] flex items-center justify-center"
-                          onClick={handleCreateContent}
+                          onClick={handleConfirmSubmitModule}
                         >
-                          Next
+                          Submit
                         </button>
                       </div>
 
                       <div className="flex flex-col w-full">
                         <button
-                          onClick={handleClosePopup}
+                          onClick={handleCancelConfirmation}
                           className="bg-[#C7C7C7] px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#000]"
                         >
                           Cancel
@@ -1836,7 +1921,7 @@ const ParentComponent = () => {
                         <button
                           type="submit"
                           className="bg-[#F48567] px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#000] flex items-center justify-center"
-                          onClick={handleSave}
+                          onClick={handleSubmitChallange}
                         >
                           Submit
                         </button>
@@ -1844,9 +1929,7 @@ const ParentComponent = () => {
 
                       <div className="flex flex-col w-full">
                         <button
-                          onClick={() => {
-                            setisCreatedContentVisible(true);
-                          }}
+                          onClick={handleChallengeCancelConfirmation}
                           className="bg-[#C7C7C7] px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#000]"
                         >
                           Cancel
@@ -1871,6 +1954,98 @@ const ParentComponent = () => {
           </div>
         </div>
       )}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDeleteModule}
+        message="Are you sure?"
+        confirmText="Delete"
+        cancelText="Cancel"
+        darkMode={darkMode}
+      />
+
+      <ConfirmationModal
+        isOpen={showSubmitConfirmation}
+        onClose={() => setShowSubmitConfirmation(false)}
+        onConfirm={handleCreateContent}
+        message="If you submit now all data will be stored into the system. Are you sure ?"
+        confirmText="Submit"
+        cancelText="Cancel"
+        darkMode={darkMode}
+      />
+
+      <ConfirmationModal
+        isOpen={showCancelConfirmation}
+        onClose={rejectCancel}
+        onConfirm={confirmCancel}
+        message="If you cancel now all data will be removed from the system. Are you sure ?"
+        confirmText="Yes"
+        cancelText="Cancel"
+        darkMode={darkMode}
+      />
+
+      <ConfirmationModal
+        isOpen={showSuccessModal}
+        onClose={() => {
+          setShowSuccessModal(false);
+          handleClosePopup(); // Reset to first step
+        }}
+        onConfirm={() => {
+          setShowSuccessModal(false);
+          handleClosePopup(); // Reset to first step
+        }}
+        message="Your Learning Data Successfully Submitted."
+        confirmText="OK"
+        showCancel={false} // Add this prop to your ConfirmationModal to hide cancel button
+        darkMode={darkMode}
+      />
+
+      <ConfirmationModal
+        isOpen={showChallengeSubmitConfirmation}
+        onClose={() => setShowChallengeSubmitConfirmation(false)}
+        onConfirm={handleSave}
+        message="If you submit now all data will be stored into the system.Are you sure ?"
+        confirmText="Submit"
+        cancelText="Cancel"
+        darkMode={darkMode}
+      />
+
+      {/* Challenge Cancel Confirmation */}
+      <ConfirmationModal
+        isOpen={showChallengeCancelConfirmation}
+        onClose={() => setShowChallengeCancelConfirmation(false)}
+        onConfirm={confirmChallengeCancel}
+        message="If you cancel now all data will be removed from the system.Are you sure ?"
+        confirmText="Yes, Cancel"
+        cancelText="No, Continue Editing"
+        darkMode={darkMode}
+      />
+
+      <ConfirmationModal
+        isOpen={showChallengeSuccess}
+        onClose={() => {
+          setShowChallengeSuccess(false);
+          handleClosePopup(); // Reset to first step
+        }}
+        onConfirm={() => {
+          setShowChallengeSuccess(false);
+          handleClosePopup(); // Reset to first step
+        }}
+        message="Your Challenge Data Successfully Submitted."
+        confirmText="OK"
+        showCancel={false}
+        darkMode={darkMode}
+      />
+
+      <ConfirmationModal
+        isOpen={showChallengeDeleteModal}
+        onClose={() => setShowChallengeDeleteModal(false)}
+        onConfirm={confirmDeleteChallenge}
+        message="Are you sure ?"
+        confirmText="Delete"
+        cancelText="Cancel"
+        darkMode={darkMode}
+      />
     </>
   );
 };
