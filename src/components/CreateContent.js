@@ -536,7 +536,12 @@ const ParentComponent = () => {
       dispatch(
         showNotification("Challenges submitted successfully!", "success")
       );
+
       handleClosePopup();
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+      setShowSuccessModal(true);
     } catch (error) {
       console.error("Submission error:", error);
       dispatch(showNotification(error.message, "error"));
