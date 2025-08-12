@@ -20,8 +20,7 @@ export const assignTeamsFailure = (error) => ({
 });
 
 // Thunk action to assign teams
-// Updated assignTeams action (if needed)
-export const assignTeams = (hrUserId, targetUserId, teamIds) => {
+export const assignTeams = (hrUserId, targetUserId, teamNames) => {
   return async (dispatch, getState) => {
     try {
       dispatch(assignTeamsRequest());
@@ -37,9 +36,9 @@ export const assignTeams = (hrUserId, targetUserId, teamIds) => {
       };
 
       const body = {
-        hrUserId,
-        targetUserId,
-        teamIds, // Changed from teamNames to teamIds
+        hrUserId, // String like "95842"
+        targetUserId, // String like "99962"
+        teamNames, // Array like ["Behemoth Bears", "Raging Rhinos"]
       };
 
       await axios.post(
@@ -49,11 +48,11 @@ export const assignTeams = (hrUserId, targetUserId, teamIds) => {
       );
 
       dispatch(assignTeamsSuccess());
-      dispatch("Teams assigned successfully");
+      return { success: true };
     } catch (error) {
       const errorMsg = error.response?.data?.message || error.message;
       dispatch(assignTeamsFailure(errorMsg));
-      dispatch(errorMsg);
+      return { success: false, error: errorMsg };
     }
   };
 };

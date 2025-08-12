@@ -544,7 +544,7 @@ const UserManagement = () => {
             <span>
               <span
                 onClick={() =>
-                  setAssignTeamModal({ open: true, userId: record._id })
+                  setAssignTeamModal({ open: true, userId: record.userId })
                 }
               >
                 <svg
