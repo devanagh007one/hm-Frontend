@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { assignTeams } from "../../redux/actions/AllteamAction";
 
-const teamData = {
+const initialTeamData = {
   "Behemoth Bears": "0cfa266c-092e-428f-a1db-3a9012c210e9",
   "Kindred Koalas": "16a5979c-4b64-40c3-84c8-6b06ab397c3f",
   "Precious Possums": "67665442-f588-46b4-aaf1-64552eeb2828",
@@ -57,21 +57,167 @@ const ConfirmationModal = ({
   );
 };
 
+const RenameTeamModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  teamName,
+  darkMode,
+}) => {
+  const [newName, setNewName] = useState(teamName);
+
+  useEffect(() => {
+    setNewName(teamName);
+  }, [teamName]);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (newName.trim()) {
+      onConfirm(newName.trim());
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1002]">
+      <div
+        className={`rounded-2xl border border-[#FFFFFF59] shadow-[0_1px_6px_rgba(230,230,230,0.35)] w-[400px] p-6 ${
+          darkMode ? "bg-[#1E1E1E] text-white" : "bg-white text-dark"
+        }`}
+      >
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold text-[#C7C7C7]">Rename Team</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <svg
+              width="24"
+              height="25"
+              viewBox="0 0 24 25"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <g clipPath="url(#clip0_3261_1019)">
+                <path
+                  d="M3.516 20.985C2.36988 19.878 1.45569 18.5539 0.826781 17.0898C0.197873 15.6258 -0.133162 14.0511 -0.147008 12.4578C-0.160854 10.8644 0.142767 9.28428 0.746137 7.80953C1.34951 6.33477 2.24055 4.99495 3.36726 3.86823C4.49397 2.74152 5.83379 1.85048 7.30855 1.24711C8.78331 0.643743 10.3635 0.340123 11.9568 0.353969C13.5502 0.367815 15.1248 0.698849 16.5889 1.32776C18.0529 1.95667 19.377 2.87085 20.484 4.01697C22.6699 6.2802 23.8794 9.31143 23.8521 12.4578C23.8247 15.6042 22.5627 18.6139 20.3378 20.8388C18.1129 23.0637 15.1032 24.3257 11.9568 24.3531C8.81045 24.3804 5.77922 23.1709 3.516 20.985ZM5.208 19.293C7.00935 21.0943 9.4525 22.1063 12 22.1063C14.5475 22.1063 16.9906 21.0943 18.792 19.293C20.5933 17.4916 21.6053 15.0485 21.6053 12.501C21.6053 9.95348 20.5933 7.51032 18.792 5.70897C16.9906 3.90762 14.5475 2.89564 12 2.89564C9.4525 2.89564 7.00935 3.90762 5.208 5.70897C3.40665 7.51032 2.39466 9.95348 2.39466 12.501C2.39466 15.0485 3.40665 17.4916 5.208 19.293ZM17.088 9.10497L13.692 12.501L17.088 15.897L15.396 17.589L12 14.193L8.604 17.589L6.912 15.897L10.308 12.501L6.912 9.10497L8.604 7.41297L12 10.809L15.396 7.41297L17.088 9.10497Z"
+                  fill="#C7C7C7"
+                />
+              </g>
+              <defs>
+                <clipPath id="clip0_3261_1019">
+                  <rect
+                    width="24"
+                    height="24"
+                    fill="white"
+                    transform="translate(0 0.5)"
+                  />
+                </clipPath>
+              </defs>
+            </svg>
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="mb-6">
+            <div className="flex items-center text-[#C7C7C7] mb-2">
+              <span>
+                Team Name<span className="text-[red]">*</span>
+              </span>
+            </div>
+            <input
+              type="text"
+              placeholder="Enter team name"
+              className={`w-full h-[40px] rounded-lg p-2 border ${
+                darkMode
+                  ? "bg-[#333333] text-white border-gray-600"
+                  : "bg-white text-dark border-gray-300"
+              }`}
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              autoFocus
+            />
+          </div>
+
+          <div className="flex gap-4 justify-center">
+            <button
+              type="submit"
+              className="px-4 py-2 rounded-lg bg-[#F48567] text-black w-[140px]"
+            >
+              Edit Name
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className={`px-4 py-2 rounded-lg border w-[140px] ${
+                darkMode
+                  ? "border-gray-600 bg-[#333333]"
+                  : "border-gray-300 bg-gray-200"
+              }`}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 const AssignTeamModal = ({ showModal, setShowModal, userId }) => {
   const dispatch = useDispatch();
   const darkMode = useSelector((state) => state.theme.darkMode);
   const [newTeamName, setNewTeamName] = useState("");
-  const [teams, setTeams] = useState(
-    Object.entries(teamData).map(([name, id]) => ({
-      id,
-      name,
-      selected: false,
-    }))
-  );
+  const [teams, setTeams] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [teamToRename, setTeamToRename] = useState(null);
+  const [teamToDelete, setTeamToDelete] = useState(null);
+
+  // Load teams from localStorage on component mount
+  useEffect(() => {
+    const savedTeams = localStorage.getItem("customTeams");
+    const customTeams = savedTeams ? JSON.parse(savedTeams) : {};
+
+    // Combine initial teams with custom teams
+    const allTeams = { ...initialTeamData, ...customTeams };
+
+    setTeams(
+      Object.entries(allTeams).map(([name, id]) => ({
+        id,
+        name,
+        selected: false,
+      }))
+    );
+  }, []);
+
+  // Save custom teams to localStorage
+  const saveCustomTeamsToLocalStorage = (updatedTeams) => {
+    const customTeams = {};
+    updatedTeams.forEach((team) => {
+      // Only save teams that are not in initial data (custom teams)
+      if (!Object.values(initialTeamData).includes(team.id)) {
+        customTeams[team.name] = team.id;
+      }
+    });
+    localStorage.setItem("customTeams", JSON.stringify(customTeams));
+  };
+
+  // Clear teams on logout (call this function when user logs out)
+  const clearCustomTeams = () => {
+    localStorage.removeItem("customTeams");
+    setTeams(
+      Object.entries(initialTeamData).map(([name, id]) => ({
+        id,
+        name,
+        selected: false,
+      }))
+    );
+  };
 
   const handleTeamToggle = (id) => {
     setTeams(
@@ -84,16 +230,55 @@ const AssignTeamModal = ({ showModal, setShowModal, userId }) => {
   const handleAddTeam = () => {
     if (newTeamName.trim()) {
       const tempId = `temp-${Math.random().toString(36).substr(2, 9)}`;
-      setTeams([
+      const updatedTeams = [
         ...teams,
         {
           id: tempId,
-          name: newTeamName,
+          name: newTeamName.trim(),
           selected: false,
         },
-      ]);
+      ];
+
+      setTeams(updatedTeams);
+      saveCustomTeamsToLocalStorage(updatedTeams);
       setNewTeamName("");
     }
+  };
+
+  const handleRenameTeam = (teamId) => {
+    const team = teams.find((t) => t.id === teamId);
+    if (team) {
+      setTeamToRename(team);
+      setShowRenameModal(true);
+    }
+  };
+
+  const handleRenameConfirm = (newName) => {
+    if (teamToRename && newName.trim()) {
+      const updatedTeams = teams.map((team) =>
+        team.id === teamToRename.id ? { ...team, name: newName.trim() } : team
+      );
+
+      setTeams(updatedTeams);
+      saveCustomTeamsToLocalStorage(updatedTeams);
+      setShowRenameModal(false);
+      setTeamToRename(null);
+    }
+  };
+
+  const handleDeleteTeam = (teamId) => {
+    setTeamToDelete(teamId);
+    setShowConfirmation(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (teamToDelete) {
+      const updatedTeams = teams.filter((team) => team.id !== teamToDelete);
+      setTeams(updatedTeams);
+      saveCustomTeamsToLocalStorage(updatedTeams);
+      setTeamToDelete(null);
+    }
+    setShowConfirmation(false);
   };
 
   const handleAssignTeams = async () => {
@@ -146,61 +331,15 @@ const AssignTeamModal = ({ showModal, setShowModal, userId }) => {
     setShowConfirmation(true);
   };
 
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setError(null);
+    setSuccess(null);
+  };
+
   return (
     <>
-      {/* SVG Trigger */}
-      <div onClick={() => setShowModal(true)} className="cursor-pointer">
-        <svg
-          width="46"
-          height="46"
-          viewBox="0 0 46 46"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <g filter="url(#filter0_b_4249_1934)">
-            <rect
-              x="0.1"
-              y="0.1"
-              width="45.8"
-              height="45.8"
-              rx="11.9"
-              stroke="#F48567"
-              strokeWidth="0.2"
-            />
-            <path
-              d="M21.75 28V17.8125L18.5 21.0625L16.75 19.25L23 13L29.25 19.25L27.5 21.0625L24.25 17.8125V28H21.75ZM15.5 33C14.8125 33 14.2242 32.7554 13.735 32.2663C13.2458 31.7771 13.0008 31.1883 13 30.5V26.75H15.5V30.5H30.5V26.75H33V30.5C33 31.1875 32.7554 31.7763 32.2663 32.2663C31.7771 32.7563 31.1883 33.0008 30.5 33H15.5Z"
-              fill="#F48567"
-            />
-          </g>
-          <defs>
-            <filter
-              id="filter0_b_4249_1934"
-              x="-4"
-              y="-4"
-              width="54"
-              height="54"
-              filterUnits="userSpaceOnUse"
-              colorInterpolationFilters="sRGB"
-            >
-              <feFlood floodOpacity="0" result="BackgroundImageFix" />
-              <feGaussianBlur in="BackgroundImageFix" stdDeviation="2" />
-              <feComposite
-                in2="SourceAlpha"
-                operator="in"
-                result="effect1_backgroundBlur_4249_1934"
-              />
-              <feBlend
-                mode="normal"
-                in="SourceGraphic"
-                in2="effect1_backgroundBlur_4249_1934"
-                result="shape"
-              />
-            </filter>
-          </defs>
-        </svg>
-      </div>
-
-      {/* Modal */}
+      {/* Main Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div
@@ -213,11 +352,7 @@ const AssignTeamModal = ({ showModal, setShowModal, userId }) => {
                 Assign Team
               </h2>
               <button
-                onClick={() => {
-                  setShowModal(false);
-                  setError(null);
-                  setSuccess(null);
-                }}
+                onClick={handleCloseModal}
                 className="text-gray-500 hover:text-gray-700"
               >
                 <svg
@@ -268,8 +403,10 @@ const AssignTeamModal = ({ showModal, setShowModal, userId }) => {
                 <input
                   type="text"
                   placeholder="Enter additional team name"
-                  className={`w-[284px] h-[40px] rounded-lg p-2 ${
-                    darkMode ? "bg-[#333333] text-white" : "bg-white text-dark"
+                  className={`w-[284px] h-[40px] rounded-lg p-2 border ${
+                    darkMode
+                      ? "bg-[#333333] text-white border-gray-600"
+                      : "bg-white text-dark border-gray-300"
                   }`}
                   value={newTeamName}
                   onChange={(e) => setNewTeamName(e.target.value)}
@@ -283,52 +420,61 @@ const AssignTeamModal = ({ showModal, setShowModal, userId }) => {
               </div>
             </div>
 
-            <div className="space-y-3 mb-6">
+            <div className="space-y-3 mb-6 max-h-64 overflow-y-auto">
               {teams.map((team) => (
                 <div
                   key={team.id}
                   className="flex items-center p-2 rounded-md hover:bg-opacity-10 hover:bg-gray-400 cursor-pointer gap-4"
-                  onClick={() => handleTeamToggle(team.id)}
                 >
                   <div
                     className={`w-4 h-4 rounded-full border-2 border-[#F48567] flex items-center justify-center ${
                       team.selected ? " " : ""
                     }`}
+                    onClick={() => handleTeamToggle(team.id)}
                   >
                     {team.selected && (
                       <div className="w-2 h-2 rounded-full bg-[#F48567]" />
                     )}
                   </div>
-                  <div className="flex justify-between w-full">
+                  <div className="flex justify-between w-full items-center">
                     <span
-                      className={`text-sm ${
+                      className={`text-sm flex-1 ${
                         darkMode ? "text-white" : "text-dark"
                       }`}
+                      onClick={() => handleTeamToggle(team.id)}
                     >
                       {team.name}
                     </span>
                     <div className="flex gap-2">
-                      <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 20 20"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
+                      <button
+                        onClick={() => handleRenameTeam(team.id)}
+                        className="hover:opacity-70 transition-opacity"
                       >
-                        <path
-                          opacity="0.16"
-                          d="M4.16683 13.3333L3.3335 16.6667L6.66683 15.8333L15.0002 7.5L12.5002 5L4.16683 13.3333Z"
-                          fill="#C7C7C7"
-                        />
-                        <path
-                          d="M12.5002 5.00001L15.0002 7.50001M10.8335 16.6667H17.5002M4.16683 13.3333L3.3335 16.6667L6.66683 15.8333L16.3218 6.17835C16.6343 5.8658 16.8098 5.44195 16.8098 5.00001C16.8098 4.55807 16.6343 4.13423 16.3218 3.82168L16.1785 3.67835C15.8659 3.36589 15.4421 3.19037 15.0002 3.19037C14.5582 3.19037 14.1344 3.36589 13.8218 3.67835L4.16683 13.3333Z"
-                          stroke="#C7C7C7"
-                          stroke-width="1.25"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                      </svg>
-                      <span>
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 20 20"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            opacity="0.16"
+                            d="M4.16683 13.3333L3.3335 16.6667L6.66683 15.8333L15.0002 7.5L12.5002 5L4.16683 13.3333Z"
+                            fill="#C7C7C7"
+                          />
+                          <path
+                            d="M12.5002 5.00001L15.0002 7.50001M10.8335 16.6667H17.5002M4.16683 13.3333L3.3335 16.6667L6.66683 15.8333L16.3218 6.17835C16.6343 5.8658 16.8098 5.44195 16.8098 5.00001C16.8098 4.55807 16.6343 4.13423 16.3218 3.82168L16.1785 3.67835C15.8659 3.36589 15.4421 3.19037 15.0002 3.19037C14.5582 3.19037 14.1344 3.36589 13.8218 3.67835L4.16683 13.3333Z"
+                            stroke="#C7C7C7"
+                            strokeWidth="1.25"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteTeam(team.id)}
+                        className="hover:opacity-70 transition-opacity"
+                      >
                         <svg
                           width="18"
                           height="18"
@@ -341,7 +487,7 @@ const AssignTeamModal = ({ showModal, setShowModal, userId }) => {
                             fill="#DD441B"
                           />
                         </svg>
-                      </span>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -359,11 +505,7 @@ const AssignTeamModal = ({ showModal, setShowModal, userId }) => {
                 {isLoading ? "Assigning..." : "Assign"}
               </button>
               <button
-                onClick={() => {
-                  setShowModal(false);
-                  setError(null);
-                  setSuccess(null);
-                }}
+                onClick={handleCloseModal}
                 disabled={isLoading}
                 className={`px-4 py-2 border border-gray-600 w-[184px] text-black rounded-lg ${
                   darkMode ? "bg-[#C7C7C7]" : "bg-white"
@@ -376,13 +518,28 @@ const AssignTeamModal = ({ showModal, setShowModal, userId }) => {
         </div>
       )}
 
+      {/* Rename Team Modal */}
+      <RenameTeamModal
+        isOpen={showRenameModal}
+        onClose={() => {
+          setShowRenameModal(false);
+          setTeamToRename(null);
+        }}
+        onConfirm={handleRenameConfirm}
+        teamName={teamToRename?.name || ""}
+        darkMode={darkMode}
+      />
+
       {/* Confirmation Modal */}
       <ConfirmationModal
         isOpen={showConfirmation}
-        onClose={() => setShowConfirmation(false)}
-        onConfirm={handleAssignTeams}
-        message="Are you sure?"
-        confirmText="Yes"
+        onClose={() => {
+          setShowConfirmation(false);
+          setTeamToDelete(null); // Clear the team to delete when closing
+        }}
+        onConfirm={teamToDelete ? handleDeleteConfirm : handleAssignTeams}
+        message={teamToDelete ? "Are you sure ?" : "Are you sure ?"}
+        confirmText={teamToDelete ? "Yes" : "Cancel"}
         darkMode={darkMode}
       />
     </>

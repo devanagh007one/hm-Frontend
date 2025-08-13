@@ -35,7 +35,19 @@ export const fetchAllUsers = () => async (dispatch) => {
 
     const data = await response.json();
     console.log(data);
-    // Dispatch FETCH_USERS_SUCCESS with the full user list
+
+    // Filter users with "Partner" role only and extract firstName and lastName for localStorage
+    const partnerUsers = data
+      .filter((user) => user.roles && user.roles.includes("Partner"))
+      .map((user) => ({
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+      }));
+
+    // Store partner users in localStorage
+    localStorage.setItem("partnerUsers", JSON.stringify(partnerUsers));
+
+    // Dispatch FETCH_USERS_SUCCESS with ALL users (original data)
     dispatch({ type: FETCH_USERS_SUCCESS, payload: data });
   } catch (error) {
     console.error("Error in fetchAllUsers:", error);

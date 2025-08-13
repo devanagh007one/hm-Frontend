@@ -1,10 +1,10 @@
-import CryptoJS from 'crypto-js';
+import CryptoJS from "crypto-js";
 
-export const LOGIN_REQUEST = 'LOGIN_REQUEST';
-export const LOGIN_SUCCESS = 'LOGIN_SUCCESS';
-export const LOGIN_FAILURE = 'LOGIN_FAILURE';
-export const USER_DATA = 'USER_DATA';
-export const USER_DATA_ERROR = 'USER_DATA_ERROR';
+export const LOGIN_REQUEST = "LOGIN_REQUEST";
+export const LOGIN_SUCCESS = "LOGIN_SUCCESS";
+export const LOGIN_FAILURE = "LOGIN_FAILURE";
+export const USER_DATA = "USER_DATA";
+export const USER_DATA_ERROR = "USER_DATA_ERROR";
 
 export const loginRequest = () => ({
   type: LOGIN_REQUEST,
@@ -30,20 +30,22 @@ export const userFailure = (error) => ({
   payload: error,
 });
 
-
 export const loginUser = (credentials) => {
   return async (dispatch) => {
     dispatch(loginRequest());
-    console.log(`${process.env.REACT_APP_STATIC_API_URL}/api/auth/login`)
+    console.log(`${process.env.REACT_APP_STATIC_API_URL}/api/auth/login`);
     try {
-      const response = await fetch(`${process.env.REACT_APP_STATIC_API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(credentials),
-        credentials: 'include',
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_STATIC_API_URL}/api/auth/login`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(credentials),
+          credentials: "include",
+        }
+      );
 
       const data = await response.json();
       console.log(data);
@@ -53,37 +55,51 @@ export const loginUser = (credentials) => {
 
         if (authToken) {
           // Save auth token
-          localStorage.setItem('authToken', authToken);
+          localStorage.setItem("authToken", authToken);
+
+          // Store role as simple string
+          if (data?.user?.roles && data.user.roles.length > 0) {
+            localStorage.setItem("userRole", data.user.roles[0]);
+          }
 
           // Encrypt and save roles in localStorage
           if (data?.user?.roles) {
-            const encryptedRoles = CryptoJS.AES.encrypt(JSON.stringify(data?.user?.roles), '477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1').toString();
-            localStorage.setItem('encryptedRoles', encryptedRoles);
+            const encryptedRoles = CryptoJS.AES.encrypt(
+              JSON.stringify(data?.user?.roles),
+              "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1"
+            ).toString();
+            localStorage.setItem("encryptedRoles", encryptedRoles);
           }
           if (data?.user?.userId) {
-            const encryptedUser = CryptoJS.AES.encrypt(JSON.stringify(data?.user?.userId), '477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1').toString();
-            localStorage.setItem('uniqueid', encryptedUser);
+            const encryptedUser = CryptoJS.AES.encrypt(
+              JSON.stringify(data?.user?.userId),
+              "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1"
+            ).toString();
+            localStorage.setItem("uniqueid", encryptedUser);
           }
           if (data?.user?._id) {
-            const encryptedId = CryptoJS.AES.encrypt(JSON.stringify(data?.user?._id), '477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1').toString();
-            localStorage.setItem('userId', encryptedId);
+            const encryptedId = CryptoJS.AES.encrypt(
+              JSON.stringify(data?.user?._id),
+              "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1"
+            ).toString();
+            localStorage.setItem("userId", encryptedId);
           }
           dispatch(loginSuccess(data));
 
-          if (data.message === 'Logged in successfully') {
+          if (data.message === "Logged in successfully") {
             // Store the login timestamp in session storage
-            sessionStorage.setItem('loginTimestamp', new Date().toISOString());
+            sessionStorage.setItem("loginTimestamp", new Date().toISOString());
           }
         } else {
-          throw new Error('Authentication token not found in response');
+          throw new Error("Authentication token not found in response");
         }
 
         return { success: true, data };
       } else {
-        throw new Error(data.message || 'Failed to log in');
+        throw new Error(data.message || "Failed to log in");
       }
     } catch (error) {
-      console.error('Error during login:', error);
+      console.error("Error during login:", error);
       dispatch(loginFailure(error.message));
       return { success: false, message: error.message };
     }
@@ -92,18 +108,18 @@ export const loginUser = (credentials) => {
 
 export const fetchUsers = () => async (dispatch) => {
   try {
-    const authToken = localStorage.getItem('authToken');
-    const encryptedId = localStorage.getItem('userId');
+    const authToken = localStorage.getItem("authToken");
+    const encryptedId = localStorage.getItem("userId");
 
     if (!authToken) {
-      console.error('Auth token is missing.');
-      dispatch(userFailure('Auth token is missing.'));
+      console.error("Auth token is missing.");
+      dispatch(userFailure("Auth token is missing."));
       return null;
     }
 
     if (!encryptedId) {
-      console.error('Encrypted user ID is missing.');
-      dispatch(userFailure('Encrypted user ID is missing.'));
+      console.error("Encrypted user ID is missing.");
+      dispatch(userFailure("Encrypted user ID is missing."));
       return null;
     }
 
@@ -112,18 +128,18 @@ export const fetchUsers = () => async (dispatch) => {
     try {
       const bytes = CryptoJS.AES.decrypt(
         encryptedId,
-        '477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1'
+        "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1"
       );
       userId = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
     } catch (decryptionError) {
-      console.error('Error decrypting user ID:', decryptionError);
-      dispatch(userFailure('Error decrypting user ID.'));
+      console.error("Error decrypting user ID:", decryptionError);
+      dispatch(userFailure("Error decrypting user ID."));
       return null;
     }
 
     if (!userId) {
-      console.error('Decrypted user ID is invalid.');
-      dispatch(userFailure('Decrypted user ID is invalid.'));
+      console.error("Decrypted user ID is invalid.");
+      dispatch(userFailure("Decrypted user ID is invalid."));
       return null;
     }
 
@@ -131,12 +147,12 @@ export const fetchUsers = () => async (dispatch) => {
     const response = await fetch(
       `${process.env.REACT_APP_STATIC_API_URL}/api/user/profile`,
       {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${authToken}`,
         },
-        credentials: 'include',
+        credentials: "include",
         body: JSON.stringify({ userId }),
       }
     );
@@ -150,14 +166,18 @@ export const fetchUsers = () => async (dispatch) => {
     }
 
     const data = await response.json();
-    // console.log('Fetched User Data:', data);
+
+    // Store the company name in localStorage
+    if (data && data.company) {
+      localStorage.setItem("companyName", data.company);
+    }
 
     // Dispatch the fetched user data
     dispatch(userData(data));
     return data;
   } catch (error) {
-    console.error('Fetch Error:', error);
-    dispatch(userFailure('An error occurred while fetching user data.'));
+    console.error("Fetch Error:", error);
+    dispatch(userFailure("An error occurred while fetching user data."));
     return null;
   }
 };

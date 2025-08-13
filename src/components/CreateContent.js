@@ -15,6 +15,7 @@ import ConfirmationModal from "./ConfirmationModal";
 const ParentComponent = () => {
   const dispatch = useDispatch();
   const darkMode = useSelector((state) => state.theme.darkMode);
+  const userRole = localStorage.getItem("userRole");
 
   const [showPopup, setShowPopup] = useState(false);
   const [showChallangePopup, setChallangePopup] = useState(false);
@@ -36,6 +37,15 @@ const ParentComponent = () => {
   const [editTrack, setEditTrack] = useState(null);
   const [editModule, setEditModule] = useState(null);
   const [selectedModule, setSelectedModule] = useState(null);
+  const [partners, setPartners] = useState([]);
+
+  useEffect(() => {
+    const partnerUsers = JSON.parse(localStorage.getItem("partnerUsers")) || [];
+    const formattedPartners = partnerUsers.map(
+      (partner) => `${partner.firstName} ${partner.lastName}`
+    );
+    setPartners(formattedPartners);
+  }, []);
 
   const generateUniqueId = () => {
     return Math.floor(1000000 + Math.random() * 9000000).toString();
@@ -715,21 +725,36 @@ const ParentComponent = () => {
             onClick={(e) => e.stopPropagation()} // Prevent closing popup on click inside
           >
             <div className="flex justify-between items-center">
-              {isSectionVisible && (
-                <h2 className="text-2xl mb-6 ">Upload Content</h2>
-              )}
-              {isSection2Visible && (
-                <h2 className="text-2xl mb-6 ">Track: {formData.tracks}</h2>
-              )}
-              {isCreatedModuleVisible && (
-                <h2 className="text-2xl mb-6 ">Track: {formData.tracks}</h2>
-              )}
-              {isSection3Visible && (
-                <h2 className="text-2xl mb-6 ">Track: {formData.tracks}</h2>
-              )}
-              {isCreatedContentVisible && (
-                <h2 className="text-2xl mb-6 ">Track: {formData.tracks}</h2>
-              )}
+              <div className="flex flex-col mb-6">
+                {/* Main Title */}
+                <h1 className="text-2xl font-bold">
+                  Track: {formData.tracks || "Select Track"}
+                </h1>
+
+                {/* Breadcrumb Navigation */}
+                <div className="flex items-center text-sm text-gray-500 mt-1">
+                  {isSectionVisible && <span>Select Module</span>}
+
+                  {isSection2Visible && (
+                    <>
+                      <span>{formData.moduleName || "New Module"}</span>
+                      <span className="mx-2">/</span>
+                      <span>Learning Video</span>
+                    </>
+                  )}
+
+                  {isSection3Visible && (
+                    <>
+                      <span>{formData.moduleName || "Module"}</span>
+                      <span className="mx-2">/</span>
+                      <span>Learning Video</span>
+                      <span className="mx-2">/</span>
+                      <span>Challenge</span>
+                    </>
+                  )}
+                </div>
+              </div>
+
               {!isLoadingLink && (
                 <svg
                   className="cursor-pointer mb-5"
@@ -913,80 +938,84 @@ const ParentComponent = () => {
                             )}
                           </div>
                         </div>
-                        <div className="flex flex-col w-full">
-                          <label className=" mb-1">
-                            Choose a partner{" "}
-                            <span className="text-red-500">*</span>
-                          </label>
-                          <div className="dropdown-container mb-3">
-                            <div
-                              className={`dropdown-btn flex p-2 rounded-md ${
-                                darkMode ? "bg-[#333333]" : "bg-gray-200"
-                              } focus:outline-none mb-2 cursor-pointer w-[380px] h-[40px]`}
-                              onClick={togglePartnerOpen}
-                            >
-                              <span className="text-[13px]">
-                                {formData.partner || "Partner Name"}
-                              </span>
-                              <span>
-                                <svg
-                                  width="12"
-                                  height="7"
-                                  viewBox="0 0 12 7"
-                                  fill="none"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                >
-                                  <path
-                                    fillRule="evenodd"
-                                    clipRule="evenodd"
-                                    d="M6.59245 6.46417L11.3066 1.75L10.1283 0.571671L6.00328 4.69667L1.87828 0.571671L0.699951 1.75L5.41412 6.46417C5.57039 6.6204 5.78231 6.70816 6.00328 6.70816C6.22425 6.70816 6.43618 6.6204 6.59245 6.46417Z"
-                                    fill="#C7C7C7"
-                                  />
-                                </svg>
-                              </span>
-                            </div>
-
-                            {/* Custom Dropdown Menu */}
-                            {isOpenPartner && (
+                        {!["HR", "Partner"].includes(userRole) && (
+                          <div className="flex flex-col w-full">
+                            <label className=" mb-1">
+                              Choose a partner{" "}
+                              <span className="text-red-500">*</span>
+                            </label>
+                            <div className="dropdown-container mb-3">
                               <div
-                                className={`dropdown-menu flex flex-col items-center w-full p-2 rounded-md  focus:outline-none mb-3 ${
+                                className={`dropdown-btn flex p-2 rounded-md ${
                                   darkMode ? "bg-[#333333]" : "bg-gray-200"
-                                } `}
+                                } focus:outline-none mb-2 cursor-pointer w-[380px] h-[40px]`}
+                                onClick={togglePartnerOpen}
                               >
-                                {partner.map((partner, index) => (
-                                  <div
-                                    key={index}
-                                    className="dropdown-item flex items-start w-full p-2  cursor-pointer"
-                                    onClick={() => handleSelectPartner(partner)}
+                                <span className="text-[13px]">
+                                  {formData.partner || "Partner Name"}
+                                </span>
+                                <span>
+                                  <svg
+                                    width="12"
+                                    height="7"
+                                    viewBox="0 0 12 7"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
                                   >
-                                    <div className="flex items-center gap-2">
-                                      <span className="w-4 h-4 rounded-full border-2 border-[#F48567] flex items-center justify-center">
-                                        {formData.partner === partner && (
-                                          <span className="w-2 h-2 rounded-full bg-[#F48567]" />
-                                        )}
-                                      </span>
-                                      <span
-                                        className={`text-sm text-white${
-                                          darkMode
-                                            ? "text-white "
-                                            : "text-black"
-                                        }`}
-                                      >
-                                        {partner}
-                                      </span>
-                                    </div>
-                                  </div>
-                                ))}
+                                    <path
+                                      fillRule="evenodd"
+                                      clipRule="evenodd"
+                                      d="M6.59245 6.46417L11.3066 1.75L10.1283 0.571671L6.00328 4.69667L1.87828 0.571671L0.699951 1.75L5.41412 6.46417C5.57039 6.6204 5.78231 6.70816 6.00328 6.70816C6.22425 6.70816 6.43618 6.6204 6.59245 6.46417Z"
+                                      fill="#C7C7C7"
+                                    />
+                                  </svg>
+                                </span>
                               </div>
-                            )}
+
+                              {isOpenPartner && (
+                                <div
+                                  className={`dropdown-menu flex flex-col items-center w-full p-2 rounded-md  focus:outline-none mb-3 ${
+                                    darkMode ? "bg-[#333333]" : "bg-gray-200"
+                                  } `}
+                                >
+                                  {partners.map((partner, index) => (
+                                    <div
+                                      key={index}
+                                      className="dropdown-item flex items-start w-full p-2  cursor-pointer"
+                                      onClick={() =>
+                                        handleSelectPartner(partner)
+                                      }
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <span className="w-4 h-4 rounded-full border-2 border-[#F48567] flex items-center justify-center">
+                                          {formData.partner === partner && (
+                                            <span className="w-2 h-2 rounded-full bg-[#F48567]" />
+                                          )}
+                                        </span>
+                                        <span
+                                          className={`text-sm text-white${
+                                            darkMode
+                                              ? "text-white "
+                                              : "text-black"
+                                          }`}
+                                        >
+                                          {partner}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
+                        )}
 
                         <div className="flex flex-col w-full">
                           <label className="mb-1">
                             Choose a Module{" "}
                             <span className="text-red-500">*</span>
                           </label>
+                          {/* Module Dropdown with Selection and Edit */}
                           <div className="dropdown-container mb-3">
                             <div
                               className={`dropdown-btn flex p-2 rounded-md ${
@@ -1003,7 +1032,6 @@ const ParentComponent = () => {
                                   height="7"
                                   viewBox="0 0 12 7"
                                   fill="none"
-                                  xmlns="http://www.w3.org/2000/svg"
                                 >
                                   <path
                                     fillRule="evenodd"
@@ -1017,30 +1045,127 @@ const ParentComponent = () => {
 
                             {isOpenModule && (
                               <div
-                                className={`dropdown-menu flex flex-col items-center w-full p-2 rounded-md focus:outline-none mb-3 ${
+                                className={`dropdown-menu flex flex-col items-center w-full p-2 rounded-md ${
                                   darkMode ? "bg-[#333333]" : "bg-gray-200"
                                 }`}
                               >
                                 {modulesFromStorage.map((module, index) => (
                                   <div
                                     key={index}
-                                    className="dropdown-item flex items-start w-full p-2 cursor-pointer"
-                                    onClick={() => handleSelectModule(module)}
+                                    className="dropdown-item flex flex-col w-full p-2 rounded-md mb-2"
                                   >
-                                    <div className="flex items-center gap-2">
-                                      <span className="w-4 h-4 rounded-full border-2 border-[#F48567] flex items-center justify-center">
-                                        {formData.module === module.id && (
-                                          <span className="w-2 h-2 rounded-full bg-[#F48567]" />
-                                        )}
-                                      </span>
-                                      <span
-                                        className={`text-sm ${
-                                          darkMode ? "text-white" : "text-black"
-                                        }`}
-                                      >
-                                        {module.name}
-                                      </span>
+                                    {/* Clickable row for selection */}
+                                    <div
+                                      className="flex items-center gap-2 justify-between cursor-pointer"
+                                      onClick={() => handleSelectModule(module)}
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <span className="w-4 h-4 rounded-full border-2 border-[#F48567] flex items-center justify-center">
+                                          {formData.module === module.id && (
+                                            <span className="w-2 h-2 rounded-full bg-[#F48567]" />
+                                          )}
+                                        </span>
+                                        <span
+                                          className={`text-sm ${
+                                            darkMode
+                                              ? "text-white"
+                                              : "text-black"
+                                          }`}
+                                        >
+                                          {module.name}
+                                        </span>
+                                      </div>
+
+                                      {/* Edit Pencil Icon */}
+                                      <Pencil
+                                        size={16}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleModuleEdit(module);
+                                        }}
+                                        className="text-[#C7C7C7] hover:text-[#F48567]"
+                                      />
                                     </div>
+
+                                    {/* Edit Form (shown when editing) */}
+                                    {editModule?.id === module.id && (
+                                      <div className="mt-2 flex flex-col gap-2">
+                                        <input
+                                          type="text"
+                                          placeholder="Module Name"
+                                          className={`p-2 rounded-md border border-gray-600 focus:outline-none ${
+                                            darkMode
+                                              ? "bg-[#333333] text-white"
+                                              : "bg-white text-black"
+                                          }`}
+                                          value={editModule.name}
+                                          onChange={(e) =>
+                                            setEditModule({
+                                              ...editModule,
+                                              name: e.target.value,
+                                            })
+                                          }
+                                        />
+
+                                        <label
+                                          className={`flex items-center justify-between p-2 cursor-pointer w-full  rounded-md border border-gray-600 focus:outline-non ${
+                                            darkMode
+                                              ? "bg-inherit text-white"
+                                              : "bg-inherit text-black"
+                                          }`}
+                                        >
+                                          <span className="text-sm  text-gray-400">
+                                            Uploaded Track Photo
+                                          </span>
+                                          <Upload size={16} />
+                                          <input
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={(e) =>
+                                              setFormData({
+                                                ...formData,
+                                                trackPhoto: e.target.files[0],
+                                              })
+                                            }
+                                          />
+                                        </label>
+
+                                        <div className="flex gap-2 justify-between mt-2">
+                                          <button
+                                            className="bg-[#F48567] px-4 py-1 rounded-md text-sm w-[145px] text-black"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              const updatedModules =
+                                                modulesFromStorage.map((m) =>
+                                                  m.id === editModule.id
+                                                    ? editModule
+                                                    : m
+                                                );
+                                              setModulesFromStorage(
+                                                updatedModules
+                                              );
+                                              localStorage.setItem(
+                                                "moduleInfo",
+                                                JSON.stringify(updatedModules)
+                                              );
+                                              setEditModule(null);
+                                            }}
+                                          >
+                                            Save
+                                          </button>
+                                          <button
+                                            className="bg-[#C7C7C7] px-4 py-1 rounded-md text-sm w-[145px] text-black"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setEditModule(null);
+                                            }}
+                                          >
+                                            Cancel
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                 ))}
                               </div>
@@ -1056,12 +1181,12 @@ const ParentComponent = () => {
                         className={`px-4 py-2 w-[180px] h-[40px] rounded-lg focus:outline-none-xl text-[#F48567]   ${
                           formData.partner && formData.tracks && formData.module
                             ? " cursor-pointer"
-                            : " cursor-not-allowed"
+                            : "cursor-pointer "
                         } ${darkMode ? "bg-[#333333]" : "bg-gray-200"}
                            
                       }`}
                         onClick={handleOpenLearningVideo}
-                        disabled={!formData.partner}
+                        // disabled={!formData.tracks || !formData.module} // Only check tracks and module
                       >
                         <div className="flex  justify-between items-center">
                           <span>Learning Video</span>
@@ -1073,12 +1198,12 @@ const ParentComponent = () => {
                         className={`px-4 py-2 w-[180px] h-[40px] rounded-lg focus:outline-none-xl text-[#F48567]   ${
                           formData.partner
                             ? " cursor-pointer"
-                            : " cursor-not-allowed"
+                            : "cursor-pointer "
                         } ${darkMode ? "bg-[#333333]" : "bg-gray-200"}
                            
                       }`}
                         onClick={handleOpenChallange}
-                        disabled={!formData.partner}
+                        // disabled={!formData.partner}
                       >
                         <div className="flex  justify-between items-center">
                           <span>Challenge</span>
@@ -1096,18 +1221,18 @@ const ParentComponent = () => {
                     {true && (
                       <section>
                         <div className="flex flex-col">
-                          <button
+                          {/* <button
                             type="button"
                             className=" mb-3 px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#F48567] flex items-center justify-center"
                             onClick={handleAddModulefromavilable}
                           >
                             Add Module
-                          </button>
+                          </button> */}
                         </div>
 
                         {/* Form for adding/editing module */}
                         <label className="mb-5">
-                          Module {modules.length + 1}
+                          Learning Video {modules.length + 1}
                         </label>
 
                         <div className="flex mt-3 flex-col">
@@ -1147,9 +1272,7 @@ const ParentComponent = () => {
 
                         {/* Upload sections */}
                         <div className="flex flex-col w-full  mt-3">
-                          <label className=" mb-1">
-                            Upload Cover Photo (Optional)
-                          </label>
+                          <label className=" mb-1">Upload Cover Photo</label>
                           <label className="p-2 pl-4 pr-4   rounded-xl border border-gray-600 focus:outline-none flex items-center justify-between cursor-pointer">
                             <div>
                               {formData.cover_Photo?.name ||
@@ -1201,9 +1324,7 @@ const ParentComponent = () => {
                         </div>
 
                         <div className="flex flex-col w-full  mt-3">
-                          <label className=" mb-1">
-                            Upload Module Video (Optional)
-                          </label>
+                          <label className=" mb-1">Upload Learning Video</label>
                           <label className="p-2 pl-4 pr-4   rounded-xl border border-gray-600 focus:outline-none flex items-center justify-between cursor-pointer">
                             <div>
                               {formData.videoFile_introduction?.name ||
@@ -1252,60 +1373,9 @@ const ParentComponent = () => {
                               )}
                             </div>
                           </label>
-                        </div>
-
-                        <div className="flex flex-col w-full  mt-3">
-                          <label className=" mb-1">
-                            Upload Explanatory Video (Optional)
-                          </label>
-                          <label className="p-2 pl-4 pr-4   rounded-xl border border-gray-600 focus:outline-none flex items-center justify-between cursor-pointer">
-                            <div>
-                              {formData.videoFile_description?.name ||
-                                "Upload Explanatory Video"}
-                            </div>
-                            <div className="flex items-center">
-                              <input
-                                name="videoFile_description"
-                                type="file"
-                                className="hidden"
-                                onChange={(e) =>
-                                  handleFileChange(e, "videoFile_description")
-                                }
-                              />
-                              {formData.videoFile_description ? (
-                                <svg
-                                  width="18"
-                                  height="18"
-                                  viewBox="0 0 18 18"
-                                  fill="none"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  onClick={(e) => {
-                                    e.stopPropagation(); // Prevent file input dialog from opening
-                                    handleRemoveFile("videoFile_description");
-                                  }}
-                                  className="cursor-pointer ml-2"
-                                >
-                                  <path
-                                    d="M9 0.25C4.125 0.25 0.25 4.125 0.25 9C0.25 13.875 4.125 17.75 9 17.75C13.875 17.75 17.75 13.875 17.75 9C17.75 4.125 13.875 0.25 9 0.25ZM12.375 13.375L9 10L5.625 13.375L4.625 12.375L8 9L4.625 5.625L5.625 4.625L9 8L12.375 4.625L13.375 5.625L10 9L13.375 12.375L12.375 13.375Z"
-                                    fill="#DD441B"
-                                  />
-                                </svg>
-                              ) : (
-                                <svg
-                                  width="13"
-                                  height="13"
-                                  viewBox="0 0 13 13"
-                                  fill="none"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                >
-                                  <path
-                                    d="M5.8501 9.59998V3.48748L3.9001 5.43748L2.8501 4.34998L6.6001 0.599976L10.3501 4.34998L9.3001 5.43748L7.3501 3.48748V9.59998H5.8501ZM2.1001 12.6C1.6876 12.6 1.3346 12.4532 1.0411 12.1597C0.747598 11.8662 0.600598 11.513 0.600098 11.1V8.84998H2.1001V11.1H11.1001V8.84998H12.6001V11.1C12.6001 11.5125 12.4533 11.8657 12.1598 12.1597C11.8663 12.4537 11.5131 12.6005 11.1001 12.6H2.1001Z"
-                                    fill="#C7C7C7"
-                                  />
-                                </svg>
-                              )}
-                            </div>
-                          </label>
+                          <p className="text-xs text-[#C7C7C7]">
+                            Max 25 MB File Size & landscape format
+                          </p>
                         </div>
 
                         <div className="flex gap-4 mt-4 w-full">
@@ -1319,7 +1389,7 @@ const ParentComponent = () => {
                               {loading ? (
                                 <Spin size="small" />
                               ) : editingIndex !== null ? (
-                                "Update Module"
+                                "Save"
                               ) : (
                                 "Save"
                               )}
@@ -1344,10 +1414,11 @@ const ParentComponent = () => {
                   <section className="flex flex-col space-y-4">
                     <button
                       type="button"
-                      className=" px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#F48567] flex items-center justify-center"
+                      className=" px-4 py-2 rounded-xl bg-[#333333] focus:outline-none-xl text-[#F48567] flex items-center justify-center gap-2"
                       onClick={handleAddModulefromavilablenew}
                     >
-                      {editingIndex !== null ? "" : "Add Module"}
+                      {editingIndex !== null ? "" : "Learning Video"}
+                      <SquarePlus />
                     </button>
 
                     {modules.map((module, index) => {
@@ -1363,7 +1434,9 @@ const ParentComponent = () => {
 
                       return (
                         <div className="">
-                          <label className=" mb-1">Module {index + 1}</label>
+                          <label className=" mb-1">
+                            Learing Video {index + 1}
+                          </label>
                           <div className="flex justify-between items-start gap-2">
                             <div
                               key={module.uniqueUploadId}
@@ -1378,7 +1451,7 @@ const ParentComponent = () => {
                                   )
                                 }
                               >
-                                <h3 className="">Module {index + 1}</h3>
+                                <h3 className="">Learing Video {index + 1}</h3>
                                 <span className="text-gray-400">
                                   {expandedIndex === index}
                                 </span>
@@ -1532,13 +1605,13 @@ const ParentComponent = () => {
                 {isSection3Visible && (
                   <section>
                     <div className="flex flex-col">
-                      <button
+                      {/* <button
                         type="button"
-                        className=" px-4 py-2 mb-3 rounded-xl border border-gray-600 focus:outline-none-xl text-[#F48567] flex items-center justify-center"
+                        className=" px-4 py-2 mb-3 rounded-xl bg-[#333333] focus:outline-none-xl text-[#F48567] flex items-center justify-center"
                         onClick={handleAddChallenge}
                       >
                         {editingIndex !== null ? "" : "Add Challenge"}
-                      </button>
+                      </button> */}
                     </div>
 
                     <label className="mb-5">
@@ -1746,6 +1819,9 @@ const ParentComponent = () => {
                         </button>
                       </div>
                     </div>
+                    <div className="w-full mb-2  mt-2 text-sm text-white flex justify-end mr-2">
+                      {formData.partner && `Partner: ${formData.partner}`}
+                    </div>
                   </section>
                 )}
 
@@ -1753,7 +1829,7 @@ const ParentComponent = () => {
                   <section className="flex flex-col space-y-4">
                     <button
                       type="button"
-                      className=" px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#F48567] flex items-center justify-center"
+                      className=" px-4 py-2 rounded-xl bg-[#333333] focus:outline-none-xl text-[#F48567] flex items-center justify-center"
                       onClick={handleAddChallengefromavilablenew}
                     >
                       {editingIndex !== null ? "" : "Add Challenge"}
@@ -2020,9 +2096,9 @@ const ParentComponent = () => {
         isOpen={showChallengeCancelConfirmation}
         onClose={() => setShowChallengeCancelConfirmation(false)}
         onConfirm={confirmChallengeCancel}
-        message="If you cancel now all data will be removed from the system.Are you sure ?"
-        confirmText="Yes, Cancel"
-        cancelText="No, Continue Editing"
+        message="If you cancel now all data will be removed from the system. Are you sure ?"
+        confirmText="Yes"
+        cancelText="No"
         darkMode={darkMode}
       />
 
