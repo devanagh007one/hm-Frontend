@@ -8,6 +8,8 @@ export const CREATE_CHALLENGE_SUCCESS = "CREATE_CHALLENGE_SUCCESS";
 export const CREATE_CHALLENGE_FAILURE = "CREATE_CHALLENGE_FAILURE";
 export const PATCH_CONTENT_SUCCESS = "PATCH_CONTENT_SUCCESS";
 export const PATCH_CONTENT_FAILURE = "PATCH_CONTENT_FAILURE";
+export const UPDATE_CONTENT_SUCCESS = "UPDATE_CONTENT_SUCCESS"; // New action type
+export const UPDATE_CONTENT_FAILURE = "UPDATE_CONTENT_FAILURE"; // New action type
 export const PATCH_CHALLENGE_SUCCESS = "PATCH_CHALLENGE_SUCCESS";
 export const PATCH_CHALLENGE_FAILURE = "PATCH_CHALLENGE_FAILURE";
 export const DELETE_CONTENT_SUCCESS = "DELETE_CONTENT_SUCCESS";
@@ -61,7 +63,7 @@ export const fetchAllContent = () => async (dispatch) => {
   }
 };
 
-// Action for Patching the content
+// Action for Patching the content (existing PATCH method)
 export const patchTheContent = (userId, status) => async (dispatch) => {
   try {
     const authToken = localStorage.getItem("authToken");
@@ -98,6 +100,57 @@ export const patchTheContent = (userId, status) => async (dispatch) => {
   } catch (error) {
     console.error("Error in patchTheContent:", error);
     dispatch({ type: PATCH_CONTENT_FAILURE, payload: error.message });
+  }
+};
+
+// NEW Action for updating content using PUT method
+export const updateContent = (contentId, updateData) => async (dispatch) => {
+  try {
+    const authToken = localStorage.getItem("authToken");
+
+    // Construct the request payload
+    const requestPayload = {
+      moduleName: updateData.moduleName || "",
+      description: updateData.description || "",
+      isApproved: updateData.isApproved || "pending", // "approved", "rejected", or "pending"
+      ...updateData, // Include any additional fields passed in updateData
+    };
+
+    console.log(
+      "Sending PUT Request for Content ID:",
+      contentId,
+      requestPayload
+    );
+
+    const response = await fetch(
+      `${process.env.REACT_APP_STATIC_API_URL}/api/contant/contants/${contentId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify(requestPayload),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Failed to update content. Server response:", errorText);
+      throw new Error(errorText || "Failed to update content");
+    }
+
+    const data = await response.json();
+    console.log("Updated Content via PUT:", data);
+
+    // Dispatch UPDATE_CONTENT_SUCCESS with updated content
+    dispatch({ type: UPDATE_CONTENT_SUCCESS, payload: data });
+
+    return data; // Return data for component use
+  } catch (error) {
+    console.error("Error in updateContent:", error);
+    dispatch({ type: UPDATE_CONTENT_FAILURE, payload: error.message });
+    throw error; // Re-throw to handle in component if needed
   }
 };
 

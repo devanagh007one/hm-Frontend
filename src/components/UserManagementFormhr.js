@@ -6,7 +6,7 @@ import { showNotification } from "../redux/actions/notificationActions"; // Impo
 import "./popup.css"; // Import custom CSS
 import { Button, Select } from "antd";
 
-const ParentComponent = () => {
+const ParentComponentHr = () => {
   const darkMode = useSelector((state) => state.theme.darkMode);
 
   const [showPopup, setShowPopup] = useState(false);
@@ -71,7 +71,7 @@ const ParentComponent = () => {
       setUserCount(userCount);
       setTotalLicenses(happMeLicense.numberOfLicence);
     }
-  }, [dispatch, licensing, users]);
+  }, [dispatch]);
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
@@ -527,4 +527,4 @@ const ParentComponent = () => {
   );
 };
 
-export default ParentComponent;
+export default ParentComponentHr;

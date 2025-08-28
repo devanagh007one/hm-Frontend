@@ -7,6 +7,7 @@ import {
   createContent,
   createchallenge,
   fetchAllContent,
+  updateContent,
 } from "../redux/actions/allContentGet";
 import { showNotification } from "../redux/actions/notificationActions"; // Import showNotification
 import { SquarePlus, Pencil, Upload } from "lucide-react";
@@ -245,7 +246,12 @@ const ParentComponent = () => {
   };
 
   const handleModuleEdit = (module) => {
-    setEditModule(module);
+    // Set the edit module with only name and trackPhoto
+    setEditModule({
+      id: module.id,
+      name: module.name,
+      trackPhoto: null, // Reset file input
+    });
   };
 
   const handleModuleCancel = (module) => {
@@ -860,13 +866,13 @@ const ParentComponent = () => {
                                         </div>
                                       </div>
 
-                                      <Pencil
+                                      {/* <Pencil
                                         size={16}
                                         onClick={(e) => {
                                           e.stopPropagation(); // prevents parent click
                                           handleEditTrack(track);
                                         }}
-                                      />
+                                      /> */}
                                     </div>
 
                                     {/* Expanded Edit Section */}
@@ -1108,14 +1114,14 @@ const ParentComponent = () => {
                                         />
 
                                         <label
-                                          className={`flex items-center justify-between p-2 cursor-pointer w-full  rounded-md border border-gray-600 focus:outline-non ${
+                                          className={`flex items-center justify-between p-2 cursor-pointer w-full rounded-md border border-gray-600 focus:outline-none ${
                                             darkMode
                                               ? "bg-inherit text-white"
                                               : "bg-inherit text-black"
                                           }`}
                                         >
-                                          <span className="text-sm  text-gray-400">
-                                            Uploaded Track Photo
+                                          <span className="text-sm text-gray-400">
+                                            Upload Track Photo
                                           </span>
                                           <Upload size={16} />
                                           <input
@@ -1123,8 +1129,8 @@ const ParentComponent = () => {
                                             accept="image/*"
                                             className="hidden"
                                             onChange={(e) =>
-                                              setFormData({
-                                                ...formData,
+                                              setEditModule({
+                                                ...editModule,
                                                 trackPhoto: e.target.files[0],
                                               })
                                             }
@@ -1134,22 +1140,62 @@ const ParentComponent = () => {
                                         <div className="flex gap-2 justify-between mt-2">
                                           <button
                                             className="bg-[#F48567] px-4 py-1 rounded-md text-sm w-[145px] text-black"
-                                            onClick={(e) => {
+                                            onClick={async (e) => {
                                               e.stopPropagation();
-                                              const updatedModules =
-                                                modulesFromStorage.map((m) =>
-                                                  m.id === editModule.id
-                                                    ? editModule
-                                                    : m
+                                              try {
+                                                // Prepare update data
+                                                const updateData = {
+                                                  moduleName: editModule.name,
+                                                  description:
+                                                    "Default module description", // Default description
+                                                  isApproved:
+                                                    module.isApproved ||
+                                                    "pending", // Keep original approval status
+                                                };
+
+                                                // Call the updateContent API
+                                                await dispatch(
+                                                  updateContent(
+                                                    editModule.id,
+                                                    updateData
+                                                  )
                                                 );
-                                              setModulesFromStorage(
-                                                updatedModules
-                                              );
-                                              localStorage.setItem(
-                                                "moduleInfo",
-                                                JSON.stringify(updatedModules)
-                                              );
-                                              setEditModule(null);
+
+                                                // Update local state and localStorage after successful API call
+                                                const updatedModules =
+                                                  modulesFromStorage.map((m) =>
+                                                    m.id === editModule.id
+                                                      ? {
+                                                          ...m,
+                                                          name: editModule.name,
+                                                        }
+                                                      : m
+                                                  );
+
+                                                setModulesFromStorage(
+                                                  updatedModules
+                                                );
+                                                localStorage.setItem(
+                                                  "moduleInfo",
+                                                  JSON.stringify(updatedModules)
+                                                );
+                                                setEditModule(null);
+
+                                                // Show success message
+                                                console.log(
+                                                  "Module updated successfully!"
+                                                );
+                                                // You can add a toast notification here if you have one
+                                              } catch (error) {
+                                                console.error(
+                                                  "Error updating module:",
+                                                  error
+                                                );
+                                                // Show error message to user
+                                                alert(
+                                                  "Failed to update module. Please try again."
+                                                );
+                                              }
                                             }}
                                           >
                                             Save

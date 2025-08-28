@@ -363,9 +363,9 @@ const EyeForm = ({ data }) => {
                       {isLoading ? "Saving..." : "Save"}
                     </button>
                   ) : null}
-                  <button className="py-3 px-6 bg-[#C7C7C7] text-black font-medium rounded-lg w-[184px]">
+                  {/* <button className="py-3 px-6 bg-[#C7C7C7] text-black font-medium rounded-lg w-[184px]">
                     Delete
-                  </button>
+                  </button> */}
                 </div>
               </div>
 

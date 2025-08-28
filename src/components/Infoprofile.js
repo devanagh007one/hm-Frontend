@@ -40,7 +40,9 @@ const Infoprofile = () => {
           }}
         >
           <span className="namedash">
-            {userData?.firstName || "N/A"} {userData?.lastName || ""}
+            {userData?.roles?.includes("Admin")
+              ? userData?.userName || "N/A"
+              : `${userData?.firstName || "N/A"} ${userData?.lastName || ""}`}
           </span>
           <span className="namedash mt-5 w-[30px]">
             {userData?.roles?.[0] || "No Role"}

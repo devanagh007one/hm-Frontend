@@ -228,6 +228,59 @@ const UserManagement = () => {
     setSelectedIndices([]); // Clear selection after deletion
   };
 
+  // const handleDownload = () => {
+  //   // Use paginatedData or filteredData instead of data
+  //   const selectedRows = paginatedData
+  //     .filter((_, index) => selectedIndices.includes(index))
+  //     .map((row) => {
+  //       // Remove unnecessary fields
+  //       const {
+  //         _id,
+  //         __v,
+  //         passwordChangedAt,
+  //         macAddresses,
+  //         editLogs,
+  //         ...filteredRow
+  //       } = row;
+  //       return filteredRow;
+  //     });
+
+  //   if (selectedFormat === ".pdf") {
+  //     const doc = new jsPDF({ orientation: "landscape" });
+  //     doc.setFontSize(8); // Set smaller font size for better fit
+  //     doc.text("HappMe", 5, 10);
+
+  //     const tableHeaders = Object.keys(selectedRows[0] || {});
+  //     const tableData = selectedRows.map((row) =>
+  //       tableHeaders.map((header) => row[header] || "")
+  //     );
+
+  //     doc.autoTable({
+  //       head: [tableHeaders],
+  //       body: tableData,
+  //       startY: 15,
+  //       margin: { left: 5, right: 5 },
+  //       styles: { fontSize: 5 }, // Reduce table font size
+  //       headStyles: { fillColor: [22, 160, 133] }, // Optional: Style headers
+  //       bodyStyles: { textColor: [0, 0, 0] }, // Optional: Style body text
+  //       theme: "striped", // Optional: Add stripes to rows
+  //     });
+
+  //     doc.save("HappMe-data.pdf");
+  //   } else if ([".xls", ".xlsx"].includes(selectedFormat)) {
+  //     const worksheet = XLSX.utils.json_to_sheet(selectedRows);
+  //     const workbook = XLSX.utils.book_new();
+  //     XLSX.utils.book_append_sheet(workbook, worksheet, "HappMe Data");
+
+  //     const fileType = selectedFormat === ".xls" ? "xls" : "xlsx";
+  //     XLSX.writeFile(workbook, `HappMe-data.${fileType}`);
+  //   } else {
+  //     alert("Please select a format.");
+  //   }
+  // };
+
+  // Handle row selection
+
   const handleDownload = () => {
     // Use paginatedData or filteredData instead of data
     const selectedRows = paginatedData
@@ -242,7 +295,19 @@ const UserManagement = () => {
           editLogs,
           ...filteredRow
         } = row;
-        return filteredRow;
+
+        // Ensure role is set to "End User" if not present
+        const roles =
+          filteredRow.roles && filteredRow.roles.length > 0
+            ? filteredRow.roles
+            : ["End User"];
+
+        // Add the required password field
+        return {
+          ...filteredRow,
+          roles, // Set default role if missing
+          password: "HAPPME@123", // Add the password field with the required value
+        };
       });
 
     if (selectedFormat === ".pdf") {
@@ -252,7 +317,13 @@ const UserManagement = () => {
 
       const tableHeaders = Object.keys(selectedRows[0] || {});
       const tableData = selectedRows.map((row) =>
-        tableHeaders.map((header) => row[header] || "")
+        tableHeaders.map((header) => {
+          // Handle array fields like roles
+          if (Array.isArray(row[header])) {
+            return row[header].join(", ");
+          }
+          return row[header] || "";
+        })
       );
 
       doc.autoTable({
@@ -268,7 +339,19 @@ const UserManagement = () => {
 
       doc.save("HappMe-data.pdf");
     } else if ([".xls", ".xlsx"].includes(selectedFormat)) {
-      const worksheet = XLSX.utils.json_to_sheet(selectedRows);
+      // Format data for Excel - ensure arrays are converted to strings
+      const excelData = selectedRows.map((row) => {
+        const formattedRow = { ...row };
+        // Convert any array fields to comma-separated strings
+        Object.keys(formattedRow).forEach((key) => {
+          if (Array.isArray(formattedRow[key])) {
+            formattedRow[key] = formattedRow[key].join(", ");
+          }
+        });
+        return formattedRow;
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "HappMe Data");
 
@@ -279,7 +362,6 @@ const UserManagement = () => {
     }
   };
 
-  // Handle row selection
   const handleSelection = (index) => {
     const absoluteIndex = (currentPage - 1) * pageSize + index; // Convert paginated index to absolute index
     setSelectedIndices(

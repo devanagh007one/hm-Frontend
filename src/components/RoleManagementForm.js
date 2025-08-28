@@ -31,7 +31,7 @@ const ParentComponent = () => {
     company: "",
     department: "",
     email: "",
-    password: "HAPPME@1234",
+    password: "HAPPME@123",
     image: null,
     employeeCount: "",
     numberOfLicenses: "",
@@ -98,7 +98,7 @@ const ParentComponent = () => {
       const safePrevState =
         prevState && typeof prevState === "object"
           ? prevState
-          : { roles: "", password: "HAPPME@1234" };
+          : { roles: "", password: "HAPPME@123" };
 
       return {
         ...safePrevState,
@@ -328,7 +328,6 @@ const ParentComponent = () => {
   const filteredRolesOptions = isAdmin
     ? rolesOptions.filter((role) => role !== "Super Admin" && role !== "Admin")
     : rolesOptions;
-
 
   return (
     <>
@@ -597,8 +596,8 @@ const ParentComponent = () => {
                   <div className="flex flex-col w-1/2">
                     <label className=" mb-1">Partner Name</label>
                     <input
-                      name="full name"
-                      onChange={handleFullNameChange}
+                      name="fullName" // Changed to a specific name
+                      onChange={handleFullNameChange} // This splits into firstName/lastName
                       required
                       type="text"
                       placeholder="Partner Name"
@@ -614,10 +613,10 @@ const ParentComponent = () => {
                         value={customCompany || selectedCompany}
                         onChange={handleCustomChange}
                         onFocus={() => setShowDropdown(true)}
-                        onKeyDown={handleKeyDown} // Prevent selection on Enter
+                        onKeyDown={handleKeyDown}
                         onBlur={() =>
                           setTimeout(() => setShowDropdown(false), 200)
-                        } // Delay hiding to allow selection
+                        }
                         className="w-full p-2 rounded-xl border border-gray-600 focus:outline-none "
                       />
                       {showDropdown && (
@@ -646,11 +645,11 @@ const ParentComponent = () => {
                   <div className="flex flex-col w-1/2">
                     <label className=" mb-1">User Name</label>
                     <input
-                      name="userName"
-                      onChange={handleFullNameChange}
+                      name="userName" // This should match the formData field
+                      onChange={handleChange} // Use the standard handleChange
                       required
                       type="text"
-                      placeholder="Contact Person Name"
+                      placeholder="User Name" // Fixed placeholder text
                       className="p-2   rounded-xl border border-gray-600 focus:outline-none"
                     />
                   </div>
@@ -737,10 +736,19 @@ const ParentComponent = () => {
                 </div>
 
                 <div className="flex flex-row items-center">
-                  <label className=" mb- mr-2">Preferred Contact Method:</label>
+                  <label className="mr-2">Preferred Contact Method:</label>
                   <Radio.Group
-                    options={["Call", "Email"]}
-                    className="p-2 flex justify-start gap-5  rounded-xl "
+                    options={[
+                      {
+                        label: <span className="text-white">Call</span>,
+                        value: "Call",
+                      },
+                      {
+                        label: <span className="text-white">Email</span>,
+                        value: "Email",
+                      },
+                    ]}
+                    className="p-2 flex justify-start gap-5 rounded-xl"
                     required
                     value={formData.contact_method}
                     onChange={(e) =>

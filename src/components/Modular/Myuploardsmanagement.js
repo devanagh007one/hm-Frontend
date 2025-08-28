@@ -67,6 +67,26 @@ const Myuploardsmanagement = () => {
   const [pageSize, setPageSize] = useState(50);
   const [filter, setFilter] = useState("all");
 
+  // Decrypt user roles from localStorage
+  const encryptedRoles = localStorage.getItem("encryptedRoles");
+  let userRoles = [];
+
+  if (encryptedRoles) {
+    try {
+      const bytes = CryptoJS.AES.decrypt(
+        encryptedRoles,
+        "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1"
+      );
+      userRoles = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+    } catch (error) {
+      console.error("Error decrypting roles:", error);
+    }
+  }
+
+  // Check if user has admin or super admin privileges
+  const isAdminUser =
+    userRoles.includes("Admin") || userRoles.includes("Super Admin");
+
   // Fetch users on mount
   useEffect(() => {
     dispatch(fetchAllContent());
@@ -582,22 +602,6 @@ const Myuploardsmanagement = () => {
 
   const [selectedCard, setSelectedCard] = useState(0);
 
-  const encryptedRoles = localStorage.getItem("encryptedRoles");
-
-  let userRoles = [];
-
-  if (encryptedRoles) {
-    try {
-      const bytes = CryptoJS.AES.decrypt(
-        encryptedRoles,
-        "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1"
-      );
-      userRoles = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
-    } catch (error) {
-      console.error("Error decrypting roles:", error);
-    }
-  }
-
   const columns = [
     {
       title: (
@@ -821,70 +825,67 @@ const Myuploardsmanagement = () => {
                 <ChallangeMannage data={record} />
               ) : null}
 
-              {/* Reject Button */}
-              <div
-                className="cursor-pointer"
-                onClick={() => handleApprovalAction(record, "rejected")}
-              >
-                {/* <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path
-                                        d="M9 0.25C4.125 0.25 0.25 4.125 0.25 9C0.25 13.875 4.125 17.75 9 17.75C13.875 17.75 17.75 13.875 17.75 9C17.75 4.125 13.875 0.25 9 0.25ZM12.375 13.375L9 10L5.625 13.375L4.625 12.375L8 9L4.625 5.625L5.625 4.625L9 8L12.375 4.625L13.375 5.625L10 9L13.375 12.375L12.375 13.375Z"
-                                        fill="#DD441B"
-                                    />
-                                </svg> */}
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M9.99967 3.00007L12.4997 5.50007M8.33301 14.6667H14.9997M1.66634 11.3334L0.833008 14.6667L4.16634 13.8334L13.8213 4.17841C14.1338 3.86586 14.3093 3.44201 14.3093 3.00007C14.3093 2.55813 14.1338 2.13429 13.8213 1.82174L13.678 1.67841C13.3655 1.36596 12.9416 1.19043 12.4997 1.19043C12.0577 1.19043 11.6339 1.36596 11.3213 1.67841L1.66634 11.3334Z"
-                    stroke="#C7C7C7"
-                    stroke-width="1.25"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                </svg>
-              </div>
+              {/* Only show approve/reject buttons for Admin/Super Admin users */}
+              {isAdminUser && (
+                <>
+                  {/* Reject Button */}
+                  <div
+                    className="cursor-pointer"
+                    onClick={() => handleApprovalAction(record, "rejected")}
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M9.99967 3.00007L12.49967 5.50007M8.33301 14.6667H14.9997M1.66634 11.3334L0.833008 14.6667L4.16634 13.8334L13.8213 4.17841C14.1338 3.86586 14.3093 3.44201 14.3093 3.00007C14.3093 2.55813 14.1338 2.13429 13.8213 1.82174L13.678 1.67841C13.3655 1.36596 12.9416 1.19043 12.4997 1.19043C12.0577 1.19043 11.6339 1.36596 11.3213 1.67841L1.66634 11.3334Z"
+                        stroke="#C7C7C7"
+                        stroke-width="1.25"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </div>
 
-              {/* Approve Button */}
-              {/* <div className="cursor-pointer" onClick={() => handleApprovalAction(record, "approved")}>
-                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <g clipPath="url(#clip0_4249_2052)">
-                                        <path
-                                            fillRule="evenodd"
-                                            clipRule="evenodd"
-                                            d="M9.66933 0.087785C9.77004 0.030258 9.88402 0 10 0C10.116 0 10.23 0.030258 10.3307 0.087785L19.664 5.42112C19.766 5.4794 19.8509 5.56362 19.9099 5.66524C19.9689 5.76686 20 5.88228 20 5.99979V6.95978C20 9.90108 19.0418 12.7623 17.2704 15.1104C15.4991 17.4584 13.0109 19.1655 10.1827 19.9731C10.0633 20.0071 9.93674 20.0071 9.81733 19.9731C6.98931 19.1651 4.50142 17.458 2.73009 15.11C0.958768 12.762 0.00040046 9.90097 0 6.95978L0 5.99979C3.79027e-05 5.88228 0.031135 5.76686 0.0901407 5.66524C0.149146 5.56362 0.233964 5.4794 0.336 5.42112L9.66933 0.087785ZM9.42933 14.2811L15.1867 7.08245L14.1467 6.25045L9.23733 12.3851L5.76 9.48779L4.90667 10.5118L9.42933 14.2811Z"
-                                            fill={svgColor}
-                                        />
-                                    </g>
-                                    <defs>
-                                        <clipPath id="clip0_4249_2052">
-                                            <rect width="20" height="20" fill="white" />
-                                        </clipPath>
-                                    </defs>
-                                </svg>
-                            </div> */}
-              {/* Deleate Button */}
+                  {/* Approve Button */}
+                  <div
+                    className="cursor-pointer"
+                    onClick={() => handleApprovalAction(record, "approved")}
+                  >
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <g clipPath="url(#clip0_4249_2052)">
+                        <path
+                          fillRule="evenodd"
+                          clipRule="evenodd"
+                          d="M9.66933 0.087785C9.77004 0.030258 9.88402 0 10 0C10.116 0 10.23 0.030258 10.3307 0.087785L19.664 5.42112C19.766 5.4794 19.8509 5.56362 19.9099 5.66524C19.9689 5.76686 20 5.88228 20 5.99979V6.95978C20 9.90108 19.0418 12.7623 17.2704 15.1104C15.4991 17.4584 13.0109 19.1655 10.1827 19.9731C10.0633 20.0071 9.93674 20.0071 9.81733 19.9731C6.98931 19.1651 4.50142 17.458 2.73009 15.11C0.958768 12.762 0.00040046 9.90097 0 6.95978L0 5.99979C3.79027e-05 5.88228 0.031135 5.76686 0.0901407 5.66524C0.149146 5.56362 0.233964 5.4794 0.336 5.42112L9.66933 0.087785ZM9.42933 14.2811L15.1867 7.08245L14.1467 6.25045L9.23733 12.3851L5.76 9.48779L4.90667 10.5118L9.42933 14.2811Z"
+                          fill={svgColor}
+                        />
+                      </g>
+                      <defs>
+                        <clipPath id="clip0_4249_2052">
+                          <rect width="20" height="20" fill="white" />
+                        </clipPath>
+                      </defs>
+                    </svg>
+                  </div>
+                </>
+              )}
+
+              {/* Delete Button */}
               {!userRoles.includes("Admin") && (
                 <div
                   className="cursor-pointer"
                   onClick={() => handleDeleteAction(record)}
                 >
-                  {/* <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 18 18"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M7.4375 3.0625V3.375H10.5625V3.0625C10.5625 2.6481 10.3979 2.25067 10.1049 1.95765C9.81183 1.66462 9.4144 1.5 9 1.5C8.5856 1.5 8.18817 1.66462 7.89515 1.95765C7.60212 2.25067 7.4375 2.6481 7.4375 3.0625ZM6.1875 3.375V3.0625C6.1875 2.31658 6.48382 1.60121 7.01126 1.07376C7.53871 0.546316 8.25408 0.25 9 0.25C9.74592 0.25 10.4613 0.546316 10.9887 1.07376C11.5162 1.60121 11.8125 2.31658 11.8125 3.0625V3.375H16.5C16.6658 3.375 16.8247 3.44085 16.9419 3.55806C17.0592 3.67527 17.125 3.83424 17.125 4C17.125 4.16576 17.0592 4.32473 16.9419 4.44194C16.8247 4.55915 16.6658 4.625 16.5 4.625H15.5575L14.375 14.98C14.2878 15.7426 13.923 16.4465 13.3501 16.9573C12.7772 17.4682 12.0363 17.7504 11.2687 17.75H6.73125C5.96366 17.7504 5.22279 17.4682 4.64991 16.9573C4.07702 16.4465 3.7122 15.7426 3.625 14.98L2.4425 4.625H1.5C1.33424 4.625 1.17527 4.55915 1.05806 4.44194C0.940848 4.32473 0.875 4.16576 0.875 4C0.875 3.83424 0.940848 3.67527 1.05806 3.55806C1.17527 3.44085 1.33424 3.375 1.5 3.375H6.1875ZM7.75 7.4375C7.75 7.27174 7.68415 7.11277 7.56694 6.99556C7.44973 6.87835 7.29076 6.8125 7.125 6.8125C6.95924 6.8125 6.80027 6.87835 6.68306 6.99556C6.56585 7.11277 6.5 7.27174 6.5 7.4375V13.6875C6.5 13.8533 6.56585 14.0122 6.68306 14.1294C6.80027 14.2467 6.95924 14.3125 7.125 14.3125C7.29076 14.3125 7.44973 14.2467 7.56694 14.1294C7.68415 14.0122 7.75 13.8533 7.75 13.6875V7.4375ZM10.875 6.8125C10.7092 6.8125 10.5503 6.87835 10.4331 6.99556C10.3158 7.11277 10.25 7.27174 10.25 7.4375V13.6875C10.25 13.8533 10.3158 14.0122 10.4331 14.1294C10.5503 14.2467 10.7092 14.3125 10.875 14.3125C11.0408 14.3125 11.1997 14.2467 11.3169 14.1294C11.4342 14.0122 11.5 13.8533 11.5 13.6875V7.4375C11.5 7.27174 11.4342 7.11277 11.3169 6.99556C11.1997 6.87835 11.0408 6.8125 10.875 6.8125Z"
-                      fill="#DD441B"
-                    />
-                  </svg> */}
                   <svg
                     width="19"
                     height="18"

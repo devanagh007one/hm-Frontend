@@ -177,11 +177,18 @@ const AssignTeamModal = ({ showModal, setShowModal, userId }) => {
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [teamToRename, setTeamToRename] = useState(null);
   const [teamToDelete, setTeamToDelete] = useState(null);
+  const [selectedTeamId, setSelectedTeamId] = useState(null);
 
   // Load teams from localStorage on component mount
   useEffect(() => {
     const savedTeams = localStorage.getItem("customTeams");
     const customTeams = savedTeams ? JSON.parse(savedTeams) : {};
+
+    // Load selected team from localStorage
+    const savedSelectedTeam = localStorage.getItem("selectedTeam");
+    if (savedSelectedTeam) {
+      setSelectedTeamId(savedSelectedTeam);
+    }
 
     // Combine initial teams with custom teams
     const allTeams = { ...initialTeamData, ...customTeams };
@@ -190,7 +197,7 @@ const AssignTeamModal = ({ showModal, setShowModal, userId }) => {
       Object.entries(allTeams).map(([name, id]) => ({
         id,
         name,
-        selected: false,
+        selected: id === savedSelectedTeam, // Set selected based on saved selection
       }))
     );
   }, []);
@@ -220,11 +227,17 @@ const AssignTeamModal = ({ showModal, setShowModal, userId }) => {
   };
 
   const handleTeamToggle = (id) => {
-    setTeams(
-      teams.map((team) =>
-        team.id === id ? { ...team, selected: !team.selected } : team
-      )
-    );
+    // Clear all selections first, then select the clicked one
+    const updatedTeams = teams.map((team) => ({
+      ...team,
+      selected: team.id === id,
+    }));
+
+    setTeams(updatedTeams);
+    setSelectedTeamId(id);
+
+    // Save selected team to localStorage
+    localStorage.setItem("selectedTeam", id);
   };
 
   const handleAddTeam = () => {
@@ -287,22 +300,20 @@ const AssignTeamModal = ({ showModal, setShowModal, userId }) => {
       setError(null);
       setSuccess(null);
 
-      const selectedTeamNames = teams
-        .filter((team) => team.selected)
-        .map((team) => team.name);
+      const selectedTeam = teams.find((team) => team.selected);
 
-      if (selectedTeamNames.length === 0) {
-        setError("Please select at least one team");
+      if (!selectedTeam) {
+        setError("Please select a team");
         return;
       }
 
-      // Use the same userId for both user and HR
+      // Use array with single team name
       const result = await dispatch(
-        assignTeams(userId, userId, selectedTeamNames)
+        assignTeams(userId, userId, [selectedTeam.name])
       );
 
       if (result.success) {
-        setSuccess("Teams assigned successfully!");
+        setSuccess("Team assigned successfully!");
         setTimeout(() => {
           setShowModal(false);
           setSuccess(null);
@@ -311,7 +322,7 @@ const AssignTeamModal = ({ showModal, setShowModal, userId }) => {
         setError(result.error);
       }
     } catch (err) {
-      setError(err.message || "Failed to assign teams");
+      setError(err.message || "Failed to assign team");
     } finally {
       setIsLoading(false);
       setShowConfirmation(false);
@@ -319,12 +330,10 @@ const AssignTeamModal = ({ showModal, setShowModal, userId }) => {
   };
 
   const handleAssignClick = () => {
-    const selectedTeamNames = teams
-      .filter((team) => team.selected)
-      .map((team) => team.name);
+    const selectedTeam = teams.find((team) => team.selected);
 
-    if (selectedTeamNames.length === 0) {
-      setError("Please select at least one team");
+    if (!selectedTeam) {
+      setError("Please select a team");
       return;
     }
 
@@ -393,7 +402,7 @@ const AssignTeamModal = ({ showModal, setShowModal, userId }) => {
               </div>
             )}
 
-            <div className="mb-4">
+            {/* <div className="mb-4">
               <div className="flex items-center text-[#C7C7C7] mb-2">
                 <span>
                   Add new team<span className="text-[red]">*</span>
@@ -418,7 +427,7 @@ const AssignTeamModal = ({ showModal, setShowModal, userId }) => {
                   Add team
                 </button>
               </div>
-            </div>
+            </div> */}
 
             <div className="space-y-3 mb-6 max-h-64 overflow-y-auto">
               {teams.map((team) => (
@@ -450,7 +459,7 @@ const AssignTeamModal = ({ showModal, setShowModal, userId }) => {
                         onClick={() => handleRenameTeam(team.id)}
                         className="hover:opacity-70 transition-opacity"
                       >
-                        <svg
+                        {/* <svg
                           width="20"
                           height="20"
                           viewBox="0 0 20 20"
@@ -469,13 +478,13 @@ const AssignTeamModal = ({ showModal, setShowModal, userId }) => {
                             strokeLinecap="round"
                             strokeLinejoin="round"
                           />
-                        </svg>
+                        </svg> */}
                       </button>
                       <button
                         onClick={() => handleDeleteTeam(team.id)}
                         className="hover:opacity-70 transition-opacity"
                       >
-                        <svg
+                        {/* <svg
                           width="18"
                           height="18"
                           viewBox="0 0 18 18"
@@ -486,7 +495,7 @@ const AssignTeamModal = ({ showModal, setShowModal, userId }) => {
                             d="M7.4375 3.0625V3.375H10.5625V3.0625C10.5625 2.6481 10.3979 2.25067 10.1049 1.95765C9.81183 1.66462 9.4144 1.5 9 1.5C8.5856 1.5 8.18817 1.66462 7.89515 1.95765C7.60212 2.25067 7.4375 2.6481 7.4375 3.0625ZM6.1875 3.375V3.0625C6.1875 2.31658 6.48382 1.60121 7.01126 1.07376C7.53871 0.546316 8.25408 0.25 9 0.25C9.74592 0.25 10.4613 0.546316 10.9887 1.07376C11.5162 1.60121 11.8125 2.31658 11.8125 3.0625V3.375H16.5C16.6658 3.375 16.8247 3.44085 16.9419 3.55806C17.0592 3.67527 17.125 3.83424 17.125 4C17.125 4.16576 17.0592 4.32473 16.9419 4.44194C16.8247 4.55915 16.6658 4.625 16.5 4.625H15.5575L14.375 14.98C14.2878 15.7426 13.9230 16.4465 13.3501 16.9573C12.7772 17.4682 12.0363 17.7504 11.2687 17.75H6.73125C5.96366 17.7504 5.22279 17.4682 4.64991 16.9573C4.07702 16.4465 3.7122 15.7426 3.625 14.98L2.4425 4.625H1.5C1.33424 4.625 1.17527 4.55915 1.05806 4.44194C0.940848 4.32473 0.875 4.16576 0.875 4C0.875 3.83424 0.940848 3.67527 1.05806 3.55806C1.17527 3.44085 1.33424 3.375 1.5 3.375H6.1875ZM7.75 7.4375C7.75 7.27174 7.68415 7.11277 7.56694 6.99556C7.44973 6.87835 7.29076 6.8125 7.125 6.8125C6.95924 6.8125 6.80027 6.87835 6.68306 6.99556C6.56585 7.11277 6.5 7.27174 6.5 7.4375V13.6875C6.5 13.8533 6.56585 14.0122 6.68306 14.1294C6.80027 14.2467 6.95924 14.3125 7.125 14.3125C7.29076 14.3125 7.44973 14.2467 7.56694 14.1294C7.68415 14.0122 7.75 13.8533 7.75 13.6875V7.4375ZM10.875 6.8125C10.7092 6.8125 10.5503 6.87835 10.4331 6.99556C10.3158 7.11277 10.25 7.27174 10.25 7.4375V13.6875C10.25 13.8533 10.3158 14.0122 10.4331 14.1294C10.5503 14.2467 10.7092 14.3125 10.875 14.3125C11.0408 14.3125 11.1997 14.2467 11.3169 14.1294C11.4342 14.0122 11.5 13.8533 11.5 13.6875V7.4375C11.5 7.27174 11.4342 7.11277 11.3169 6.99556C11.1997 6.87835 11.0408 6.8125 10.875 6.8125Z"
                             fill="#DD441B"
                           />
-                        </svg>
+                        </svg> */}
                       </button>
                     </div>
                   </div>

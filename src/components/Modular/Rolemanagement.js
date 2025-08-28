@@ -448,7 +448,7 @@ const UserManagement = () => {
             }
           />
           <span style={{ color: "#F48567", marginLeft: "8px" }}>
-            UPLOADED DATAAA
+            UPLOADED DATA
           </span>
         </div>
       ),

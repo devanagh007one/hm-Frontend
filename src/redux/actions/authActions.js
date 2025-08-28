@@ -172,6 +172,10 @@ export const fetchUsers = () => async (dispatch) => {
       localStorage.setItem("companyName", data.company);
     }
 
+    if (data && data._id) {
+      localStorage.setItem("uploaded_by", data._id);
+    }
+
     // Dispatch the fetched user data
     dispatch(userData(data));
     return data;

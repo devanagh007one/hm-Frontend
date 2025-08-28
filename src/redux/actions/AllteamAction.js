@@ -47,6 +47,12 @@ export const assignTeams = (hrUserId, targetUserId, teamNames) => {
         config
       );
 
+      // await axios.post(
+      //   `http://localhost:4000/api/teamops/assign-teams`,
+      //   body,
+      //   config
+      // );
+
       dispatch(assignTeamsSuccess());
       return { success: true };
     } catch (error) {
