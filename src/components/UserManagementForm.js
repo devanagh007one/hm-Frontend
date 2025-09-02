@@ -357,7 +357,7 @@ const ParentComponent = () => {
 
               {/* Phone */}
               <div className="flex flex-col">
-                <label className="mb-1">Phone Number </label>
+                <label className="mb-1">Phone Number * </label>
                 <input
                   name="mobile"
                   onChange={handleChange}
@@ -369,7 +369,7 @@ const ParentComponent = () => {
 
               {/* Location */}
               <div className="flex flex-col">
-                <label className="mb-1">Location </label>
+                <label className="mb-1">Location * </label>
                 <input
                   name="address"
                   onChange={handleChange}
@@ -417,7 +417,7 @@ const ParentComponent = () => {
               </div>
               <div className="flex gap-4">
                 <div className="flex flex-col w-1/2">
-                  <label className="mb-1">DOJ *</label>
+                  <label className="mb-1">DOJ </label>
                   <input
                     name="joinedAt"
                     value={formData.joinedAt}

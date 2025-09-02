@@ -1274,6 +1274,12 @@ const UserManagement = () => {
           setAssignTeamModal({ ...assignTeamModal, open })
         }
         userId={assignTeamModal.userId}
+        userTeams={
+          assignTeamModal.userId
+            ? users.find((user) => user.userId === assignTeamModal.userId)
+                ?.teams || []
+            : []
+        }
       />
     </>
   );

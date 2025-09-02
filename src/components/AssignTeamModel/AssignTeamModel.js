@@ -165,7 +165,12 @@ const RenameTeamModal = ({
   );
 };
 
-const AssignTeamModal = ({ showModal, setShowModal, userId }) => {
+const AssignTeamModal = ({
+  showModal,
+  setShowModal,
+  userId,
+  userTeams = [],
+}) => {
   const dispatch = useDispatch();
   const darkMode = useSelector((state) => state.theme.darkMode);
   const [newTeamName, setNewTeamName] = useState("");
@@ -179,30 +184,39 @@ const AssignTeamModal = ({ showModal, setShowModal, userId }) => {
   const [teamToDelete, setTeamToDelete] = useState(null);
   const [selectedTeamId, setSelectedTeamId] = useState(null);
 
-  // Load teams from localStorage on component mount
-  useEffect(() => {
-    const savedTeams = localStorage.getItem("customTeams");
-    const customTeams = savedTeams ? JSON.parse(savedTeams) : {};
+  // Helper function to get team name by ID
+  const getTeamNameById = (teamId) => {
+    const teamEntry = Object.entries(initialTeamData).find(
+      ([name, id]) => id === teamId
+    );
+    return teamEntry ? teamEntry[0] : null;
+  };
 
-    // Load selected team from localStorage
-    const savedSelectedTeam = localStorage.getItem("selectedTeam");
-    if (savedSelectedTeam) {
-      setSelectedTeamId(savedSelectedTeam);
-    }
+  // Load teams and set user's assigned teams as selected
+  useEffect(() => {
+    // Load custom teams from localStorage for this specific user
+    const savedTeams = localStorage.getItem(`customTeams_${userId}`);
+    const customTeams = savedTeams ? JSON.parse(savedTeams) : {};
 
     // Combine initial teams with custom teams
     const allTeams = { ...initialTeamData, ...customTeams };
 
-    setTeams(
-      Object.entries(allTeams).map(([name, id]) => ({
-        id,
-        name,
-        selected: id === savedSelectedTeam, // Set selected based on saved selection
-      }))
-    );
-  }, []);
+    // Create team objects with selection based on user's teams from API
+    const teamObjects = Object.entries(allTeams).map(([name, id]) => ({
+      id,
+      name,
+      selected: userTeams.includes(id), // Select teams that user is assigned to
+    }));
 
-  // Save custom teams to localStorage
+    setTeams(teamObjects);
+
+    // Set the first assigned team as selected for UI purposes
+    if (userTeams.length > 0) {
+      setSelectedTeamId(userTeams[0]);
+    }
+  }, [userId, userTeams]);
+
+  // Save custom teams to localStorage with user-specific key
   const saveCustomTeamsToLocalStorage = (updatedTeams) => {
     const customTeams = {};
     updatedTeams.forEach((team) => {
@@ -211,23 +225,23 @@ const AssignTeamModal = ({ showModal, setShowModal, userId }) => {
         customTeams[team.name] = team.id;
       }
     });
-    localStorage.setItem("customTeams", JSON.stringify(customTeams));
+    localStorage.setItem(`customTeams_${userId}`, JSON.stringify(customTeams));
   };
 
   // Clear teams on logout (call this function when user logs out)
   const clearCustomTeams = () => {
-    localStorage.removeItem("customTeams");
+    localStorage.removeItem(`customTeams_${userId}`);
     setTeams(
       Object.entries(initialTeamData).map(([name, id]) => ({
         id,
         name,
-        selected: false,
+        selected: userTeams.includes(id),
       }))
     );
   };
 
   const handleTeamToggle = (id) => {
-    // Clear all selections first, then select the clicked one
+    // For single selection mode
     const updatedTeams = teams.map((team) => ({
       ...team,
       selected: team.id === id,
@@ -235,9 +249,6 @@ const AssignTeamModal = ({ showModal, setShowModal, userId }) => {
 
     setTeams(updatedTeams);
     setSelectedTeamId(id);
-
-    // Save selected team to localStorage
-    localStorage.setItem("selectedTeam", id);
   };
 
   const handleAddTeam = () => {
@@ -346,6 +357,12 @@ const AssignTeamModal = ({ showModal, setShowModal, userId }) => {
     setSuccess(null);
   };
 
+  // Display current user's teams
+  const currentUserTeamNames = userTeams
+    .map((teamId) => getTeamNameById(teamId))
+    .filter(Boolean)
+    .join(", ");
+
   return (
     <>
       {/* Main Modal */}
@@ -402,33 +419,6 @@ const AssignTeamModal = ({ showModal, setShowModal, userId }) => {
               </div>
             )}
 
-            {/* <div className="mb-4">
-              <div className="flex items-center text-[#C7C7C7] mb-2">
-                <span>
-                  Add new team<span className="text-[red]">*</span>
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <input
-                  type="text"
-                  placeholder="Enter additional team name"
-                  className={`w-[284px] h-[40px] rounded-lg p-2 border ${
-                    darkMode
-                      ? "bg-[#333333] text-white border-gray-600"
-                      : "bg-white text-dark border-gray-300"
-                  }`}
-                  value={newTeamName}
-                  onChange={(e) => setNewTeamName(e.target.value)}
-                />
-                <button
-                  onClick={handleAddTeam}
-                  className="w-[102px] h-[37px] text-black p-2 rounded-lg bg-[#F48567]"
-                >
-                  Add team
-                </button>
-              </div>
-            </div> */}
-
             <div className="space-y-3 mb-6 max-h-64 overflow-y-auto">
               {teams.map((team) => (
                 <div
@@ -449,53 +439,28 @@ const AssignTeamModal = ({ showModal, setShowModal, userId }) => {
                     <span
                       className={`text-sm flex-1 ${
                         darkMode ? "text-white" : "text-dark"
-                      }`}
+                      } ${userTeams.includes(team.id) ? "font-semibold" : ""}`}
                       onClick={() => handleTeamToggle(team.id)}
                     >
                       {team.name}
+                      {userTeams.includes(team.id) && (
+                        <span className="text-[#F48567] ml-2 text-xs">
+                          (Currently Assigned)
+                        </span>
+                      )}
                     </span>
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleRenameTeam(team.id)}
                         className="hover:opacity-70 transition-opacity"
                       >
-                        {/* <svg
-                          width="20"
-                          height="20"
-                          viewBox="0 0 20 20"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            opacity="0.16"
-                            d="M4.16683 13.3333L3.3335 16.6667L6.66683 15.8333L15.0002 7.5L12.5002 5L4.16683 13.3333Z"
-                            fill="#C7C7C7"
-                          />
-                          <path
-                            d="M12.5002 5.00001L15.0002 7.50001M10.8335 16.6667H17.5002M4.16683 13.3333L3.3335 16.6667L6.66683 15.8333L16.3218 6.17835C16.6343 5.8658 16.8098 5.44195 16.8098 5.00001C16.8098 4.55807 16.6343 4.13423 16.3218 3.82168L16.1785 3.67835C15.8659 3.36589 15.4421 3.19037 15.0002 3.19037C14.5582 3.19037 14.1344 3.36589 13.8218 3.67835L4.16683 13.3333Z"
-                            stroke="#C7C7C7"
-                            strokeWidth="1.25"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg> */}
+                        {/* Rename icon can be added here */}
                       </button>
                       <button
                         onClick={() => handleDeleteTeam(team.id)}
                         className="hover:opacity-70 transition-opacity"
                       >
-                        {/* <svg
-                          width="18"
-                          height="18"
-                          viewBox="0 0 18 18"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M7.4375 3.0625V3.375H10.5625V3.0625C10.5625 2.6481 10.3979 2.25067 10.1049 1.95765C9.81183 1.66462 9.4144 1.5 9 1.5C8.5856 1.5 8.18817 1.66462 7.89515 1.95765C7.60212 2.25067 7.4375 2.6481 7.4375 3.0625ZM6.1875 3.375V3.0625C6.1875 2.31658 6.48382 1.60121 7.01126 1.07376C7.53871 0.546316 8.25408 0.25 9 0.25C9.74592 0.25 10.4613 0.546316 10.9887 1.07376C11.5162 1.60121 11.8125 2.31658 11.8125 3.0625V3.375H16.5C16.6658 3.375 16.8247 3.44085 16.9419 3.55806C17.0592 3.67527 17.125 3.83424 17.125 4C17.125 4.16576 17.0592 4.32473 16.9419 4.44194C16.8247 4.55915 16.6658 4.625 16.5 4.625H15.5575L14.375 14.98C14.2878 15.7426 13.9230 16.4465 13.3501 16.9573C12.7772 17.4682 12.0363 17.7504 11.2687 17.75H6.73125C5.96366 17.7504 5.22279 17.4682 4.64991 16.9573C4.07702 16.4465 3.7122 15.7426 3.625 14.98L2.4425 4.625H1.5C1.33424 4.625 1.17527 4.55915 1.05806 4.44194C0.940848 4.32473 0.875 4.16576 0.875 4C0.875 3.83424 0.940848 3.67527 1.05806 3.55806C1.17527 3.44085 1.33424 3.375 1.5 3.375H6.1875ZM7.75 7.4375C7.75 7.27174 7.68415 7.11277 7.56694 6.99556C7.44973 6.87835 7.29076 6.8125 7.125 6.8125C6.95924 6.8125 6.80027 6.87835 6.68306 6.99556C6.56585 7.11277 6.5 7.27174 6.5 7.4375V13.6875C6.5 13.8533 6.56585 14.0122 6.68306 14.1294C6.80027 14.2467 6.95924 14.3125 7.125 14.3125C7.29076 14.3125 7.44973 14.2467 7.56694 14.1294C7.68415 14.0122 7.75 13.8533 7.75 13.6875V7.4375ZM10.875 6.8125C10.7092 6.8125 10.5503 6.87835 10.4331 6.99556C10.3158 7.11277 10.25 7.27174 10.25 7.4375V13.6875C10.25 13.8533 10.3158 14.0122 10.4331 14.1294C10.5503 14.2467 10.7092 14.3125 10.875 14.3125C11.0408 14.3125 11.1997 14.2467 11.3169 14.1294C11.4342 14.0122 11.5 13.8533 11.5 13.6875V7.4375C11.5 7.27174 11.4342 7.11277 11.3169 6.99556C11.1997 6.87835 11.0408 6.8125 10.875 6.8125Z"
-                            fill="#DD441B"
-                          />
-                        </svg> */}
+                        {/* Delete icon can be added here */}
                       </button>
                     </div>
                   </div>
@@ -544,11 +509,11 @@ const AssignTeamModal = ({ showModal, setShowModal, userId }) => {
         isOpen={showConfirmation}
         onClose={() => {
           setShowConfirmation(false);
-          setTeamToDelete(null); // Clear the team to delete when closing
+          setTeamToDelete(null);
         }}
         onConfirm={teamToDelete ? handleDeleteConfirm : handleAssignTeams}
         message={teamToDelete ? "Are you sure ?" : "Are you sure ?"}
-        confirmText={teamToDelete ? "Yes" : "Cancel"}
+        confirmText={teamToDelete ? "Yes" : "Confirm"}
         darkMode={darkMode}
       />
     </>
