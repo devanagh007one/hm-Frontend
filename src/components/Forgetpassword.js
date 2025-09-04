@@ -17,6 +17,7 @@ const ForgetPassword = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [resetToken, setResetToken] = useState("");
   const [errors, setErrors] = useState({});
+  const [otpSent, setOtpSent] = useState(false);
 
   const dispatch = useDispatch();
   const { loading, success, error, token, resetSuccess } = useSelector(
@@ -74,6 +75,7 @@ const ForgetPassword = () => {
       await emailSchema.validate({ email }, { abortEarly: false });
       setErrors({});
       dispatch(forgetPassword(email));
+      setOtpSent(true);
     } catch (validationErrors) {
       const newErrors = {};
       validationErrors.inner.forEach((error) => {
@@ -98,7 +100,7 @@ const ForgetPassword = () => {
         newErrors[error.path] = error.message;
       });
       setErrors(newErrors);
-      dispatch(showNotification("Please complete the OTP", "error"));
+      dispatch(showNotification("Please complete the OTP correctly", "error"));
     }
   };
 
@@ -120,7 +122,10 @@ const ForgetPassword = () => {
       });
       setErrors(newErrors);
 
-      if (newErrors.confirmPassword) {
+      // Show specific error messages
+      if (newErrors.password) {
+        dispatch(showNotification(newErrors.password, "error"));
+      } else if (newErrors.confirmPassword) {
         dispatch(showNotification(newErrors.confirmPassword, "error"));
       }
     }
@@ -189,41 +194,59 @@ const ForgetPassword = () => {
     }
   };
 
-  // Open OTP Section if success message is received
+  // Show OTP section when OTP is sent or when success is true
   useEffect(() => {
-    if (success && !showOtpSection && !showPasswordSection) {
+    if ((otpSent || success) && !showPasswordSection) {
       setShowOtpSection(true);
-      setErrors({}); // Clear any previous errors
+      setErrors({});
     }
-  }, [success, showOtpSection, showPasswordSection]);
+  }, [otpSent, success, showPasswordSection]);
 
-  // Open Password Section if OTP verified
+  // Show password section when token is received
   useEffect(() => {
     if (token) {
       setResetToken(token);
       setShowPasswordSection(true);
-      setErrors({}); // Clear any previous errors
+      setShowOtpSection(false);
+      setErrors({});
     }
   }, [token]);
 
-  // Reload the page if password reset is successful
+  // Handle API errors with appropriate notifications
   useEffect(() => {
+    if (error) {
+      dispatch(showNotification(error, "error"));
+    }
+  }, [error, dispatch]);
+
+  // Handle success notifications
+  useEffect(() => {
+    if (success && !showOtpSection) {
+      dispatch(showNotification("OTP sent successfully!", "success"));
+    }
+
     if (resetSuccess) {
+      dispatch(
+        showNotification(
+          "Password reset successfully! Redirecting...",
+          "success"
+        )
+      );
       const timeout = setTimeout(() => {
         window.location.reload();
       }, 3000);
 
       return () => clearTimeout(timeout);
     }
-  }, [resetSuccess]);
+  }, [success, resetSuccess, showOtpSection, dispatch]);
 
   return (
     <div className="flex flex-col gap-5 w-3/5">
       {showPasswordSection ? (
         <>
           <div className="pb-12 text-3xl flex flex-col justify-center items-center gap-3 text-black">
-            Sign In to your Account
-            <span className="text-xl">Let's get started!</span>
+            Reset Your Password
+            <span className="text-xl">Almost done!</span>
           </div>
           <div className="password-section flex flex-col w-full items-center gap-4 slide-in-from-left">
             <div className="text-lg subpixel-antialiased">
@@ -273,12 +296,14 @@ const ForgetPassword = () => {
       ) : showOtpSection ? (
         <>
           <div className="pb-12 text-3xl flex flex-col justify-center items-center gap-3 text-black">
-            Sign In to your Account
-            <span className="text-xl">Let's get started!</span>
+            Verify Your Identity
+            <span className="text-xl">
+              Check your {email.includes("@") ? "email" : "phone"} for the OTP
+            </span>
           </div>
           <div className="otp flex flex-col w-full items-center gap-4 slide-in-from-left">
             <div className="text-lg subpixel-antialiased">
-              Enter the 6-digit OTP received on your mobile.
+              Enter the 6-digit OTP sent to {email}.
             </div>
             <div className="flex flex-col items-center">
               <div className="flex space-x-2">
@@ -315,10 +340,12 @@ const ForgetPassword = () => {
         <>
           <div className="pb-10 text-3xl flex flex-col justify-center items-center gap-3 text-black">
             Forgot Password?
-            <span className="text-xl">Lets get you in.</span>
+            <span className="text-xl">We'll help you reset it.</span>
           </div>
           <div className="email flex flex-col w-full items-center gap-4">
-            <label className="text-sm mb-[-8px] w-2/4 ml-4">Receive OTP</label>
+            <label className="text-sm mb-[-8px] w-2/4 ml-4">
+              Enter your email or phone number
+            </label>
             <div className="relative w-2/4 flex flex-col items-center">
               <input
                 type="text"
