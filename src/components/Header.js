@@ -145,7 +145,7 @@ const Header = ({ onProfileSettingsClick }) => {
             </div>
           </section>
         </section>
-        <div className="flex items-center ml-8">
+        {/* <div className="flex items-center ml-8">
           <div>
             <svg
               width="20"
@@ -163,7 +163,7 @@ const Header = ({ onProfileSettingsClick }) => {
           <div className="ml-4 mt-4 mb-4 cursor-pointer">
             <EyeForm></EyeForm>
           </div>
-        </div>
+        </div> */}
         <Profilecreads />
       </section>
     </header>

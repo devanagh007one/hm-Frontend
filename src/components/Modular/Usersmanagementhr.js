@@ -254,8 +254,22 @@ const UserManagement = () => {
           <span style={{ color: "#F48567", marginLeft: "8px" }}>Location</span>
         </div>
       ),
-      dataIndex: "country",
-      key: "country",
+      dataIndex: "location",
+      key: "location",
+      render: (text, record) => {
+        const address = record.address || "";
+        const country = record.country || "";
+
+        if (address && country) {
+          return `${address}, ${country}`;
+        } else if (address) {
+          return address;
+        } else if (country) {
+          return country;
+        } else {
+          return "N/A";
+        }
+      },
     },
     {
       title: (
@@ -273,22 +287,38 @@ const UserManagement = () => {
       dataIndex: "department",
       key: "department",
     },
+    // {
+    //   title: (
+    //     <div className="flex items-center">
+    //       <SvgIcon
+    //         onClick={() =>
+    //           setFilter((prev) => (prev === "Designation" ? "" : "Designation"))
+    //         }
+    //       />
+    //       <span style={{ color: "#F48567", marginLeft: "8px" }}>
+    //         Designation
+    //       </span>
+    //     </div>
+    //   ),
+    //   dataIndex: "firstName, lastName",
+    //   key: "firstName, lastName",
+    // },
     {
       title: (
         <div className="flex items-center">
           <SvgIcon
-            onClick={() =>
-              setFilter((prev) => (prev === "Designation" ? "" : "Designation"))
-            }
+            onClick={() => setFilter((prev) => (prev === "Role" ? "" : "Role"))}
           />
           <span style={{ color: "#F48567", marginLeft: "8px" }}>
             Designation
           </span>
         </div>
       ),
-      dataIndex: "firstName, lastName",
-      key: "firstName, lastName",
+      dataIndex: "roles",
+      key: "roles",
+      render: (roles) => (roles && roles.length > 0 ? roles.join(", ") : "N/A"),
     },
+
     {
       title: (
         <div className="flex items-center">
@@ -428,7 +458,7 @@ const UserManagement = () => {
           value={specificSearchQuery}
           onChange={handlesetSpecificSearchQueryChange}
           type="text"
-          placeholder="Search by Username, Role or Content"
+          placeholder="Search by Username, Role or Contentt"
           className="px-4 py-3 pl-10 rounded-lg focus:outline-none bg-transparent w-96"
         />
         <div className="absolute inset-y-0 left-0 flex items-center pl-3">

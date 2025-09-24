@@ -60,52 +60,68 @@ const EyeForm = ({ data }) => {
   };
 
   const fields = [
-    { label: "User ID", key: "userId" },
-    { label: "Partner Name", key: "firstName" },
+    // { label: "User ID", key: "userId" },
+    // { label: "Partner Name", key: "firstName" },
+    { label: "UserName", key: "userName" },
     {
       label: "Organization Name",
       key: "company",
-      value: company,
       editable: false,
     },
     { label: "Email Address", key: "email" },
     { label: "Phone Number", key: "mobile" },
-    { label: "Location", key: "country" },
-    { label: "Role/ Title at Organization", key: "title_at_organization" },
     {
-      label: "Social Media Profile",
-      key: "social_twitter",
-      key: "social_youtube",
-      key: "social_insta",
+      label: "Location",
+      key: "location",
+      value: `${formData.country || ""} ${formData.address || ""}`,
     },
-    {
-      label: "Type of Content Specialization",
-      key: "type_of_contantSpecilization",
-    },
+    { label: "Department", key: "department" },
+    { label: "Gender", key: "gender" },
+    { label: "DOB", key: "doB" },
+
+    // { label: "Role/ Title at Organization", key: "role_at_organization" }, // display roles
+    // { label: "Social Media Profile", key: "social_twitter" },
+    // {
+    //   label: "Type of Content Specialization",
+    //   key: "type_of_contantSpecilization",
+    // },
     { label: "Date of Joining", key: "joinedAt" },
-    { label: "Brief Bio", key: "brief_bio" },
-    { label: "Preferred Contact Method", key: "contact_method" },
+    // { label: "Blood Group", key: "bloodGroups" },
+    { label: "Relationship Status", key: "relationShipStatus" },
+    { label: "Child Count", key: "childCount" },
+    { label: "Interests", key: "interests" },
+    // { label: "Brief Bio", key: "brief_bio" },
+    // { label: "Preferred Contact Method", key: "contact_method" },
   ];
 
   // Update formData when data or licenseData changes
   useEffect(() => {
     if (data) {
       setFormData({
-        userId: data?.userId || "",
-        firstName: data?.firstName || "",
+        // userId: data?.userId || "",
+        // firstName: data?.firstName || "",
+        userName: data?.userName || "",
         company: data?.company || "",
         email: data?.email || "",
         mobile: data?.mobile || "",
-        country: data?.country || "", // Fixed
-        title_at_organization: data?.title_at_organization || "",
-        social_twitter: data?.social_twitter || "",
-        type_of_contantSpecilization: data?.type_of_contantSpecilization || "",
+        country: data?.country || "",
+        address: data?.address || "",
+        department: data?.department || "",
+        gender: data?.gender || "",
+        doB: data?.doB || "",
+        // role_at_organization: data?.roles?.join(", ") || "", // map roles array
+        // social_twitter: data?.social_twitter || "",
+        // type_of_contantSpecilization: data?.type_of_contantSpecilization || "",
         joinedAt: data?.joinedAt || "",
-        brief_bio: data?.brief_bio || "",
-        contact_method: data?.contact_method || "",
+        // bloodGroups: data?.bloodGroups || "",
+        relationShipStatus: data?.relationShipStatus || "",
+        childCount: data?.childCount || "",
+        interests: data?.interests || "",
+        // brief_bio: data?.brief_bio || "",
+        // contact_method: data?.contact_method || "",
       });
     }
-  }, [data, licenseData]); // Runs when data or licenseData changes
+  }, [data, licenseData]);
 
   const [uploadedImage, setUploadedImage] = useState(null);
 
@@ -403,7 +419,12 @@ const EyeForm = ({ data }) => {
                             />
                           ) : (
                             <span className="ml-4">
-                              {formData[field.key] || "N/A"}
+                              {/* <span className="font-semibold">
+                                {field.label}:
+                              </span> */}
+                              <span>
+                                {field.value || formData[field.key] || "N/A"}
+                              </span>
                             </span>
                           )}
                         </div>

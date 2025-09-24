@@ -554,10 +554,18 @@ const ParentComponent = () => {
       );
 
       handleClosePopup();
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
       setShowSuccessModal(true);
+
+      // 🔄 Double reload logic
+      setTimeout(() => {
+        if (!localStorage.getItem("reloadedOnce")) {
+          localStorage.setItem("reloadedOnce", "true");
+          window.location.reload();
+        } else {
+          localStorage.removeItem("reloadedOnce");
+          window.location.reload();
+        }
+      }, 2000);
     } catch (error) {
       console.error("Submission error:", error);
       dispatch(showNotification(error.message, "error"));
