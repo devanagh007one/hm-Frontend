@@ -39,6 +39,36 @@ const ParentComponent = () => {
   const [editModule, setEditModule] = useState(null);
   const [selectedModule, setSelectedModule] = useState(null);
   const [partners, setPartners] = useState([]);
+  const [navigationHistory, setNavigationHistory] = useState(["section1"]);
+
+  // Add this function to handle back navigation
+  const handleBack = () => {
+    // From Learning Video form (Section 2) → Go back to Module Selection (Section 1)
+    if (isSection2Visible) {
+      setIsSection2Visible(false);
+      setIsSectionVisible(true);
+      // Optionally clear form data
+      // setFormData(initialModuleData);
+    }
+    // From Created Module List → Go back to Learning Video form (Section 2)
+    else if (isCreatedModuleVisible) {
+      setisCreatedModuleVisible(false);
+      setIsSection2Visible(true);
+    }
+    // From Challenge form (Section 3) → Go back to Module Selection (Section 1)
+    else if (isSection3Visible) {
+      setIsSection3Visible(false);
+      setIsSectionVisible(true);
+      // Optionally clear challenge data
+      // setChallengeData(initialChallangeData);
+      // settime({ duration: 0 });
+    }
+    // From Created Content List → Go back to Challenge form (Section 3)
+    else if (isCreatedContentVisible) {
+      setisCreatedContentVisible(false);
+      setIsSection3Visible(true);
+    }
+  };
 
   useEffect(() => {
     const partnerUsers = JSON.parse(localStorage.getItem("partnerUsers")) || [];
@@ -104,6 +134,9 @@ const ParentComponent = () => {
   const [challengeToDelete, setChallengeToDelete] = useState(null);
   const [showChallengeDeleteModal, setShowChallengeDeleteModal] =
     useState(false);
+
+  const [learningVideoSubmitted, setLearningVideoSubmitted] = useState(false);
+  const [challengeSubmitted, setChallengeSubmitted] = useState(false);
 
   // console.log(modules, challenges);
   const toggleTrackOpen = () => setIsOpenTrack(!isOpenTrack);
@@ -495,85 +528,6 @@ const ParentComponent = () => {
     setShowChallengeSubmitConfirmation(true);
   };
 
-  const handleSave = async () => {
-    const selectedModule = JSON.parse(localStorage.getItem("selectedModule"));
-
-    if (!selectedModule?.id) {
-      dispatch(showNotification("No module selected", "error"));
-      return;
-    }
-
-    setLoadingLink(true);
-    setShowChallengeSubmitConfirmation(false);
-
-    try {
-      for (const challenge of challenges) {
-        const formData = new FormData();
-
-        // Required fields
-        formData.append(
-          "uniChallengeId",
-          challenge.uniChallengeId || generateUniqueId()
-        );
-        formData.append("challengeName", challenge.challengeName || "");
-        formData.append("module", selectedModule.id);
-        formData.append(
-          "challenge_Description",
-          challenge.challenge_Description || ""
-        );
-
-        // Use the uploadedById from the selected module
-        formData.append("uploaded_by", selectedModule.uploadedById);
-
-        // Optional fields with defaults
-        formData.append("duration", challenge.duration || "0h 00 min");
-        formData.append(
-          "challenge_benefits",
-          challenge.challenge_benefits || ""
-        );
-        formData.append(
-          "difficulty_Level",
-          challenge.difficulty_Level || "Medium"
-        );
-
-        // File upload
-        if (challenge.video_or_image) {
-          formData.append("video_or_image", challenge.video_or_image);
-        }
-
-        const response = await dispatch(createchallenge(formData));
-
-        if (!response?.success) {
-          console.error("API Error Response:", response);
-          throw new Error(response?.message || "Challenge submission failed");
-        }
-      }
-
-      dispatch(
-        showNotification("Challenges submitted successfully!", "success")
-      );
-
-      handleClosePopup();
-      setShowSuccessModal(true);
-
-      // 🔄 Double reload logic
-      setTimeout(() => {
-        if (!localStorage.getItem("reloadedOnce")) {
-          localStorage.setItem("reloadedOnce", "true");
-          window.location.reload();
-        } else {
-          localStorage.removeItem("reloadedOnce");
-          window.location.reload();
-        }
-      }, 2000);
-    } catch (error) {
-      console.error("Submission error:", error);
-      dispatch(showNotification(error.message, "error"));
-    } finally {
-      setLoadingLink(false);
-    }
-  };
-
   const handleCancelConfirmation = () => {
     setShowCancelConfirmation(true);
   };
@@ -594,11 +548,7 @@ const ParentComponent = () => {
   };
 
   const handleCreateContent = async () => {
-    // Before the for-loop in handleSave()
     setShowSubmitConfirmation(false);
-    setIsSection2Visible(false);
-    setisCreatedModuleVisible(false);
-    setLoadingLink(true);
     setIsSection2Visible(false);
     setisCreatedModuleVisible(false);
     setLoadingLink(true);
@@ -638,17 +588,74 @@ const ParentComponent = () => {
           "success"
         )
       );
-      setShowPopup(false);
-      localStorage.setItem("activeComponent", "ContentManagement");
-      handleClosePopup?.();
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
+
+      setLoadingLink(false);
       setShowSuccessModal(true);
     } catch (error) {
       dispatch(
         showNotification("An error occurred during submission.", "error")
       );
+      setLoadingLink(false);
+    }
+  };
+
+  const handleSave = async () => {
+    const selectedModule = JSON.parse(localStorage.getItem("selectedModule"));
+
+    if (!selectedModule?.id) {
+      dispatch(showNotification("No module selected", "error"));
+      return;
+    }
+
+    setLoadingLink(true);
+    setShowChallengeSubmitConfirmation(false);
+
+    try {
+      for (const challenge of challenges) {
+        const formData = new FormData();
+
+        formData.append(
+          "uniChallengeId",
+          challenge.uniChallengeId || generateUniqueId()
+        );
+        formData.append("challengeName", challenge.challengeName || "");
+        formData.append("module", selectedModule.id);
+        formData.append(
+          "challenge_Description",
+          challenge.challenge_Description || ""
+        );
+        formData.append("uploaded_by", selectedModule.uploadedById);
+        formData.append("duration", challenge.duration || "0h 00 min");
+        formData.append(
+          "challenge_benefits",
+          challenge.challenge_benefits || ""
+        );
+        formData.append(
+          "difficulty_Level",
+          challenge.difficulty_Level || "Medium"
+        );
+
+        if (challenge.video_or_image) {
+          formData.append("video_or_image", challenge.video_or_image);
+        }
+
+        const response = await dispatch(createchallenge(formData));
+
+        if (!response?.success) {
+          console.error("API Error Response:", response);
+          throw new Error(response?.message || "Challenge submission failed");
+        }
+      }
+
+      dispatch(
+        showNotification("Challenges submitted successfully!", "success")
+      );
+
+      setLoadingLink(false);
+      setShowChallengeSuccess(true);
+    } catch (error) {
+      console.error("Submission error:", error);
+      dispatch(showNotification(error.message, "error"));
       setLoadingLink(false);
     }
   };
@@ -738,14 +745,74 @@ const ParentComponent = () => {
             }`}
             onClick={(e) => e.stopPropagation()} // Prevent closing popup on click inside
           >
-            <div className="flex justify-between items-center">
-              <div className="flex flex-col mb-6">
-                {/* Main Title */}
-                <h1 className="text-2xl font-bold">
-                  Track: {formData.tracks || "Select Track"}
-                </h1>
+            <div className="flex justify-between items-center ">
+              <div className="flex flex-col mb-6  w-full">
+                <div className="flex justify-between items-center  w-full">
+                  <div className="">
+                    {!isSectionVisible && !isLoadingLink && (
+                      <button
+                        onClick={handleBack}
+                        className={`p-2 rounded-lg transition-colors ${
+                          darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
+                        }`}
+                        aria-label="Go back"
+                      >
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 20 20"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M12.5 15L7.5 10L12.5 5"
+                            stroke={darkMode ? "#FFFFFF" : "#000000"}
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                  <div>
+                    <h1 className="text-2xl font-bold">
+                      Track: {formData.tracks || "Select Track"}
+                    </h1>
+                  </div>
 
-                {/* Breadcrumb Navigation */}
+                  <div>
+                    {!isLoadingLink && (
+                      <svg
+                        className="cursor-pointer "
+                        onClick={handleClosePopup}
+                        width="24"
+                        height="25"
+                        viewBox="0 0 24 25"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <g clipPath="url(#clip0_3261_1019)">
+                          <path
+                            d="M3.516 20.985C2.36988 19.878 1.45569 18.5539 0.826781 17.0898C0.197873 15.6258 -0.133162 14.0511 -0.147008 12.4578C-0.160854 10.8644 0.142767 9.28428 0.746137 7.80953C1.34951 6.33477 2.24055 4.99495 3.36726 3.86823C4.49397 2.74152 5.83379 1.85048 7.30855 1.24711C8.78331 0.643743 10.3635 0.340123 11.9568 0.353969C13.5502 0.367815 15.1248 0.698849 16.5889 1.32776C18.0529 1.95667 19.377 2.87085 20.484 4.01697C22.6699 6.2802 23.8794 9.31143 23.8521 12.4578C23.8247 15.6042 22.5627 18.6139 20.3378 20.8388C18.1129 23.0637 15.1032 24.3257 11.9568 24.3531C8.81045 24.3804 5.77922 23.1709 3.516 20.985ZM5.208 19.293C7.00935 21.0943 9.4525 22.1063 12 22.1063C14.5475 22.1063 16.9906 21.0943 18.792 19.293C20.5933 17.4916 21.6053 15.0485 21.6053 12.501C21.6053 9.95348 20.5933 7.51032 18.792 5.70897C16.9906 3.90762 14.5475 2.89564 12 2.89564C9.4525 2.89564 7.00935 3.90762 5.208 5.70897C3.40665 7.51032 2.39466 9.95348 2.39466 12.501C2.39466 15.0485 3.40665 17.4916 5.208 19.293ZM17.088 9.10497L13.692 12.501L17.088 15.897L15.396 17.589L12 14.193L8.604 17.589L6.912 15.897L10.308 12.501L6.912 9.10497L8.604 7.41297L12 10.809L15.396 7.41297L17.088 9.10497Z"
+                            fill="#C7C7C7"
+                          />
+                        </g>
+                        <defs>
+                          <clipPath id="clip0_3261_1019">
+                            <rect
+                              width="24"
+                              height="24"
+                              fill="white"
+                              transform="translate(0 0.5)"
+                            />
+                          </clipPath>
+                        </defs>
+                      </svg>
+                    )}
+                  </div>
+                </div>
+
                 <div className="flex items-center text-sm text-gray-500 mt-1">
                   {isSectionVisible && <span>Select Module</span>}
 
@@ -768,35 +835,6 @@ const ParentComponent = () => {
                   )}
                 </div>
               </div>
-
-              {!isLoadingLink && (
-                <svg
-                  className="cursor-pointer mb-5"
-                  onClick={handleClosePopup}
-                  width="24"
-                  height="25"
-                  viewBox="0 0 24 25"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <g clipPath="url(#clip0_3261_1019)">
-                    <path
-                      d="M3.516 20.985C2.36988 19.878 1.45569 18.5539 0.826781 17.0898C0.197873 15.6258 -0.133162 14.0511 -0.147008 12.4578C-0.160854 10.8644 0.142767 9.28428 0.746137 7.80953C1.34951 6.33477 2.24055 4.99495 3.36726 3.86823C4.49397 2.74152 5.83379 1.85048 7.30855 1.24711C8.78331 0.643743 10.3635 0.340123 11.9568 0.353969C13.5502 0.367815 15.1248 0.698849 16.5889 1.32776C18.0529 1.95667 19.377 2.87085 20.484 4.01697C22.6699 6.2802 23.8794 9.31143 23.8521 12.4578C23.8247 15.6042 22.5627 18.6139 20.3378 20.8388C18.1129 23.0637 15.1032 24.3257 11.9568 24.3531C8.81045 24.3804 5.77922 23.1709 3.516 20.985ZM5.208 19.293C7.00935 21.0943 9.4525 22.1063 12 22.1063C14.5475 22.1063 16.9906 21.0943 18.792 19.293C20.5933 17.4916 21.6053 15.0485 21.6053 12.501C21.6053 9.95348 20.5933 7.51032 18.792 5.70897C16.9906 3.90762 14.5475 2.89564 12 2.89564C9.4525 2.89564 7.00935 3.90762 5.208 5.70897C3.40665 7.51032 2.39466 9.95348 2.39466 12.501C2.39466 15.0485 3.40665 17.4916 5.208 19.293ZM17.088 9.10497L13.692 12.501L17.088 15.897L15.396 17.589L12 14.193L8.604 17.589L6.912 15.897L10.308 12.501L6.912 9.10497L8.604 7.41297L12 10.809L15.396 7.41297L17.088 9.10497Z"
-                      fill="#C7C7C7"
-                    />
-                  </g>
-                  <defs>
-                    <clipPath id="clip0_3261_1019">
-                      <rect
-                        width="24"
-                        height="24"
-                        fill="white"
-                        transform="translate(0 0.5)"
-                      />
-                    </clipPath>
-                  </defs>
-                </svg>
-              )}
             </div>
 
             <div>
@@ -1129,7 +1167,7 @@ const ParentComponent = () => {
                                           }`}
                                         >
                                           <span className="text-sm text-gray-400">
-                                            Upload Track Photo
+                                            Upload Module Photo
                                           </span>
                                           <Upload size={16} />
                                           <input
@@ -1236,15 +1274,43 @@ const ParentComponent = () => {
                           formData.partner && formData.tracks && formData.module
                             ? " cursor-pointer"
                             : "cursor-pointer "
-                        } ${darkMode ? "bg-[#333333]" : "bg-gray-200"}
-                           
-                      }`}
+                        } ${darkMode ? "bg-[#333333]" : "bg-gray-200"}`}
                         onClick={handleOpenLearningVideo}
-                        // disabled={!formData.tracks || !formData.module} // Only check tracks and module
                       >
-                        <div className="flex  justify-between items-center">
-                          <span>Learning Video</span>
-                          <SquarePlus />
+                        <div className="flex justify-between items-center">
+                          <span>
+                            {learningVideoSubmitted
+                              ? "Submitted"
+                              : "Learning Video"}
+                          </span>
+                          {learningVideoSubmitted ? (
+                            // ✅ Checkmark SVG
+                            <svg
+                              width="18"
+                              height="18"
+                              viewBox="0 0 18 18"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                d="M16.8134 9.93536C16.1884 13.0604 13.8321 16.0029 10.5259 16.6604C8.91338 16.9815 7.24066 16.7857 5.7459 16.1008C4.25114 15.416 3.01054 14.277 2.20076 12.8461C1.39098 11.4152 1.05329 9.76522 1.23578 8.1312C1.41827 6.49718 2.11163 4.96239 3.21714 3.74536C5.48464 1.24786 9.31339 0.56036 12.4384 1.81036"
+                                stroke="#F48567"
+                                stroke-width="1.875"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                              />
+                              <path
+                                d="M6.1875 8.68652L9.3125 11.8115L16.8125 3.68652"
+                                stroke="#F48567"
+                                stroke-width="1.875"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                              />
+                            </svg>
+                          ) : (
+                            // ➕ Square plus icon
+                            <SquarePlus />
+                          )}
                         </div>
                       </button>
                       <button
@@ -1253,15 +1319,39 @@ const ParentComponent = () => {
                           formData.partner
                             ? " cursor-pointer"
                             : "cursor-pointer "
-                        } ${darkMode ? "bg-[#333333]" : "bg-gray-200"}
-                           
-                      }`}
+                        } ${darkMode ? "bg-[#333333]" : "bg-gray-200"}`}
                         onClick={handleOpenChallange}
-                        // disabled={!formData.partner}
                       >
-                        <div className="flex  justify-between items-center">
-                          <span>Challenge</span>
-                          <SquarePlus />
+                        <div className="flex justify-between items-center">
+                          <span>
+                            {challengeSubmitted ? "Submitted" : "Challenge"}
+                          </span>
+                          {challengeSubmitted ? (
+                            <svg
+                              width="18"
+                              height="18"
+                              viewBox="0 0 18 18"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                d="M16.8134 9.93536C16.1884 13.0604 13.8321 16.0029 10.5259 16.6604C8.91338 16.9815 7.24066 16.7857 5.7459 16.1008C4.25114 15.416 3.01054 14.277 2.20076 12.8461C1.39098 11.4152 1.05329 9.76522 1.23578 8.1312C1.41827 6.49718 2.11163 4.96239 3.21714 3.74536C5.48464 1.24786 9.31339 0.56036 12.4384 1.81036"
+                                stroke="#F48567"
+                                stroke-width="1.875"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                              />
+                              <path
+                                d="M6.1875 8.68652L9.3125 11.8115L16.8125 3.68652"
+                                stroke="#F48567"
+                                stroke-width="1.875"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                              />
+                            </svg>
+                          ) : (
+                            <SquarePlus />
+                          )}
                         </div>
                       </button>
                     </div>
@@ -2124,15 +2214,41 @@ const ParentComponent = () => {
         isOpen={showSuccessModal}
         onClose={() => {
           setShowSuccessModal(false);
-          handleClosePopup(); // Reset to first step
+          // Reset to first section and show "Submitted" text
+          setIsSectionVisible(true);
+          setIsSection2Visible(false);
+          setisCreatedModuleVisible(false);
+          setModules([]);
+          setFormData(initialModuleData);
+
+          // Set submitted state
+          setLearningVideoSubmitted(true);
+
+          // Reset after 2 seconds
+          setTimeout(() => {
+            setLearningVideoSubmitted(false);
+          }, 2000);
         }}
         onConfirm={() => {
           setShowSuccessModal(false);
-          handleClosePopup(); // Reset to first step
+          // Reset to first section and show "Submitted" text
+          setIsSectionVisible(true);
+          setIsSection2Visible(false);
+          setisCreatedModuleVisible(false);
+          setModules([]);
+          setFormData(initialModuleData);
+
+          // Set submitted state
+          setLearningVideoSubmitted(true);
+
+          // Reset after 2 seconds
+          setTimeout(() => {
+            setLearningVideoSubmitted(false);
+          }, 2000);
         }}
         message="Your Learning Data Successfully Submitted."
         confirmText="OK"
-        showCancel={false} // Add this prop to your ConfirmationModal to hide cancel button
+        showCancel={false}
         darkMode={darkMode}
       />
 
@@ -2161,11 +2277,39 @@ const ParentComponent = () => {
         isOpen={showChallengeSuccess}
         onClose={() => {
           setShowChallengeSuccess(false);
-          handleClosePopup(); // Reset to first step
+          // Reset to first section and show "Submitted" text
+          setIsSectionVisible(true);
+          setIsSection3Visible(false);
+          setisCreatedContentVisible(false);
+          setChallenges([]);
+          setChallengeData(initialChallangeData);
+          settime({ duration: 0 });
+
+          // Set submitted state
+          setChallengeSubmitted(true);
+
+          // Reset after 2 seconds
+          setTimeout(() => {
+            setChallengeSubmitted(false);
+          }, 2000);
         }}
         onConfirm={() => {
           setShowChallengeSuccess(false);
-          handleClosePopup(); // Reset to first step
+          // Reset to first section and show "Submitted" text
+          setIsSectionVisible(true);
+          setIsSection3Visible(false);
+          setisCreatedContentVisible(false);
+          setChallenges([]);
+          setChallengeData(initialChallangeData);
+          settime({ duration: 0 });
+
+          // Set submitted state
+          setChallengeSubmitted(true);
+
+          // Reset after 2 seconds
+          setTimeout(() => {
+            setChallengeSubmitted(false);
+          }, 2000);
         }}
         message="Your Challenge Data Successfully Submitted."
         confirmText="OK"

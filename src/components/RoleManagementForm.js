@@ -394,7 +394,7 @@ const ParentComponent = () => {
       {showPopup && (
         <div className="popup-overlay">
           <div
-            className={`rounded-xl border border-gray-600 focus:outline-none-lg shadow-lg w-[35%] overflow-y-scroll max-w-3xl p-8 relative flex flex-col max-h-[90%] ${
+            className={`rounded-xl border border-gray-600 focus:outline-none-lg shadow-lg w-[45%] overflow-y-scroll  p-8 relative flex flex-col max-h-[90%] ${
               darkMode ? "bg-[#222222] text-white" : "bg-[#fff] text-dark"
             }`}
           >
@@ -592,9 +592,9 @@ const ParentComponent = () => {
 
             {formData.roles === "Partner" && (
               <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-                <div className="flex gap-4 mt-3">
+                <div className="flex gap-4 mt-3 ">
                   <div className="flex flex-col w-1/2">
-                    <label className=" mb-1">Partner Name</label>
+                    <label className=" mb-1">Partner Namee</label>
                     <input
                       name="fullName" // Changed to a specific name
                       onChange={handleFullNameChange} // This splits into firstName/lastName
@@ -737,7 +737,7 @@ const ParentComponent = () => {
 
                 <div className="flex flex-row items-center">
                   <label className="mr-2">Preferred Contact Method:</label>
-                  <Radio.Group
+                  <Checkbox.Group
                     options={[
                       {
                         label: <span className="text-white">Call</span>,
@@ -751,10 +751,12 @@ const ParentComponent = () => {
                     className="p-2 flex justify-start gap-5 rounded-xl"
                     required
                     value={formData.contact_method}
-                    onChange={(e) =>
+                    onChange={(
+                      checkedValues // Changed from (e) to (checkedValues)
+                    ) =>
                       setFormData({
                         ...formData,
-                        contact_method: e.target.value,
+                        contact_method: checkedValues, // Changed from e.target.value to checkedValues
                       })
                     }
                   />

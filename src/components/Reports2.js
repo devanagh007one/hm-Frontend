@@ -1,21 +1,21 @@
 import React, { useState } from "react";
 import * as d3 from "d3";
 
-import { useSelector } from 'react-redux';
-import backgroundimage from '../Images/backgroundreport.png';
-import { IconDownload } from '@tabler/icons-react';
+import { useSelector } from "react-redux";
+import backgroundimage from "../Images/backgroundreport.png";
+import { IconDownload } from "@tabler/icons-react";
 import { DatePicker } from "antd";
 import dayjs from "dayjs";
 
 const Reports = () => {
-
   const [openStart, setOpenStart] = useState(false);
   const [openEnd, setOpenEnd] = useState(false);
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const darkMode = useSelector((state) => state.theme.darkMode);
-  const cardClass = `${darkMode ? 'bg-zinc-800 text-zinc-300' : 'bg-slate-100 text-black'}`;
-
+  const cardClass = `${
+    darkMode ? "bg-zinc-800 text-zinc-300" : "bg-slate-100 text-black"
+  }`;
 
   // Data points for the line chart
   const [hoveredPoint, setHoveredPoint] = useState(null);
@@ -45,7 +45,6 @@ const Reports = () => {
     x: (index + 1) * spacing, // Assign dynamic x positions
   }));
 
-
   const handleMouseEnter = (point) => {
     setHoveredPoint(point);
   };
@@ -55,20 +54,23 @@ const Reports = () => {
   };
 
   const generatePath = (points) => {
-    const lineGenerator = d3.line()
-      .x(d => d.x)
-      .y(d => d.y)
+    const lineGenerator = d3
+      .line()
+      .x((d) => d.x)
+      .y((d) => d.y)
       .curve(d3.curveCatmullRom.alpha(0.5)); // Adjust alpha for sharpness
 
     return lineGenerator(points);
   };
 
-
   return (
-    <div className={`datepicker p-6 rounded-2xl shadow-lg w-[480px] h-[300px] relative ${darkMode ? 'bg-zinc-800 ' : 'bg-slate-100 text-black'}`}>
-
+    <div
+      className={`datepicker p-6 rounded-2xl shadow-lg w-[480px] h-[300px] relative ${
+        darkMode ? "bg-zinc-800 " : "bg-slate-100 text-black"
+      }`}
+    >
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-lg font-semibold ">Content Stats</h1>
+        <h1 className="text-lg font-semibold ">Event Activity</h1>
         <div className="flex gap-2">
           <div className="flex gap-4">
             {/* Start Date Button */}
@@ -79,7 +81,9 @@ const Reports = () => {
                   className="text-sm rounded-lg border p-1"
                   onClick={() => setOpenStart(true)}
                 >
-                  {startDate ? dayjs(startDate).format("YYYY-MM-DD") : "Start Date"}
+                  {startDate
+                    ? dayjs(startDate).format("YYYY-MM-DD")
+                    : "Start Date"}
                 </button>
                 {openStart && (
                   <DatePicker
@@ -114,8 +118,16 @@ const Reports = () => {
               </div>
             </div>
           </div>
-          <div className={` top-4 right-4 ${darkMode ? 'bg-zinc-800 text-white' : 'bg-slate-100 text-black'}`}>
-            <select className={`px-3 py-1 rounded-md rounded-xl border border-gray-600 ${darkMode ? 'bg-zinc-800 text-white' : 'bg-slate-100 text-black'}`} >
+          <div
+            className={` top-4 right-4 ${
+              darkMode ? "bg-zinc-800 text-white" : "bg-slate-100 text-black"
+            }`}
+          >
+            <select
+              className={`px-3 py-1 rounded-md rounded-xl border border-gray-600 ${
+                darkMode ? "bg-zinc-800 text-white" : "bg-slate-100 text-black"
+              }`}
+            >
               <option value="daily">Daily</option>
               <option value="weekly">Weekly</option>
               <option value="monthly">Monthly</option>
@@ -173,6 +185,6 @@ const Reports = () => {
       </div>
     </div>
   );
-}
+};
 
 export default Reports;
