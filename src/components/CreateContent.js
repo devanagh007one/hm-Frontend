@@ -133,14 +133,14 @@ const ParentComponent = () => {
   };
 
   const tracks = [
+    "Fitnes",
     "Values",
     "Dance",
-    "Fitness",
-    "Mindfulness",
-    "Music",
-    "Art",
-    "Cooking",
-    "Yoga",
+    "Meditation",
+    "Art and Creativity ",
+    // "Art",
+    // "Cooking",
+    // "Yoga",
   ];
 
   const handleSelectPartner = (option) => {
@@ -1455,7 +1455,7 @@ const ParentComponent = () => {
                               onClick={handleClosePopup}
                               className="bg-[#C7C7C7] px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#000]"
                             >
-                              Cancel
+                              Cancelll
                             </button>
                           </div>
                         </div>
@@ -1864,9 +1864,10 @@ const ParentComponent = () => {
 
                       <div className="flex flex-col w-full">
                         <button
-                          onClick={() => {
-                            setisCreatedContentVisible(true);
-                          }}
+                          // onClick={() => {
+                          //   setisCreatedContentVisible(true);
+                          // }}
+                          onClick={handleClosePopup}
                           className="bg-[#C7C7C7] px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#000]"
                         >
                           Cancel

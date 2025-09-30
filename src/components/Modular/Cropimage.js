@@ -1,10 +1,11 @@
 import React, { useState, useRef } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { editUserProfile } from "../../redux/actions/alluserGet";
+import { fetchUsers } from "../../redux/actions/authActions";
 import CryptoJS from "crypto-js";
 import { Upload, Button } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
-import { showNotification } from "../../redux/actions/notificationActions"; // Import showNotification
+import { showNotification } from "../../redux/actions/notificationActions";
 
 const ImageEditor = () => {
   const [showPopup, setShowPopup] = useState(false);
@@ -13,7 +14,8 @@ const ImageEditor = () => {
   const [rotation, setRotation] = useState(0);
   const [tilt, setTilt] = useState(0);
   const canvasRef = useRef(null);
-  const [verticalOffset, setVerticalOffset] = useState(2); // New state for vertical shift
+  const [verticalOffset, setVerticalOffset] = useState(2);
+  const [isUploading, setIsUploading] = useState(false);
   const dispatch = useDispatch();
 
   const handleViewPopup = () => setShowPopup(true);
@@ -28,12 +30,14 @@ const ImageEditor = () => {
 
   const handleImageUpload = (info) => {
     if (info.file) {
-      setImage(info.file); // Store the File object
+      setImage(info.file);
     }
   };
 
-  const handleApply = () => {
-    if (!image || !canvasRef.current) return;
+  const handleApply = async () => {
+    if (!image || !canvasRef.current || isUploading) return;
+
+    setIsUploading(true);
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
@@ -41,9 +45,9 @@ const ImageEditor = () => {
     const img = new Image();
     img.src = URL.createObjectURL(image);
 
-    img.onload = () => {
+    img.onload = async () => {
       // Set canvas size to match the final output size
-      const targetSize = 400; // Desired output size
+      const targetSize = 400;
       canvas.width = targetSize;
       canvas.height = targetSize;
 
@@ -85,32 +89,44 @@ const ImageEditor = () => {
           userId = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
         } catch (error) {
           console.error("Decryption error:", error);
+          setIsUploading(false);
           return;
         }
       }
 
       if (!userId) {
         console.error("Failed to retrieve userId");
+        setIsUploading(false);
         return;
       }
 
       // Convert to Blob and Send to Server
-      canvas.toBlob((blob) => {
-        if (!blob) return;
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          setIsUploading(false);
+          return;
+        }
+
         const formData = new FormData();
         formData.append("image", blob, "edited-image.png");
 
-        dispatch(editUserProfile(userId, formData));
+        try {
+          // Upload the image
+          await dispatch(editUserProfile(userId, formData));
+
+          // Fetch updated user data
+          await dispatch(fetchUsers());
+
+          // Close popup and show success notification
+          handleClosePopup();
+          dispatch(showNotification("Image Updated successfully!", "success"));
+        } catch (error) {
+          console.error("Error uploading image:", error);
+          dispatch(showNotification("Failed to update image", "error"));
+        } finally {
+          setIsUploading(false);
+        }
       }, "image/png");
-
-      handleClosePopup();
-      dispatch(showNotification("Image Updated successfully!", "success"));
-
-      localStorage.setItem("activeComponent", "ProfileSettings");
-
-      setTimeout(() => {
-        window.location.reload();
-      }, 3000);
     };
   };
 
@@ -128,22 +144,22 @@ const ImageEditor = () => {
           <path
             d="M18.693 10.8078L17.6531 9.16484C17.434 8.90938 17.1336 8.75 16.7969 8.75H13.2031C12.8664 8.75 12.566 8.90938 12.3469 9.16484L11.307 10.8078C11.0879 11.0637 10.8055 11.25 10.4688 11.25H8.125C7.79348 11.25 7.47554 11.3817 7.24112 11.6161C7.0067 11.8505 6.875 12.1685 6.875 12.5V20C6.875 20.3315 7.0067 20.6495 7.24112 20.8839C7.47554 21.1183 7.79348 21.25 8.125 21.25H21.875C22.2065 21.25 22.5245 21.1183 22.7589 20.8839C22.9933 20.6495 23.125 20.3315 23.125 20V12.5C23.125 12.1685 22.9933 11.8505 22.7589 11.6161C22.5245 11.3817 22.2065 11.25 21.875 11.25H19.5703C19.2324 11.25 18.9121 11.0637 18.693 10.8078Z"
             stroke="#1E1E1E"
-            stroke-width="1.25"
-            stroke-linecap="round"
-            stroke-linejoin="round"
+            strokeWidth="1.25"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           />
           <path
             d="M15 18.75C16.7259 18.75 18.125 17.3509 18.125 15.625C18.125 13.8991 16.7259 12.5 15 12.5C13.2741 12.5 11.875 13.8991 11.875 15.625C11.875 17.3509 13.2741 18.75 15 18.75Z"
             stroke="#1E1E1E"
-            stroke-width="1.25"
-            stroke-miterlimit="10"
+            strokeWidth="1.25"
+            strokeMiterlimit="10"
           />
           <path
             d="M9.84375 11.1719V10.3125H8.90625V11.1719"
             stroke="#1E1E1E"
-            stroke-width="1.25"
-            stroke-linecap="round"
-            stroke-linejoin="round"
+            strokeWidth="1.25"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           />
         </svg>
       </div>
@@ -298,7 +314,7 @@ const ImageEditor = () => {
                       <div className="flex items-center gap-3">
                         <span
                           className="text-orange-400 text-lg cursor-pointer"
-                          onClick={() => setTilt(Math.max(-10, tilt - 1))} // Adjusts Tilt
+                          onClick={() => setTilt(Math.max(-10, tilt - 1))}
                           style={{
                             userSelect: "none",
                             WebkitUserSelect: "none",
@@ -323,7 +339,7 @@ const ImageEditor = () => {
                         />
                         <span
                           className="text-orange-400 text-lg cursor-pointer"
-                          onClick={() => setTilt(Math.min(10, tilt + 1))} // Adjusts Tilt
+                          onClick={() => setTilt(Math.min(10, tilt + 1))}
                           style={{
                             userSelect: "none",
                             WebkitUserSelect: "none",
@@ -347,7 +363,7 @@ const ImageEditor = () => {
                             setVerticalOffset(
                               Math.max(-100, verticalOffset - 5)
                             )
-                          } // Adjusts Vertical Offset
+                          }
                           style={{
                             userSelect: "none",
                             WebkitUserSelect: "none",
@@ -376,7 +392,7 @@ const ImageEditor = () => {
                           className="text-orange-400 text-lg cursor-pointer"
                           onClick={() =>
                             setVerticalOffset(Math.min(100, verticalOffset + 5))
-                          } // Adjusts Vertical Offset
+                          }
                           style={{
                             userSelect: "none",
                             WebkitUserSelect: "none",
@@ -395,19 +411,24 @@ const ImageEditor = () => {
                     <div className="flex flex-col w-40">
                       <button
                         onClick={handleApply}
-                        className="bg-[#F48567] px-4 py-2 rounded-xl text-[#000]"
+                        disabled={isUploading}
+                        className="bg-[#F48567] px-4 py-2 rounded-xl text-[#000] disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Apply
+                        {isUploading ? "Uploading..." : "Apply"}
                       </button>
                     </div>
                     <div className="flex flex-col w-40">
                       <Upload
                         accept="image/*"
-                        showUploadList={false} // Hide file list display
-                        beforeUpload={() => false} // Prevent auto-upload, handle manually
+                        showUploadList={false}
+                        beforeUpload={() => false}
                         onChange={handleImageUpload}
+                        disabled={isUploading}
                       >
-                        <Button icon={<UploadOutlined />}>
+                        <Button
+                          icon={<UploadOutlined />}
+                          disabled={isUploading}
+                        >
                           {image
                             ? image.name.length > 15
                               ? image.name.substring(0, 12) + "..."
@@ -423,14 +444,13 @@ const ImageEditor = () => {
                 <div>
                   <Upload
                     accept="image/*"
-                    showUploadList={false} // Hide file list display
-                    beforeUpload={() => false} // Prevent auto-upload, handle manually
+                    showUploadList={false}
+                    beforeUpload={() => false}
                     onChange={handleImageUpload}
                   >
                     <Button icon={<UploadOutlined />}>Upload Image</Button>
                   </Upload>
-                  {image && <p>{image.name}</p>}{" "}
-                  {/* Display selected file name */}
+                  {image && <p>{image.name}</p>}
                 </div>
               )}
             </div>

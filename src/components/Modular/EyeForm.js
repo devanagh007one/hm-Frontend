@@ -10,6 +10,7 @@ const EyeForm = ({ data }) => {
   const darkMode = useSelector((state) => state.theme.darkMode);
   const { licenseData } = useSelector((state) => state.licensing);
   const currentUser = useSelector((state) => state.auth.currentUser) || data;
+  const userData = data;
 
   // State management
   const [showPopup, setShowPopup] = useState(false);
@@ -44,13 +45,9 @@ const EyeForm = ({ data }) => {
       setCompany(licenseData.license.usedLicenses);
     }
 
-    if (currentUser) {
-      const userData = currentUser.user || currentUser;
+    if (userData) {
       const initialFormData = {
-        userName:
-          userData.userName ||
-          `${userData.firstName || ""} ${userData.lastName || ""}`.trim() ||
-          "N/A",
+        userName: userData.userName || "N/A",
         company: userData.company || company || "N/A",
         email: userData.email || "N/A",
         mobile: userData.mobile || "N/A",
@@ -67,7 +64,7 @@ const EyeForm = ({ data }) => {
       };
       setFormData(initialFormData);
     }
-  }, [currentUser, company, licenseData]);
+  }, [userData, company, licenseData]);
 
   // Helper functions
   const formatDate = (dateString) => {
@@ -166,22 +163,20 @@ const EyeForm = ({ data }) => {
     setIsActivityLogOpen(!isActivityLogOpen);
   };
 
+  const [isOpen, setIsOpen] = useState(false);
 
-    const [isOpen, setIsOpen] = useState(false);
+  const handleOpenSidebar = () => {
+    setIsOpen(!isOpen); // Toggle the state
+  };
 
-    const handleOpenSidebar = () => {
-      setIsOpen(!isOpen); // Toggle the state
-    };
+  const handleDelete = async (data) => {
+    await dispatch(deleteUser([data]));
+    handleClosePopup();
+    dispatch(showNotification("Deleted License successful!", "success"));
 
-      const handleDelete = async (data) => {
-        await dispatch(deleteUser([data]));
-        handleClosePopup();
-        dispatch(showNotification("Deleted License successful!", "success"));
-    
-        localStorage.setItem("activeComponent", "Rolemanagement"); // Store Licensing before reload
-        // window.location.reload();
-      }
-
+    localStorage.setItem("activeComponent", "Rolemanagement"); // Store Licensing before reload
+    // window.location.reload();
+  };
 
   return (
     <>
