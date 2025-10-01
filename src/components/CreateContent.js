@@ -776,9 +776,7 @@ const ParentComponent = () => {
                     )}
                   </div>
                   <div>
-                    <h1 className="text-2xl font-bold">
-                      Track: {formData.tracks || "Select Track"}
-                    </h1>
+                    <h1 className="text-2xl font-bold">Upload Content</h1>
                   </div>
 
                   <div>
@@ -1158,7 +1156,7 @@ const ParentComponent = () => {
                                             })
                                           }
                                         />
-
+                                        {/* 
                                         <label
                                           className={`flex items-center justify-between p-2 cursor-pointer w-full rounded-md border border-gray-600 focus:outline-none ${
                                             darkMode
@@ -1181,7 +1179,7 @@ const ParentComponent = () => {
                                               })
                                             }
                                           />
-                                        </label>
+                                        </label> */}
 
                                         <div className="flex gap-2 justify-between mt-2">
                                           <button
@@ -1472,7 +1470,7 @@ const ParentComponent = () => {
                           <label className="p-2 pl-4 pr-4   rounded-xl border border-gray-600 focus:outline-none flex items-center justify-between cursor-pointer">
                             <div>
                               {formData.videoFile_introduction?.name ||
-                                "Upload Module Video"}
+                                "Upload Learning Video"}
                             </div>
                             <div className="flex items-center">
                               <input
@@ -1545,7 +1543,7 @@ const ParentComponent = () => {
                               onClick={handleClosePopup}
                               className="bg-[#C7C7C7] px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#000]"
                             >
-                              Cancelll
+                              Cancel
                             </button>
                           </div>
                         </div>
