@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Button, Radio, Checkbox } from "antd";
-import { Line } from "recharts";
 import { Link } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { createEvent } from "../redux/actions/alleventGet";
+import { showNotification } from "../redux/actions/notificationActions";
 
 const ParentComponent = () => {
   const [showPopup, setShowPopup] = useState(false);
@@ -12,6 +14,9 @@ const ParentComponent = () => {
   const [currentQna, setCurrentQna] = useState({ question: "", answer: "" });
   const [showQnaInput, setShowQnaInput] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
+  const [expandedIndex, setExpandedIndex] = useState(null);
+
+  // Initialize formData properly without circular dependency
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -30,13 +35,14 @@ const ParentComponent = () => {
       qnaSection: false,
       newsFeedConnection: false,
     },
-    questionandanswer: fullQanda,
+    questionandanswer: { title: "", qnaList: [] }, // Initialize as empty object
     attachments: null,
     postEventFollowUp: "",
     status: "Pending",
   });
 
-  const [expandedIndex, setExpandedIndex] = useState(null);
+  const dispatch = useDispatch();
+  const { loading, error } = useSelector((state) => state.events);
 
   const toggleAccordion = (index) => {
     setExpandedIndex(expandedIndex === index ? null : index);
@@ -49,6 +55,13 @@ const ParentComponent = () => {
     }));
   }, [fullQanda]);
 
+  // Debug useEffect to catch errors
+  useEffect(() => {
+    if (error) {
+      console.error("Redux store error:", error);
+    }
+  }, [error]);
+
   const handleChange = (e) => {
     const { name, value, files } = e.target;
     setFormData((prevData) => ({
@@ -57,11 +70,30 @@ const ParentComponent = () => {
     }));
   };
 
+  // FIXED: Handle submit like your working version
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log("Form submitted:", formData);
-    // Add your submit logic here
-    setShowPopup(false);
+
+    // Validate data before submission
+    const submitData = {
+      ...formData,
+      questionandanswer:
+        fullQanda.qnaList.length > 0 ? fullQanda : { title: "", qnaList: [] },
+    };
+
+    dispatch(createEvent(submitData))
+      .then(() => {
+        // FIXED: Use string parameters instead of object
+        dispatch(showNotification("Event created successfully", "success"));
+        handleClosePopup();
+      })
+      .catch((error) => {
+        console.error("Error creating event:", error);
+        dispatch(
+          showNotification("Failed to create event: " + error.message, "error")
+        );
+      });
   };
 
   const handleViewPopup = () => setShowPopup(true);
@@ -77,6 +109,7 @@ const ParentComponent = () => {
     setCurrentQna({ question: "", answer: "" });
     setShowQnaInput(false);
     setEditingIndex(null);
+    setExpandedIndex(null);
     setFormData({
       title: "",
       description: "",
@@ -161,7 +194,7 @@ const ParentComponent = () => {
   return (
     <>
       <Button
-        className=" trigger text-[#F48567] border-none bg-transparent hover:bg-[#F4856720] hover:text-[#F48567] p-2 rounded"
+        className="trigger text-[#F48567] border-none bg-transparent hover:bg-[#F4856720] hover:text-[#F48567] p-2 rounded"
         icon={
           <svg
             width="46"
@@ -178,7 +211,7 @@ const ParentComponent = () => {
                 height="45.8"
                 rx="11.9"
                 stroke="#F48567"
-                stroke-width="0.2"
+                strokeWidth="0.2"
               />
               <path
                 d="M34.25 29.25V18H16.75V29.25H34.25ZM34.25 11.75C34.913 11.75 35.5489 12.0134 36.0178 12.4822C36.4866 12.9511 36.75 13.587 36.75 14.25V29.25C36.75 29.913 36.4866 30.5489 36.0178 31.0178C35.5489 31.4866 34.913 31.75 34.25 31.75H16.75C16.087 31.75 15.4511 31.4866 14.9822 31.0178C14.5134 30.5489 14.25 29.913 14.25 29.25V14.25C14.25 13.587 14.5134 12.9511 14.9822 12.4822C15.4511 12.0134 16.087 11.75 16.75 11.75H18V9.25H20.5V11.75H30.5V9.25H33V11.75H34.25ZM11.75 34.25H29.25V36.75H11.75C11.087 36.75 10.4511 36.4866 9.98223 36.0178C9.51339 35.5489 9.25 34.913 9.25 34.25V19.25H11.75V34.25Z"
@@ -205,9 +238,9 @@ const ParentComponent = () => {
                 width="54"
                 height="54"
                 filterUnits="userSpaceOnUse"
-                color-interpolation-filters="sRGB"
+                colorInterpolationFilters="sRGB"
               >
-                <feFlood flood-opacity="0" result="BackgroundImageFix" />
+                <feFlood floodOpacity="0" result="BackgroundImageFix" />
                 <feGaussianBlur in="BackgroundImageFix" stdDeviation="2" />
                 <feComposite
                   in2="SourceAlpha"
@@ -241,9 +274,9 @@ const ParentComponent = () => {
                   height="25"
                   viewBox="0 0 24 25"
                   fill="none"
-                  xmlns="http:www.w3.org/2000/svg"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
-                  <g clip-path="url(#clip0_3261_1019)">
+                  <g clipPath="url(#clip0_3261_1019)">
                     <path
                       d="M3.516 20.985C2.36988 19.878 1.45569 18.5539 0.826781 17.0898C0.197873 15.6258 -0.133162 14.0511 -0.147008 12.4578C-0.160854 10.8644 0.142767 9.28428 0.746137 7.80953C1.34951 6.33477 2.24055 4.99495 3.36726 3.86823C4.49397 2.74152 5.83379 1.85048 7.30855 1.24711C8.78331 0.643743 10.3635 0.340123 11.9568 0.353969C13.5502 0.367815 15.1248 0.698849 16.5889 1.32776C18.0529 1.95667 19.377 2.87085 20.484 4.01697C22.6699 6.2802 23.8794 9.31143 23.8521 12.4578C23.8247 15.6042 22.5627 18.6139 20.3378 20.8388C18.1129 23.0637 15.1032 24.3257 11.9568 24.3531C8.81045 24.3804 5.77922 23.1709 3.516 20.985ZM5.208 19.293C7.00935 21.0943 9.4525 22.1063 12 22.1063C14.5475 22.1063 16.9906 21.0943 18.792 19.293C20.5933 17.4916 21.6053 15.0485 21.6053 12.501C21.6053 9.95348 20.5933 7.51032 18.792 5.70897C16.9906 3.90762 14.5475 2.89564 12 2.89564C9.4525 2.89564 7.00935 3.90762 5.208 5.70897C3.40665 7.51032 2.39466 9.95348 2.39466 12.501C2.39466 15.0485 3.40665 17.4916 5.208 19.293ZM17.088 9.10497L13.692 12.501L17.088 15.897L15.396 17.589L12 14.193L8.604 17.589L6.912 15.897L10.308 12.501L6.912 9.10497L8.604 7.41297L12 10.809L15.396 7.41297L17.088 9.10497Z"
                       fill="#C7C7C7"
@@ -288,24 +321,24 @@ const ParentComponent = () => {
 
               <div className="flex gap-4">
                 <div className="flex flex-col w-1/2">
-                  <label className="text-white mb-1">Start Date</label>
+                  <label className="text-white mb-1">Start Date & Time</label>
                   <input
                     name="startDateTime"
                     value={formData.startDateTime}
                     onChange={handleChange}
                     required
-                    type="date"
+                    type="datetime-local"
                     className="p-2 bg-[#333333] text-white rounded"
                   />
                 </div>
                 <div className="flex flex-col w-1/2">
-                  <label className="text-white mb-1">End Date</label>
+                  <label className="text-white mb-1">End Date & Time</label>
                   <input
                     name="endDateTime"
                     value={formData.endDateTime}
                     required
                     onChange={handleChange}
-                    type="date"
+                    type="datetime-local"
                     className="p-2 bg-[#333333] text-white rounded"
                   />
                 </div>
@@ -330,7 +363,7 @@ const ParentComponent = () => {
                   <label className="text-white mb-1">Mode</label>
                   <Radio.Group
                     options={["Offline", "Online"]}
-                    className="p-2 flex justify-start gap-5 text-white rounded"
+                    className="p-2 flex justify-start gap-5 rounded [&_.ant-radio-wrapper]:text-white"
                     required
                     value={formData.mode}
                     onChange={handleModeChange}
@@ -372,15 +405,13 @@ const ParentComponent = () => {
                     "1 hr",
                     "30 minutes",
                   ]}
-                  className="p-2 flex justify-between text-white rounded"
-                  value={
-                    formData.notificationSettings.setupReminder
-                      ? [
-                          "Set Up Reminder",
-                          ...formData.notificationSettings.reminders,
-                        ]
-                      : formData.notificationSettings.reminders
-                  }
+                  className="p-2 flex justify-between text-white rounded [&_.ant-checkbox-wrapper]:text-white"
+                  value={[
+                    ...(formData.notificationSettings.setupReminder
+                      ? ["Set Up Reminder"]
+                      : []),
+                    ...formData.notificationSettings.reminders,
+                  ]}
                   onChange={(checkedValues) => {
                     const setupReminderSelected =
                       checkedValues.includes("Set Up Reminder");
@@ -464,25 +495,18 @@ const ParentComponent = () => {
                   </label>
                   <label className="p-2 pl-4 pr-4 bg-[#333333] text-white rounded flex items-center justify-between cursor-pointer">
                     <div>{fileName}</div>
-                    {/* Upload Icon SVG space */}
                     <svg
                       width="13"
                       height="13"
                       viewBox="0 0 13 13"
                       fill="none"
-                      xmlns="http:www.w3.org/2000/svg"
+                      xmlns="http://www.w3.org/2000/svg"
                     >
                       <path
                         d="M5.8501 9.59998V3.48748L3.9001 5.43748L2.8501 4.34998L6.6001 0.599976L10.3501 4.34998L9.3001 5.43748L7.3501 3.48748V9.59998H5.8501ZM2.1001 12.6C1.6876 12.6 1.3346 12.4532 1.0411 12.1597C0.747598 11.8662 0.600598 11.513 0.600098 11.1V8.84998H2.1001V11.1H11.1001V8.84998H12.6001V11.1C12.6001 11.5125 12.4533 11.8657 12.1598 12.1597C11.8663 12.4537 11.5131 12.6005 11.1001 12.6H2.1001Z"
                         fill="#C7C7C7"
                       />
                     </svg>
-                    <input
-                      name="attachments"
-                      type="file"
-                      className="hidden"
-                      onChange={handleFileChange}
-                    />
                     <input
                       name="attachments"
                       type="file"
@@ -510,8 +534,9 @@ const ParentComponent = () => {
                   <button
                     type="submit"
                     className="bg-[#F48567] px-4 py-2 rounded-xl text-[#000]"
+                    disabled={loading}
                   >
-                    Next
+                    {loading ? "Creating..." : "Next"}
                   </button>
                 </div>
                 <div className="flex flex-col w-40">
@@ -532,23 +557,21 @@ const ParentComponent = () => {
       {/* Video Conferencing Modal */}
       {showVideoModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="p-8 bg-[rgb(30,30,30)] rounded-3xl w-[w-[616px]">
+          <div className="p-8 bg-[rgb(30,30,30)] rounded-3xl w-[616px]">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl text-white">Video conferencing</h2>
               <button
                 onClick={handleCloseVideoModal}
                 className="cursor-pointer"
               >
-                {/* Close Icon SVG */}
                 <span className="text-white text-2xl">×</span>
               </button>
             </div>
 
-            <div className="flex gap-4  ">
-              <Link to="https://zoom.us/signin#/login ">
+            <div className="flex gap-4">
+              <Link to="https://zoom.us/signin#/login">
                 <div className="flex-1 bg-[#333333] p-6 rounded-xl cursor-pointer hover:bg-[#444444] transition w-[258px] h-[238px]">
                   <div className="mb-4">
-                    {/* Zoom Icon SVG space */}
                     <svg
                       width="64"
                       height="64"
@@ -573,7 +596,6 @@ const ParentComponent = () => {
               <Link to="https://meet.google.com/landing?pli=1">
                 <div className="flex-1 bg-[#333333] p-6 rounded-xl cursor-pointer hover:bg-[#444444] transition w-[258px] h-[238px]">
                   <div className="mb-4">
-                    {/* Google Meet Icon SVG space */}
                     <svg
                       width="64"
                       height="53"
@@ -581,7 +603,7 @@ const ParentComponent = () => {
                       fill="none"
                       xmlns="http://www.w3.org/2000/svg"
                     >
-                      <g clip-path="url(#clip0_5593_29018)">
+                      <g clipPath="url(#clip0_5593_29018)">
                         <path
                           d="M36.2054 26.3312L42.4447 33.463L50.8352 38.8242L52.2947 26.3762L50.8352 14.209L42.2839 18.9187L36.2054 26.3312Z"
                           fill="#00832D"
@@ -630,7 +652,6 @@ const ParentComponent = () => {
       )}
 
       {/* Q&A Modal */}
-
       {showQna && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="flex flex-col">
@@ -684,13 +705,13 @@ const ParentComponent = () => {
                         xmlns="http://www.w3.org/2000/svg"
                       >
                         <path
-                          d="M3.48218 8.48909C3.48218 8.29018 3.5612 8.09942 3.70185 7.95876C3.8425 7.81811 4.03327 7.73909 4.23218 7.73909H7.72518V4.24609C7.72518 4.04718 7.8042 3.85642 7.94485 3.71576C8.0855 3.57511 8.27627 3.49609 8.47518 3.49609C8.67409 3.49609 8.86486 3.57511 9.00551 3.71576C9.14616 3.85642 9.22518 4.04718 9.22518 4.24609V7.73909H12.7182C12.9171 7.73909 13.1079 7.81811 13.2485 7.95876C13.3892 8.09942 13.4682 8.29018 13.4682 8.48909C13.4682 8.68801 13.3892 8.87877 13.2485 9.01942C13.1079 9.16008 12.9171 9.23909 12.7182 9.23909H9.22518V12.7321C9.22518 12.931 9.14616 13.1218 9.00551 13.2624C8.86486 13.4031 8.67409 13.4821 8.47518 13.4821C8.27627 13.4821 8.0855 13.4031 7.94485 13.2624C7.8042 13.1218 7.72518 12.931 7.72518 12.7321V9.23909H4.23218C4.03327 9.23909 3.8425 9.16008 3.70185 9.01942C3.5612 8.87877 3.48218 8.68801 3.48218 8.48909Z"
+                          d="M3.48218 8.48909C3.48218 8.29018 3.5612 8.09942 3.70185 7.95876C3.8425 7.81811 4.03327 7.73909 4.23218 7.73909H7.72518V3.48748L3.9001 5.43748L2.8501 4.34998L6.6001 0.599976L10.3501 4.34998L9.3001 5.43748L7.3501 3.48748V9.59998H5.8501ZM2.1001 12.6C1.6876 12.6 1.3346 12.4532 1.0411 12.1597C0.747598 11.8662 0.600598 11.513 0.600098 11.1V8.84998H2.1001V11.1H11.1001V8.84998H12.6001V11.1C12.6001 11.5125 12.4533 11.8657 12.1598 12.1597C11.8663 12.4537 11.5131 12.6005 11.1001 12.6H2.1001Z"
                           fill="#C7C7C7"
                         />
                         <path
-                          fill-rule="evenodd"
-                          clip-rule="evenodd"
-                          d="M3.79226 0.258794C6.90472 -0.0862646 10.0458 -0.0862646 13.1583 0.258794C14.9853 0.462794 16.4603 1.90179 16.6743 3.73879C17.0443 6.89579 17.0443 10.0848 16.6743 13.2418C16.4593 15.0788 14.9843 16.5168 13.1583 16.7218C10.0458 17.0669 6.90472 17.0669 3.79226 16.7218C1.96526 16.5168 0.490257 15.0788 0.276257 13.2418C-0.0920857 10.0848 -0.0920857 6.89575 0.276257 3.73879C0.490257 1.90179 1.96626 0.462794 3.79226 0.258794ZM12.9923 1.74879C9.99012 1.41602 6.9604 1.41602 3.95826 1.74879C3.4025 1.81045 2.88376 2.05767 2.48584 2.45051C2.08791 2.84335 1.83405 3.35887 1.76526 3.91379C1.40959 6.95476 1.40959 10.0268 1.76526 13.0678C1.83426 13.6225 2.08821 14.1378 2.48612 14.5305C2.88402 14.9231 3.40265 15.1702 3.95826 15.2318C6.93526 15.5638 10.0153 15.5638 12.9923 15.2318C13.5477 15.17 14.0661 14.9228 14.4638 14.5302C14.8615 14.1376 15.1153 13.6224 15.1843 13.0678C15.5399 10.0268 15.5399 6.95476 15.1843 3.91379C15.1151 3.35939 14.8612 2.84444 14.4635 2.45202C14.0658 2.05959 13.5475 1.81257 12.9923 1.75079"
+                          fillRule="evenodd"
+                          clipRule="evenodd"
+                          d="M3.79226 0.258794C6.90472 -0.0862646 10.0458 -0.0862646 13.1583 0.258794C14.9853 0.462794 16.4603 1.90179 16.6743 3.73879C17.0443 6.89579 17.0443 10.0848 16.6743 13.2418C16.4593 15.0788 14.9843 16.5168 13.1583 16.7218C10.0458 17.0669 6.90472 17.0669 3.79226 16.7218C1.96526 16.5168 0.490257 15.0788 0.276257 13.2418C-0.0920857 10.0848 -0.0920857 6.89575 0.276257 3.73879C0.490257 1.90179 1.96626 0.462794 3.79226 0.258794ZM12.9923 1.74879C9.99012 1.41602 6.9604 1.41602 3.95826 1.74879C3.4025 1.81045 2.88376 2.05767 2.48584 2.45051C2.08791 2.84335 1.83405 3.35887 1.76526 3.91379C1.40959 6.95476 1.40959 10.0268 1.76526 13.0678C1.83426 13.6225 2.08821 14.1378 2.48612 16.5305C2.88402 16.9231 3.40265 17.1702 3.95826 17.2318C6.93526 17.5638 10.0153 17.5638 14.9923 17.2318C15.5477 17.17 16.0661 16.9228 16.4638 16.5302C16.8615 16.1376 17.1153 15.6224 17.1843 15.0678C17.5399 12.0268 17.5399 8.95476 17.1843 5.91379C17.1151 5.35939 16.8612 4.84444 16.4635 4.45202C16.0658 4.05959 15.5475 3.81257 14.9923 3.75079"
                           fill="#C7C7C7"
                         />
                       </svg>
@@ -735,7 +756,6 @@ const ParentComponent = () => {
                           <span className="font-semibold">{qna.question}</span>
                           <span className="text-white text-xl transition-transform duration-300">
                             {expandedIndex === index ? (
-                              // Minus Icon
                               <svg
                                 width="20"
                                 height="10"
@@ -743,10 +763,10 @@ const ParentComponent = () => {
                                 fill="none"
                                 xmlns="http://www.w3.org/2000/svg"
                               >
-                                <g clip-path="url(#clip0_5582_22695)">
+                                <g clipPath="url(#clip0_5582_22695)">
                                   <path
-                                    fill-rule="evenodd"
-                                    clip-rule="evenodd"
+                                    fillRule="evenodd"
+                                    clipRule="evenodd"
                                     d="M9.40755 1.53523L4.69338 6.2494L5.87172 7.42773L9.99672 3.30273L14.1217 7.42773L15.3 6.2494L10.5859 1.53523C10.4296 1.37901 10.2177 1.29125 9.99672 1.29125C9.77575 1.29125 9.56382 1.37901 9.40755 1.53523Z"
                                     fill="#C7C7C7"
                                   />
@@ -763,7 +783,6 @@ const ParentComponent = () => {
                                 </defs>
                               </svg>
                             ) : (
-                              // Plus Icon
                               <svg
                                 width="12"
                                 height="7"
@@ -772,8 +791,8 @@ const ParentComponent = () => {
                                 xmlns="http://www.w3.org/2000/svg"
                               >
                                 <path
-                                  fill-rule="evenodd"
-                                  clip-rule="evenodd"
+                                  fillRule="evenodd"
+                                  clipRule="evenodd"
                                   d="M5.40755 6.46477L0.693382 1.7506L1.87172 0.572266L5.99672 4.69727L10.1217 0.572266L11.3 1.7506L6.58588 6.46477C6.42961 6.62099 6.21769 6.70875 5.99672 6.70875C5.77575 6.70875 5.56382 6.62099 5.40755 6.46477Z"
                                   fill="#C7C7C7"
                                 />
@@ -808,21 +827,32 @@ const ParentComponent = () => {
                                   <path
                                     d="M10.5 2.9991L13 5.4991M8.83337 14.6658H15.5M2.16671 11.3324L1.33337 14.6658L4.66671 13.8324L14.3217 4.17743C14.6342 3.86488 14.8097 3.44104 14.8097 2.9991C14.8097 2.55716 14.6342 2.13331 14.3217 1.82076L14.1784 1.67743C13.8658 1.36498 13.442 1.18945 13 1.18945C12.5581 1.18945 12.1343 1.36498 11.8217 1.67743L2.16671 11.3324Z"
                                     stroke="#C7C7C7"
-                                    stroke-width="1.25"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
+                                    strokeWidth="1.25"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
                                   />
                                 </svg>
                               </button>
-                              {/* <button
+                              <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   deleteQna(index);
                                 }}
                                 className="p-1 text-gray-300 hover:text-white"
                               >
-                                🗑️
-                              </button> */}
+                                <svg
+                                  width="18"
+                                  height="18"
+                                  viewBox="0 0 18 18"
+                                  fill="none"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                >
+                                  <path
+                                    d="M7.4375 3.0625V3.375H10.5625V3.0625C10.5625 2.6481 10.3979 2.25067 10.1049 1.95765C9.81183 1.66462 9.4144 1.5 9 1.5C8.5856 1.5 8.18817 1.66462 7.89515 1.95765C7.60212 2.25067 7.4375 2.6481 7.4375 3.0625ZM6.1875 3.375V3.0625C6.1875 2.31658 6.48382 1.60121 7.01126 1.07376C7.53871 0.546316 8.25408 0.25 9 0.25C9.74592 0.25 10.4613 0.546316 10.9887 1.07376C11.5162 1.60121 11.8125 2.31658 11.8125 3.0625V3.375H16.5C16.6658 3.375 16.8247 3.44085 16.9419 3.55806C17.0592 3.67527 17.125 3.83424 17.125 4C17.125 4.16576 17.0592 4.32473 16.9419 4.44194C16.8247 4.55915 16.6658 4.625 16.5 4.625H15.5575L14.375 14.98C14.2878 15.7426 13.923 16.4465 13.3501 16.9573C12.7772 17.4682 12.0363 17.7504 11.2687 17.75H6.73125C5.96366 17.7504 5.22279 17.4682 4.64991 16.9573C4.07702 16.4465 3.7122 15.7426 3.625 14.98L2.4425 4.625H1.5C1.33424 4.625 1.17527 4.55915 1.05806 4.44194C0.940848 4.32473 0.875 4.16576 0.875 4C0.875 3.83424 0.940848 3.67527 1.05806 3.55806C1.17527 3.44085 1.33424 3.375 1.5 3.375H6.1875ZM7.75 7.4375C7.75 7.27174 7.68415 7.11277 7.56694 6.99556C7.44973 6.87835 7.29076 6.8125 7.125 6.8125C6.95924 6.8125 6.80027 6.87835 6.68306 6.99556C6.56585 7.11277 6.5 7.27174 6.5 7.4375V13.6875C6.5 13.8533 6.56585 14.0122 6.68306 14.1294C6.80027 14.2467 6.95924 14.3125 7.125 14.3125C7.29076 14.3125 7.44973 14.2467 7.56694 14.1294C7.68415 14.0122 7.75 13.8533 7.75 13.6875V7.4375ZM10.875 6.8125C10.7092 6.8125 10.5503 6.87835 10.4331 6.99556C10.3158 7.11277 10.25 7.27174 10.25 7.4375V13.6875C10.25 13.8533 10.3158 14.0122 10.4331 14.1294C10.5503 14.2467 10.7092 14.3125 10.875 14.3125C11.0408 14.3125 11.1997 14.2467 11.3169 14.1294C11.4342 14.0122 11.5 13.8533 11.5 13.6875V7.4375C11.5 7.27174 11.4342 7.11277 11.3169 6.99556C11.1997 6.87835 11.0408 6.8125 10.875 6.8125Z"
+                                    fill="#DD441B"
+                                  />
+                                </svg>
+                              </button>
                             </div>
                           </div>
                         </div>

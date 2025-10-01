@@ -394,3 +394,55 @@ export const createchallenge = (formData) => async (dispatch) => {
     throw error; // Re-throw to handle in the component
   }
 };
+
+// New Action for updating (editing) a Challenge using PUT
+export const updateChallenge =
+  (challengeId, updateData) => async (dispatch) => {
+    try {
+      const authToken = localStorage.getItem("authToken");
+
+      // Construct payload
+      const requestPayload = {
+        ...updateData, // include all fields that may be updated (title, description, etc.)
+      };
+
+      console.log(
+        "Sending PUT Request for Challenge ID:",
+        challengeId,
+        requestPayload
+      );
+
+      const response = await fetch(
+        `${process.env.REACT_APP_STATIC_API_URL}/api/challenge/editchallenge/${challengeId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authToken}`,
+          },
+          body: JSON.stringify(requestPayload),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(
+          "Failed to update challenge. Server response:",
+          errorText
+        );
+        throw new Error(errorText || "Failed to update challenge");
+      }
+
+      const data = await response.json();
+      console.log("Updated Challenge via PUT:", data);
+
+      // Dispatch PATCH_CHALLENGE_SUCCESS (you may also define UPDATE_CHALLENGE_SUCCESS for clarity)
+      dispatch({ type: PATCH_CHALLENGE_SUCCESS, payload: data });
+
+      return data; // so component can use it
+    } catch (error) {
+      console.error("Error in updateChallenge:", error);
+      dispatch({ type: PATCH_CHALLENGE_FAILURE, payload: error.message });
+      throw error; // rethrow so component can catch it
+    }
+  };

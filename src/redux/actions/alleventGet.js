@@ -1,4 +1,4 @@
-import CryptoJS from 'crypto-js'; // Ensure you have imported CryptoJS
+import CryptoJS from "crypto-js"; // Ensure you have imported CryptoJS
 
 export const FETCH_EVENTS_SUCCESS = "FETCH_EVENTS_SUCCESS";
 export const FETCH_EVENTS_FAILURE = "FETCH_EVENTS_FAILURE";
@@ -8,7 +8,8 @@ export const UPDATE_EVENT_STATUS_SUCCESS = "UPDATE_EVENT_STATUS_SUCCESS";
 export const UPDATE_EVENT_STATUS_FAILURE = "UPDATE_EVENT_STATUS_FAILURE";
 export const DELETE_CHALLENGE_SUCCESS = "DELETE_CHALLENGE_SUCCESS";
 export const DELETE_CHALLENGE_FAILURE = "DELETE_CHALLENGE_FAILURE";
-
+export const EDIT_EVENT_SUCCESS = "EDIT_EVENT_SUCCESS";
+export const EDIT_EVENT_FAILURE = "EDIT_EVENT_FAILURE";
 
 // Action for fetching all Events without filtering
 export const fetchAllEvents = () => async (dispatch) => {
@@ -30,7 +31,7 @@ export const fetchAllEvents = () => async (dispatch) => {
     }
 
     const data = await response.json();
-console.log(data.events)
+    console.log(data.events);
     // Dispatch FETCH_EVENTS_SUCCESS with the full user list
     dispatch({ type: FETCH_EVENTS_SUCCESS, payload: data.events });
   } catch (error) {
@@ -39,54 +40,58 @@ console.log(data.events)
   }
 };
 
-
 export const createEvent = (eventData) => async (dispatch) => {
   try {
     const authToken = localStorage.getItem("authToken");
     console.log(eventData);
 
-    const encryptedId = localStorage.getItem('userId');
+    const encryptedId = localStorage.getItem("userId");
     if (!encryptedId) {
-      console.error('Encrypted user ID is missing.');
+      console.error("Encrypted user ID is missing.");
       return null;
     }
 
     let userId = null;
     try {
-      const bytes = CryptoJS.AES.decrypt(encryptedId, '477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1');
+      const bytes = CryptoJS.AES.decrypt(
+        encryptedId,
+        "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1"
+      );
       userId = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
     } catch (error) {
-      console.error('Error decrypting user ID:', error);
+      console.error("Error decrypting user ID:", error);
       return null;
     }
 
     const formData = new FormData();
-    formData.append('createdBy', userId);
+    formData.append("createdBy", userId);
 
     for (const key in eventData) {
       if (eventData.hasOwnProperty(key)) {
-        if (key === "notificationSettings" || key === "engagementTools" || key === "questionandanswer") {
+        if (
+          key === "notificationSettings" ||
+          key === "engagementTools" ||
+          key === "questionandanswer"
+        ) {
           formData.append(key, JSON.stringify(eventData[key])); // Convert objects to JSON
         } else if (Array.isArray(eventData[key])) {
-          eventData[key].forEach(value => formData.append(`${key}[]`, value));
-        } else if (typeof eventData[key] === "object" && eventData[key] !== null) {
+          eventData[key].forEach((value) => formData.append(`${key}[]`, value));
+        } else if (
+          typeof eventData[key] === "object" &&
+          eventData[key] !== null
+        ) {
           formData.append(key, JSON.stringify(eventData[key])); // Convert other objects
         } else if (eventData[key] !== null) {
           formData.append(key, eventData[key]);
         }
       }
     }
-    
-    
-    
+
     // // Debugging: Log FormData before sending
     // console.log("Final FormData being sent:");
     // for (let pair of formData.entries()) {
     //   console.log(`${pair[0]}: ${pair[1]}`);
     // }
-    
-
-    
 
     try {
       const response = await fetch(
@@ -112,7 +117,10 @@ export const createEvent = (eventData) => async (dispatch) => {
         console.log("Event created successfully:", data);
       } catch (error) {
         const rawResponse = await response.text();
-        console.error("Failed to parse response JSON. Raw response:", rawResponse);
+        console.error(
+          "Failed to parse response JSON. Raw response:",
+          rawResponse
+        );
         return;
       }
 
@@ -130,12 +138,78 @@ export const createEvent = (eventData) => async (dispatch) => {
   }
 };
 
+export const editEvent = (eventId, updatedData) => async (dispatch) => {
+  try {
+    const authToken = localStorage.getItem("authToken");
+    if (!authToken) {
+      throw new Error("Authentication token is missing");
+    }
+
+    const formData = new FormData();
+
+    // Append updated data (handling arrays/objects properly)
+    for (const key in updatedData) {
+      if (updatedData.hasOwnProperty(key)) {
+        if (
+          key === "notificationSettings" ||
+          key === "engagementTools" ||
+          key === "questionandanswer"
+        ) {
+          formData.append(key, JSON.stringify(updatedData[key]));
+        } else if (Array.isArray(updatedData[key])) {
+          updatedData[key].forEach((value) =>
+            formData.append(`${key}[]`, value)
+          );
+        } else if (
+          typeof updatedData[key] === "object" &&
+          updatedData[key] !== null
+        ) {
+          formData.append(key, JSON.stringify(updatedData[key]));
+        } else if (updatedData[key] !== null) {
+          formData.append(key, updatedData[key]);
+        }
+      }
+    }
+
+    // Debugging: Log FormData entries
+    // for (let pair of formData.entries()) {
+    //   console.log(`${pair[0]}: ${pair[1]}`);
+    // }
+
+    const response = await fetch(
+      `${process.env.REACT_APP_STATIC_API_URL}/api/E1/edit/${eventId}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: formData,
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Failed to edit event. Server response:", errorText);
+      throw new Error("Failed to edit event");
+    }
+
+    const data = await response.json();
+    console.log("Event Edited Successfully:", data);
+
+    dispatch({ type: EDIT_EVENT_SUCCESS, payload: data });
+    return data;
+  } catch (error) {
+    console.error("Error editing event:", error);
+    dispatch({ type: EDIT_EVENT_FAILURE, payload: error.message });
+    throw error;
+  }
+};
 
 // Action for updating event status
 export const updateEventStatus = (eventId, status) => async (dispatch) => {
   try {
     const authToken = localStorage.getItem("authToken");
-    console.log({ status })
+    console.log({ status });
 
     const response = await fetch(
       `${process.env.REACT_APP_STATIC_API_URL}/api/v1/approve-reject/event/${eventId}`,
@@ -157,8 +231,10 @@ export const updateEventStatus = (eventId, status) => async (dispatch) => {
     console.log("Event Status Updated:", data);
 
     // Dispatch an action to update the event status in Redux store
-    dispatch({ type: UPDATE_EVENT_STATUS_SUCCESS, payload: { id: eventId, status } });
-
+    dispatch({
+      type: UPDATE_EVENT_STATUS_SUCCESS,
+      payload: { id: eventId, status },
+    });
   } catch (error) {
     console.error("Error updating event status:", error);
     dispatch({ type: UPDATE_EVENT_STATUS_FAILURE, payload: error.message });
@@ -190,7 +266,6 @@ export const deleteEvent = (challengeId) => async (dispatch) => {
 
     // Dispatch a success action (if needed)
     dispatch({ type: "DELETE_CHALLENGE_SUCCESS", payload: challengeId });
-
   } catch (error) {
     console.error("Error in deleteChallenge:", error);
     dispatch({ type: "DELETE_CHALLENGE_FAILURE", payload: error.message });

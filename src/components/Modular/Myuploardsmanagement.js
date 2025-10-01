@@ -15,11 +15,13 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import { Tooltip, Badge, Space, Pagination, Select, Spin, Card } from "antd";
 import CreateContent from "../CreateContent.js";
+
 import { showNotification } from "../../redux/actions/notificationActions"; // Import showNotification
 import ChallangeMannage from "./ContentMannage.js";
 import ContentMannage from "./Modulechange.js";
 import EventMannage from "./EventMannage.js";
 import { IconSearch } from "@tabler/icons-react";
+import EditContnet from "../EditContent.js";
 
 const SvgIcon = ({ onClick }) => (
   <svg
@@ -602,6 +604,14 @@ const Myuploardsmanagement = () => {
 
   const [selectedCard, setSelectedCard] = useState(0);
 
+  // Function to handle edit for both modules and challenges
+  const handleEditContent = (record) => {
+    // Store the record data for editing
+    localStorage.setItem("editContentData", JSON.stringify(record));
+    // You can also set a state or trigger the EditContent component here
+    console.log("Editing content:", record);
+  };
+
   const columns = [
     {
       title: (
@@ -824,6 +834,16 @@ const Myuploardsmanagement = () => {
               ) : record.challengeName ? (
                 <ChallangeMannage data={record} />
               ) : null}
+
+              {/* Edit Button for both Modules and Challenges */}
+              {(record.moduleName || record.challengeName) && (
+                <div
+                  className="cursor-pointer"
+                  onClick={() => handleEditContent(record)}
+                >
+                  <EditContnet contentData={record} />
+                </div>
+              )}
 
               {/* Only show approve/reject buttons for Admin/Super Admin users */}
               {isAdminUser && (
