@@ -39,12 +39,12 @@ const Infoprofile = () => {
             backgroundColor: "#D9AA58",
           }}
         >
-          <span className="namedash">
+          <span className="text-2xl font-bold text-white">
             {userData?.roles?.includes("Admin")
               ? userData?.userName || "N/A"
               : `${userData?.firstName || "N/A"} ${userData?.lastName || ""}`}
           </span>
-          <span className="namedash mt-5 w-[30px]">
+          <span className="text-2xl font-bold text-white">
             {userData?.roles?.[0] || "No Role"}
           </span>
           {userData?.image && (
@@ -56,7 +56,7 @@ const Infoprofile = () => {
                 ""
               )}`}
               alt="Notification"
-              className="w-[150px] absolute ml-[200px] mnaitoimg"
+              className="w-[100px] absolute ml-[150px] "
             />
           )}
 
