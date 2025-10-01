@@ -836,14 +836,14 @@ const Myuploardsmanagement = () => {
               ) : null}
 
               {/* Edit Button for both Modules and Challenges */}
-              {(record.moduleName || record.challengeName) && (
+              {/* {(record.moduleName || record.challengeName) && (
                 <div
                   className="cursor-pointer"
                   onClick={() => handleEditContent(record)}
                 >
                   <EditContnet contentData={record} />
                 </div>
-              )}
+              )} */}
 
               {/* Only show approve/reject buttons for Admin/Super Admin users */}
               {isAdminUser && (
