@@ -8,6 +8,9 @@ import {
   createchallenge,
   fetchAllContent,
   updateContent,
+  fetchAllTracks,
+  updateTrack,
+  startFresh,
 } from "../redux/actions/allContentGet";
 import { showNotification } from "../redux/actions/notificationActions"; // Import showNotification
 import { SquarePlus, Pencil, Upload } from "lucide-react";
@@ -17,7 +20,7 @@ const ParentComponent = () => {
   const dispatch = useDispatch();
   const darkMode = useSelector((state) => state.theme.darkMode);
   const userRole = localStorage.getItem("userRole");
-
+  const [trackModules, setTrackModules] = useState({});
   const [showPopup, setShowPopup] = useState(false);
   const [showChallangePopup, setChallangePopup] = useState(false);
   const [isSectionVisible, setIsSectionVisible] = useState(true);
@@ -40,31 +43,26 @@ const ParentComponent = () => {
   const [selectedModule, setSelectedModule] = useState(null);
   const [partners, setPartners] = useState([]);
   const [navigationHistory, setNavigationHistory] = useState(["section1"]);
+  const [showStartFreshModal, setShowStartFreshModal] = useState(false);
+  const [startFreshLoading, setStartFreshLoading] = useState(false);
 
-  // Add this function to handle back navigation
+  const [showTrackActionModal, setShowTrackActionModal] = useState(false);
+  const [selectedTrackForAction, setSelectedTrackForAction] = useState(null);
+  const [updateLoading, setUpdateLoading] = useState(false);
+  const [selectedAction, setSelectedAction] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
+
   const handleBack = () => {
-    // From Learning Video form (Section 2) → Go back to Module Selection (Section 1)
     if (isSection2Visible) {
       setIsSection2Visible(false);
       setIsSectionVisible(true);
-      // Optionally clear form data
-      // setFormData(initialModuleData);
-    }
-    // From Created Module List → Go back to Learning Video form (Section 2)
-    else if (isCreatedModuleVisible) {
+    } else if (isCreatedModuleVisible) {
       setisCreatedModuleVisible(false);
       setIsSection2Visible(true);
-    }
-    // From Challenge form (Section 3) → Go back to Module Selection (Section 1)
-    else if (isSection3Visible) {
+    } else if (isSection3Visible) {
       setIsSection3Visible(false);
       setIsSectionVisible(true);
-      // Optionally clear challenge data
-      // setChallengeData(initialChallangeData);
-      // settime({ duration: 0 });
-    }
-    // From Created Content List → Go back to Challenge form (Section 3)
-    else if (isCreatedContentVisible) {
+    } else if (isCreatedContentVisible) {
       setisCreatedContentVisible(false);
       setIsSection3Visible(true);
     }
@@ -156,25 +154,29 @@ const ParentComponent = () => {
     }
   }, []);
 
-  const handleSelectTracks = (option) => {
+  const handleSelectTracks = (trackName) => {
     setFormData((prevData) => ({
       ...prevData,
-      tracks: option,
+      tracks: trackName, // Store track name instead of ID
     }));
-
-    setIsOpenTrack(false); // Close dropdown after selection
+    setIsOpenTrack(false);
   };
 
-  const tracks = [
-    "Fitnes",
-    "Values",
-    "Dance",
-    "Meditation",
-    "Art and Creativity ",
-    // "Art",
-    // "Cooking",
-    // "Yoga",
-  ];
+  const [tracks, setTracks] = useState([]);
+
+  // Add this useEffect - place it with your other useEffect hooks
+  useEffect(() => {
+    const loadTracks = async () => {
+      try {
+        const tracksData = await dispatch(fetchAllTracks());
+        setTracks(tracksData || []);
+      } catch (error) {
+        console.error("Failed to load tracks:", error);
+      }
+    };
+
+    loadTracks();
+  }, [dispatch]);
 
   const handleSelectPartner = (option) => {
     setFormData((prevData) => ({
@@ -270,12 +272,12 @@ const ParentComponent = () => {
     setChallenges([]);
   };
 
-  const handleEditTrack = (track) => {
-    setEditTrack(track);
+  const handleEditTrack = (trackObj) => {
+    setEditTrack(trackObj);
   };
 
-  const handelCancelTrack = (track) => {
-    setEditTrack(track);
+  const handelCancelTrack = () => {
+    setEditTrack(null);
   };
 
   const handleModuleEdit = (module) => {
@@ -285,6 +287,91 @@ const ParentComponent = () => {
       name: module.name,
       trackPhoto: null, // Reset file input
     });
+  };
+
+  // Add these handler functions with your other handlers
+  const handleUpdateTrack = async () => {
+    if (!editTrack?._id) return;
+
+    setActionLoading(true);
+    try {
+      // Call updateTrack API with the edited track data
+      await dispatch(updateTrack(editTrack._id, editTrack));
+
+      // Refresh tracks after successful update
+      const updatedTracks = await dispatch(fetchAllTracks());
+      setTracks(updatedTracks || []);
+      setEditTrack(null);
+      setShowTrackActionModal(false);
+      setSelectedAction(null);
+
+      dispatch(showNotification("Track updated successfully!", "success"));
+    } catch (error) {
+      console.error("Update track error:", error);
+      dispatch(
+        showNotification("Failed to update track. Please try again.", "error")
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Handler for Start Fresh
+  const handleStartFresh = async () => {
+    if (!editTrack?._id) return;
+
+    setStartFreshLoading(true);
+    try {
+      // Call startFresh API (this will delete all related content)
+      const response = await dispatch(startFresh(editTrack._id));
+
+      if (response) {
+        // Refresh tracks after successful start fresh
+        const updatedTracks = await dispatch(fetchAllTracks());
+        setTracks(updatedTracks || []);
+        setEditTrack(null);
+        setShowTrackActionModal(false);
+
+        dispatch(
+          showNotification(
+            "Track started fresh successfully! All related content has been deleted.",
+            "success"
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Start fresh error:", error);
+      dispatch(
+        showNotification("Failed to start fresh. Please try again.", "error")
+      );
+    } finally {
+      setStartFreshLoading(false);
+    }
+  };
+
+  // Add this handler for when user saves the track update
+  const handleSaveTrackUpdate = async () => {
+    if (!editTrack?._id) return;
+
+    setUpdateLoading(true);
+    try {
+      // Call updateTrack API with the edited track data
+      await dispatch(updateTrack(editTrack._id, editTrack));
+
+      // Refresh tracks after successful update
+      const updatedTracks = await dispatch(fetchAllTracks());
+      setTracks(updatedTracks || []);
+      setEditTrack(null);
+
+      dispatch(showNotification("Track updated successfully!", "success"));
+    } catch (error) {
+      console.error("Update track error:", error);
+      dispatch(
+        showNotification("Failed to update track. Please try again.", "error")
+      );
+    } finally {
+      setUpdateLoading(false);
+    }
   };
 
   const handleModuleCancel = (module) => {
@@ -776,7 +863,11 @@ const ParentComponent = () => {
                     )}
                   </div>
                   <div>
-                    <h1 className="text-2xl font-bold">Upload Content</h1>
+                    <h1 className="text-2xl font-bold">
+                      {formData.tracks
+                        ? `Track: ${formData.tracks}`
+                        : "Upload Content"}
+                    </h1>
                   </div>
 
                   <div>
@@ -812,23 +903,33 @@ const ParentComponent = () => {
                 </div>
 
                 <div className="flex items-center text-sm text-gray-500 mt-1">
-                  {isSectionVisible && <span>Select Module</span>}
+                  {isSectionVisible && (
+                    <span className="text-white text-xl"></span>
+                  )}
 
                   {isSection2Visible && (
-                    <>
-                      <span>{formData.moduleName || "New Module"}</span>
-                      <span className="mx-2">/</span>
-                      <span>Learning Video</span>
-                    </>
+                    <div className="flex justify-start items-start">
+                      <span className="text-white text-xl">
+                        {formData.moduleName || "New Module"}
+                      </span>
+                      <span className="mx-2 text-lg">/</span>
+                      <span className="text-sm text-[#F48567] mt-1">
+                        Learning Video
+                      </span>
+                    </div>
                   )}
 
                   {isSection3Visible && (
                     <>
-                      <span>{formData.moduleName || "Module"}</span>
+                      <span className="text-white text-xl">
+                        {formData.moduleName || "Module"}
+                      </span>
                       <span className="mx-2">/</span>
-                      <span>Learning Video</span>
-                      <span className="mx-2">/</span>
-                      <span>Challenge</span>
+                      <span className="text-white text-sm">Learning Video</span>
+                      <span className="mx-2 text-lg">/</span>
+                      <span className="text-sm text-[#F48567]  mt-1">
+                        Challenge
+                      </span>
                     </>
                   )}
                 </div>
@@ -847,6 +948,7 @@ const ParentComponent = () => {
                             Choose a Track{" "}
                             <span className="text-red-500">*</span>
                           </label>
+
                           <div className="dropdown-container mb-3">
                             <div
                               className={`dropdown-btn flex p-2 rounded-md ${
@@ -884,18 +986,21 @@ const ParentComponent = () => {
                               >
                                 {tracks.map((track, index) => (
                                   <div
-                                    key={index}
-                                    className={`dropdown-item flex flex-col w-full p-2  rounded-md mb-2 ${
+                                    key={track._id}
+                                    className={`dropdown-item flex flex-col w-full p-2 rounded-md mb-2 ${
                                       darkMode ? "bg-[#333333]" : "bg-gray-200 "
-                                    } `}
+                                    }`}
                                   >
                                     <div
                                       className="flex items-center gap-2 justify-between cursor-pointer"
-                                      onClick={() => handleSelectTracks(track)}
+                                      onClick={() =>
+                                        handleSelectTracks(track.tracksName)
+                                      }
                                     >
                                       <div className="flex items-center gap-2">
                                         <span className="w-4 h-4 rounded-full border-2 border-[#F48567] flex items-center justify-center">
-                                          {formData.tracks === track && (
+                                          {formData.tracks ===
+                                            track.tracksName && (
                                             <span className="w-2 h-2 rounded-full bg-[#F48567]" />
                                           )}
                                         </span>
@@ -906,82 +1011,202 @@ const ParentComponent = () => {
                                               : "text-black"
                                           }`}
                                         >
-                                          {track}
+                                          {track.tracksName}
                                         </div>
                                       </div>
 
-                                      {/* <Pencil
+                                      <Pencil
                                         size={16}
                                         onClick={(e) => {
-                                          e.stopPropagation(); // prevents parent click
+                                          e.stopPropagation();
                                           handleEditTrack(track);
                                         }}
-                                      /> */}
+                                      />
                                     </div>
 
                                     {/* Expanded Edit Section */}
-                                    {editTrack === track && (
-                                      <div className="mt-2 flex flex-col gap-2 text-white ">
-                                        <input
-                                          type="text"
-                                          placeholder="Track Name"
-                                          className={`p-2 rounded-md border border-gray-600 focus:outline-none bg-inherit placeholder-gray-400 text-sm ${
-                                            darkMode
-                                              ? "bg-[#333333] text-white "
-                                              : "bg-white text-black "
-                                          }`}
-                                          value={formData.tracks}
-                                          onChange={(e) =>
-                                            setFormData({
-                                              ...formData,
-                                              tracks: e.target.value,
-                                            })
-                                          }
-                                        />
-
-                                        <label
-                                          className={`flex items-center justify-between p-2 cursor-pointer w-full  rounded-md border border-gray-600 focus:outline-non ${
-                                            darkMode
-                                              ? "bg-inherit text-white"
-                                              : "bg-inherit text-black"
-                                          }`}
-                                        >
-                                          <span className="text-sm  text-gray-400">
-                                            Uploaded Track Photo
-                                          </span>
-                                          <Upload size={16} />
+                                    {editTrack &&
+                                      editTrack._id === track._id && (
+                                        <div className="mt-2 flex flex-col gap-2 text-white ">
                                           <input
-                                            type="file"
-                                            accept="image/*"
-                                            className="hidden"
+                                            type="text"
+                                            placeholder="Track Name"
+                                            className={`p-2 rounded-md border border-gray-600 focus:outline-none bg-inherit placeholder-gray-400 text-sm ${
+                                              darkMode
+                                                ? "bg-[#333333] text-white "
+                                                : "bg-white text-black "
+                                            }`}
+                                            value={editTrack.tracksName || ""}
                                             onChange={(e) =>
-                                              setFormData({
-                                                ...formData,
-                                                trackPhoto: e.target.files[0],
+                                              setEditTrack({
+                                                ...editTrack,
+                                                tracksName: e.target.value,
                                               })
                                             }
                                           />
-                                        </label>
 
-                                        <div className="flex gap-2 justify-between mt-2">
-                                          <button
-                                            className="bg-[#F48567] px-4 py-1 rounded-md text-sm w-[145px] text-black"
-                                            onClick={() => {
-                                              // handle save logic here
-                                              setEditTrack(null);
-                                            }}
+                                          <label
+                                            className={`flex items-center justify-between p-2 cursor-pointer w-full rounded-md border border-gray-600 focus:outline-none ${
+                                              darkMode
+                                                ? "bg-inherit text-white"
+                                                : "bg-inherit text-black"
+                                            }`}
                                           >
-                                            Save
-                                          </button>
-                                          <button
-                                            className="bg-[#C7C7C7] px-4 py-1 rounded-md text-sm w-[145px] text-black"
-                                            onClick={handelCancelTrack}
+                                            <div className="flex flex-col flex-1">
+                                              <span className="text-sm text-gray-400">
+                                                {editTrack.trackImage
+                                                  ? "Change Track Image"
+                                                  : "Upload Track Image"}
+                                              </span>
+                                              {editTrack.trackImage &&
+                                                typeof editTrack.trackImage ===
+                                                  "object" && (
+                                                  <span className="text-xs text-[#F48567] mt-1 truncate">
+                                                    {editTrack.trackImage.name}
+                                                  </span>
+                                                )}
+                                              {editTrack.trackImage &&
+                                                typeof editTrack.trackImage ===
+                                                  "string" && (
+                                                  <span className="text-xs text-[#F48567] mt-1 truncate">
+                                                    {editTrack.trackImage
+                                                      .split("/")
+                                                      .pop()}
+                                                  </span>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center">
+                                              {editTrack.trackImage ? (
+                                                <svg
+                                                  width="18"
+                                                  height="18"
+                                                  viewBox="0 0 18 18"
+                                                  fill="none"
+                                                  xmlns="http://www.w3.org/2000/svg"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setEditTrack({
+                                                      ...editTrack,
+                                                      trackImage: null,
+                                                    });
+                                                  }}
+                                                  className="cursor-pointer ml-2"
+                                                >
+                                                  <path
+                                                    d="M9 0.25C4.125 0.25 0.25 4.125 0.25 9C0.25 13.875 4.125 17.75 9 17.75C13.875 17.75 17.75 13.875 17.75 9C17.75 4.125 13.875 0.25 9 0.25ZM12.375 13.375L9 10L5.625 13.375L4.625 12.375L8 9L4.625 5.625L5.625 4.625L9 8L12.375 4.625L13.375 5.625L10 9L13.375 12.375L12.375 13.375Z"
+                                                    fill="#DD441B"
+                                                  />
+                                                </svg>
+                                              ) : (
+                                                <Upload size={16} />
+                                              )}
+                                              <input
+                                                type="file"
+                                                accept="image/*"
+                                                className="hidden"
+                                                onChange={(e) =>
+                                                  setEditTrack({
+                                                    ...editTrack,
+                                                    trackImage:
+                                                      e.target.files[0],
+                                                  })
+                                                }
+                                              />
+                                            </div>
+                                          </label>
+
+                                          {/* Track Icon Upload */}
+                                          <label
+                                            className={`flex items-center justify-between p-2 cursor-pointer w-full rounded-md border border-gray-600 focus:outline-none ${
+                                              darkMode
+                                                ? "bg-inherit text-white"
+                                                : "bg-inherit text-black"
+                                            }`}
                                           >
-                                            Cancel
-                                          </button>
+                                            <div className="flex flex-col flex-1">
+                                              <span className="text-sm text-gray-400">
+                                                {editTrack.trackIcon
+                                                  ? "Change Track Icon"
+                                                  : "Upload Track Icon"}
+                                              </span>
+                                              {editTrack.trackIcon &&
+                                                typeof editTrack.trackIcon ===
+                                                  "object" && (
+                                                  <span className="text-xs text-[#F48567] mt-1 truncate">
+                                                    {editTrack.trackIcon.name}
+                                                  </span>
+                                                )}
+                                              {editTrack.trackIcon &&
+                                                typeof editTrack.trackIcon ===
+                                                  "string" && (
+                                                  <span className="text-xs text-[#F48567] mt-1 truncate">
+                                                    {editTrack.trackIcon
+                                                      .split("/")
+                                                      .pop()}
+                                                  </span>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center">
+                                              {editTrack.trackIcon ? (
+                                                <svg
+                                                  width="18"
+                                                  height="18"
+                                                  viewBox="0 0 18 18"
+                                                  fill="none"
+                                                  xmlns="http://www.w3.org/2000/svg"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setEditTrack({
+                                                      ...editTrack,
+                                                      trackIcon: null,
+                                                    });
+                                                  }}
+                                                  className="cursor-pointer ml-2"
+                                                >
+                                                  <path
+                                                    d="M9 0.25C4.125 0.25 0.25 4.125 0.25 9C0.25 13.875 4.125 17.75 9 17.75C13.875 17.75 17.75 13.875 17.75 9C17.75 4.125 13.875 0.25 9 0.25ZM12.375 13.375L9 10L5.625 13.375L4.625 12.375L8 9L4.625 5.625L5.625 4.625L9 8L12.375 4.625L13.375 5.625L10 9L13.375 12.375L12.375 13.375Z"
+                                                    fill="#DD441B"
+                                                  />
+                                                </svg>
+                                              ) : (
+                                                <Upload size={16} />
+                                              )}
+                                              <input
+                                                type="file"
+                                                accept="image/*"
+                                                className="hidden"
+                                                onChange={(e) =>
+                                                  setEditTrack({
+                                                    ...editTrack,
+                                                    trackIcon:
+                                                      e.target.files[0],
+                                                  })
+                                                }
+                                              />
+                                            </div>
+                                          </label>
+
+                                          {/* Single Save Button that shows the action modal */}
+
+                                          <div className="flex gap-2 justify-between mt-2">
+                                            <button
+                                              className="bg-[#F48567] px-4 py-1 rounded-md text-sm w-[145px] text-black"
+                                              onClick={() =>
+                                                setShowTrackActionModal(true)
+                                              }
+                                            >
+                                              Save
+                                            </button>
+
+                                            <button
+                                              className="bg-[#C7C7C7] px-4 py-1 rounded-md text-sm w-[145px] text-black"
+                                              onClick={() => setEditTrack(null)}
+                                            >
+                                              Cancel
+                                            </button>
+                                          </div>
                                         </div>
-                                      </div>
-                                    )}
+                                      )}
                                   </div>
                                 ))}
                               </div>
@@ -2324,6 +2549,206 @@ const ParentComponent = () => {
         cancelText="Cancel"
         darkMode={darkMode}
       />
+
+      <ConfirmationModal
+        isOpen={showTrackActionModal}
+        onClose={() => {
+          setShowTrackActionModal(false);
+          setSelectedTrackForAction(null);
+          setSelectedAction(null); // Reset selection when closing
+        }}
+        message={
+          <div className="text-center w-full">
+            <div className="text-lg font-semibold mb-4">
+              Choose Action for Track
+            </div>
+
+            <div className="flex flex-col gap-3 w-full mb-4">
+              {/* Update Track Details Button */}
+              <button
+                className={`px-4 py-3 rounded-md text-sm flex items-center justify-center gap-2 w-full transition-colors border-2 ${
+                  selectedAction === "update"
+                    ? "bg-[#F48567] text-black border-[#F48567]"
+                    : "bg-transparent text-white border-gray-300 hover:border-[#F48567] hover:text-[#F48567]"
+                } ${darkMode ? "border-gray-600 text-white" : ""}`}
+                onClick={() => setSelectedAction("update")}
+                disabled={actionLoading}
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path
+                    d="M13.3333 2L14 2.66667L8 8.66667L4 4.66667L4.66667 4L8 7.33333L13.3333 2Z"
+                    fill={
+                      selectedAction === "update" ? "black" : "currentColor"
+                    }
+                  />
+                  <path
+                    d="M12.6667 8.66667V12.6667H3.33333V3.33333H7.33333V2H2.66667C2.29867 2 2 2.29867 2 2.66667V13.3333C2 13.7013 2.29867 14 2.66667 14H13.3333C13.7013 14 14 13.7013 14 13.3333V8.66667H12.6667Z"
+                    fill={
+                      selectedAction === "update" ? "black" : "currentColor"
+                    }
+                  />
+                </svg>
+                Update Track Details
+              </button>
+
+              {/* Start Fresh Button */}
+              <button
+                className={`px-4 py-3 rounded-md text-sm flex items-center justify-center gap-2 w-full transition-colors border-2 ${
+                  selectedAction === "startFresh"
+                    ? "bg-[#FF6B6B] text-white border-[#FF6B6B]"
+                    : "bg-transparent text-white border-gray-300 hover:border-[#FF6B6B] hover:text-[#FF6B6B]"
+                } ${darkMode ? "border-gray-600 text-white" : ""}`}
+                onClick={() => setSelectedAction("startFresh")}
+                disabled={actionLoading}
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path
+                    d="M8 2C4.68629 2 2 4.68629 2 8C2 11.3137 4.68629 14 8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2ZM10.5 8.5H5.5V7.5H10.5V8.5Z"
+                    fill={
+                      selectedAction === "startFresh" ? "white" : "currentColor"
+                    }
+                  />
+                </svg>
+                Start Fresh (Delete All Content)
+              </button>
+            </div>
+
+            {/* Show action description when an option is selected */}
+            {selectedAction && (
+              <div className="mb-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-md">
+                <p className="text-sm">
+                  {selectedAction === "update"
+                    ? "You are about to update the track details."
+                    : "Warning: This will delete all modules and content associated with this track."}
+                </p>
+              </div>
+            )}
+          </div>
+        }
+        confirmText={actionLoading ? "Processing..." : "Confirm"}
+        cancelText="Cancel"
+        showConfirm={selectedAction !== null} // Only show confirm button when an action is selected
+        showCancel={true}
+        onConfirm={() => {
+          if (selectedAction === "update") {
+            handleUpdateTrack();
+          } else if (selectedAction === "startFresh") {
+            setShowTrackActionModal(false);
+            setShowStartFreshModal(true);
+          }
+        }}
+        onCancel={() => {
+          setShowTrackActionModal(false);
+          setSelectedTrackForAction(null);
+          setSelectedAction(null);
+        }}
+        confirmDisabled={actionLoading}
+        darkMode={darkMode}
+      />
+
+      {/* Start Fresh Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showStartFreshModal}
+        onClose={() => {
+          setShowStartFreshModal(false);
+          setSelectedTrackForAction(null);
+        }}
+        onConfirm={handleStartFresh}
+        message={
+          <div className="text-center">
+            <div className="text-lg font-semibold text-red-500 mb-2">
+              Warning: Start Fresh
+            </div>
+            <div className="text-sm">
+              This action will{" "}
+              <span className="font-bold text-red-500">
+                DELETE ALL MODULES AND CONTENT
+              </span>{" "}
+              related to the track "{selectedTrackForAction?.tracksName}".
+              <br />
+              <br />
+              This action cannot be undone. Are you sure you want to continue?
+            </div>
+            <div className="mt-4 text-xs text-gray-500">
+              The track information will be preserved, but all associated
+              modules and challenges will be permanently deleted.
+            </div>
+          </div>
+        }
+        confirmText={startFreshLoading ? "Processing..." : "Yes, Start Fresh"}
+        cancelText="Cancel"
+        confirmColor="red"
+        darkMode={darkMode}
+        disabled={startFreshLoading}
+      />
+
+      {/* Track Edit Modal */}
+      {editTrack && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div
+            className={`rounded-2xl border border-[#FFFFFF59] shadow-[0_1px_6px_rgba(230,230,230,0.35)] w-96 p-6 relative ${
+              darkMode ? "bg-[#1E1E1E] text-white" : "bg-[#fff] text-dark"
+            }`}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold">Update Track</h2>
+              <button
+                onClick={() => setEditTrack(null)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M18 6L6 18M6 6l12 12"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm mb-1">Track Name</label>
+                <input
+                  type="text"
+                  placeholder="Track Name"
+                  className={`p-2 rounded-md border border-gray-600 focus:outline-none w-full ${
+                    darkMode ? "bg-[#333333] text-white" : "bg-white text-black"
+                  }`}
+                  value={editTrack.tracksName || ""}
+                  onChange={(e) =>
+                    setEditTrack({
+                      ...editTrack,
+                      tracksName: e.target.value,
+                    })
+                  }
+                />
+              </div>
+
+              {/* Add file upload fields here if needed */}
+
+              <div className="flex gap-2 mt-6">
+                <button
+                  className="bg-[#F48567] px-4 py-2 rounded-md text-sm text-black flex-1 flex items-center justify-center gap-2"
+                  onClick={handleSaveTrackUpdate}
+                  disabled={updateLoading}
+                >
+                  {updateLoading ? "Updating..." : "Save Changes"}
+                </button>
+                <button
+                  className="bg-[#C7C7C7] px-4 py-2 rounded-md text-sm text-black flex-1"
+                  onClick={() => setEditTrack(null)}
+                  disabled={updateLoading}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

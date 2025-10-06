@@ -8,14 +8,21 @@ export const CREATE_CHALLENGE_SUCCESS = "CREATE_CHALLENGE_SUCCESS";
 export const CREATE_CHALLENGE_FAILURE = "CREATE_CHALLENGE_FAILURE";
 export const PATCH_CONTENT_SUCCESS = "PATCH_CONTENT_SUCCESS";
 export const PATCH_CONTENT_FAILURE = "PATCH_CONTENT_FAILURE";
-export const UPDATE_CONTENT_SUCCESS = "UPDATE_CONTENT_SUCCESS"; // New action type
-export const UPDATE_CONTENT_FAILURE = "UPDATE_CONTENT_FAILURE"; // New action type
+export const UPDATE_CONTENT_SUCCESS = "UPDATE_CONTENT_SUCCESS";
+export const UPDATE_CONTENT_FAILURE = "UPDATE_CONTENT_FAILURE";
 export const PATCH_CHALLENGE_SUCCESS = "PATCH_CHALLENGE_SUCCESS";
 export const PATCH_CHALLENGE_FAILURE = "PATCH_CHALLENGE_FAILURE";
 export const DELETE_CONTENT_SUCCESS = "DELETE_CONTENT_SUCCESS";
 export const DELETE_CONTENT_FAILURE = "DELETE_CONTENT_FAILURE";
 export const DELETE_CHALLENGE_SUCCESS = "DELETE_CHALLENGE_SUCCESS";
 export const DELETE_CHALLENGE_FAILURE = "DELETE_CHALLENGE_FAILURE";
+export const FETCH_TRACKS_SUCCESS = "FETCH_TRACKS_SUCCESS";
+export const FETCH_TRACKS_FAILURE = "FETCH_TRACKS_FAILURE";
+export const UPDATE_TRACK_SUCCESS = "UPDATE_TRACK_SUCCESS";
+export const UPDATE_TRACK_FAILURE = "UPDATE_TRACK_FAILURE";
+
+export const START_FRESH_SUCCESS = "START_FRESH_SUCCESS";
+export const START_FRESH_FAILURE = "START_FRESH_FAILURE";
 
 // Action for fetching all content
 export const fetchAllContent = () => async (dispatch) => {
@@ -446,3 +453,110 @@ export const updateChallenge =
       throw error; // rethrow so component can catch it
     }
   };
+export const fetchAllTracks = () => async (dispatch) => {
+  try {
+    const authToken = localStorage.getItem("authToken");
+
+    const response = await fetch(
+      `${process.env.REACT_APP_STATIC_API_URL}/api/v1/get-all-tracks`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch tracks");
+    }
+
+    const data = await response.json();
+    console.log("Tracks data from API:", data);
+
+    // Dispatch success action with tracks data
+    dispatch({ type: FETCH_TRACKS_SUCCESS, payload: data.items });
+
+    return data.items; // Return tracks for component use
+  } catch (error) {
+    console.error("Error in fetchAllTracks:", error);
+    dispatch({ type: FETCH_TRACKS_FAILURE, payload: error.message });
+    throw error;
+  }
+};
+export const updateTrack = (trackId, trackData) => async (dispatch) => {
+  try {
+    const authToken = localStorage.getItem("authToken");
+    const formData = new FormData();
+
+    // Append fields if they exist
+    if (trackData.tracksName)
+      formData.append("tracksName", trackData.tracksName);
+    if (trackData.trackImage)
+      formData.append("trackImage", trackData.trackImage);
+    if (trackData.trackIcon) formData.append("trackIcon", trackData.trackIcon);
+
+    console.log("Sending PUT Request for Track ID:", trackId);
+
+    const response = await fetch(
+      `${process.env.REACT_APP_STATIC_API_URL}/api/v1/edit-single-track/${trackId}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: formData,
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to update track");
+    }
+
+    const data = await response.json();
+    console.log("Updated Track:", data);
+
+    dispatch({ type: UPDATE_TRACK_SUCCESS, payload: data });
+    return data;
+  } catch (error) {
+    console.error("Error in updateTrack:", error);
+    dispatch({ type: UPDATE_TRACK_FAILURE, payload: error.message });
+    throw error;
+  }
+};
+// Action for starting fresh (deleting all related content for a track)
+export const startFresh = (trackId) => async (dispatch) => {
+  try {
+    const authToken = localStorage.getItem("authToken");
+
+    console.log("Sending Start Fresh Request for Track ID:", trackId);
+
+    const response = await fetch(
+      `${process.env.REACT_APP_STATIC_API_URL}/api/v1/start-fresh/${trackId}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Failed to start fresh. Server response:", errorText);
+      throw new Error(errorText || "Failed to start fresh");
+    }
+
+    const data = await response.json();
+    console.log("Start Fresh Response:", data);
+
+    // Dispatch success action with the response data
+    dispatch({ type: START_FRESH_SUCCESS, payload: data });
+
+    return data; // Return data for component use
+  } catch (error) {
+    console.error("Error in startFresh:", error);
+    dispatch({ type: START_FRESH_FAILURE, payload: error.message });
+    throw error; // Re-throw to handle in component
+  }
+};

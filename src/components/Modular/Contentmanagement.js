@@ -788,7 +788,6 @@ const ContentManagement = () => {
               {(record.moduleName || record.challengeName) && (
                 <EditContent contentData={record} />
               )}
-
               <div
                 className="cursor-pointer"
                 onClick={() => handleApprovalAction(record, "rejected")}
