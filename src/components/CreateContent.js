@@ -1772,6 +1772,11 @@ const ParentComponent = () => {
                             </button>
                           </div>
                         </div>
+                        {formData.partner && (
+                          <div className="w-full mt-4 text-sm text-white flex justify-end">
+                            Partner: {formData.partner}
+                          </div>
+                        )}
                       </section>
                     )}
                   </div>
@@ -2187,9 +2192,11 @@ const ParentComponent = () => {
                         </button>
                       </div>
                     </div>
-                    <div className="w-full mb-2  mt-2 text-sm text-white flex justify-end mr-2">
-                      {formData.partner && `Partner: ${formData.partner}`}
-                    </div>
+                    {formData.partner && (
+                      <div className="w-full mt-4 text-sm text-white flex justify-end">
+                        Partner: {formData.partner}
+                      </div>
+                    )}
                   </section>
                 )}
 
