@@ -11,6 +11,7 @@ import {
   fetchAllTracks,
   updateTrack,
   startFresh,
+  fetchModulesByTrack,
 } from "../redux/actions/allContentGet";
 import { showNotification } from "../redux/actions/notificationActions"; // Import showNotification
 import { SquarePlus, Pencil, Upload } from "lucide-react";
@@ -20,6 +21,12 @@ const ParentComponent = () => {
   const dispatch = useDispatch();
   const darkMode = useSelector((state) => state.theme.darkMode);
   const userRole = localStorage.getItem("userRole");
+
+  // State declarations
+  const [modules, setModules] = useState([]);
+  const [challenges, setChallenges] = useState([]);
+  const [modulesFromStorage, setModulesFromStorage] = useState([]);
+
   const [trackModules, setTrackModules] = useState({});
   const [showPopup, setShowPopup] = useState(false);
   const [showChallangePopup, setChallangePopup] = useState(false);
@@ -45,12 +52,13 @@ const ParentComponent = () => {
   const [navigationHistory, setNavigationHistory] = useState(["section1"]);
   const [showStartFreshModal, setShowStartFreshModal] = useState(false);
   const [startFreshLoading, setStartFreshLoading] = useState(false);
-
+  const [showUpdateSuccessModal, setShowUpdateSuccessModal] = useState(false);
   const [showTrackActionModal, setShowTrackActionModal] = useState(false);
   const [selectedTrackForAction, setSelectedTrackForAction] = useState(null);
   const [updateLoading, setUpdateLoading] = useState(false);
   const [selectedAction, setSelectedAction] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [modulesLoading, setModulesLoading] = useState(false);
 
   const handleBack = () => {
     if (isSection2Visible) {
@@ -58,7 +66,7 @@ const ParentComponent = () => {
       setIsSectionVisible(true);
     } else if (isCreatedModuleVisible) {
       setisCreatedModuleVisible(false);
-      setIsSection2Visible(true);
+      setIsSection2Visible(true); // Go back to learning video form
     } else if (isSection3Visible) {
       setIsSection3Visible(false);
       setIsSectionVisible(true);
@@ -108,13 +116,12 @@ const ParentComponent = () => {
 
   const [formData, setFormData] = useState(initialModuleData);
   const [challengeData, setChallengeData] = useState(initialChallangeData);
-  const [challenges, setChallenges] = useState([]);
+
   const [editingChallengeIndex, setEditingChallengeIndex] = useState(null);
   const [progress, setProgress] = useState(0);
-  const [modules, setModules] = useState([]);
+
   const [editingIndex, setEditingIndex] = useState(null);
   const [expandedIndex, setExpandedIndex] = useState(null);
-  const [modulesFromStorage, setModulesFromStorage] = useState([]);
 
   //confirmation model
   const [moduleToDelete, setModuleToDelete] = useState(null);
@@ -142,23 +149,75 @@ const ParentComponent = () => {
   const toggleModuleOpen = () => setIsOpenModule(!isOpenModule);
 
   useEffect(() => {
-    // Load modules from local storage when component mounts
-    const storedModules = localStorage.getItem("moduleInfo");
-    if (storedModules) {
-      try {
-        const parsedModules = JSON.parse(storedModules);
-        setModulesFromStorage(parsedModules);
-      } catch (error) {
-        console.error("Error parsing stored modules:", error);
+    const fetchModulesForTrack = async () => {
+      if (formData.tracks) {
+        setModulesLoading(true);
+        try {
+          const modulesData = await dispatch(
+            fetchModulesByTrack(formData.tracks)
+          );
+          setModulesFromStorage(modulesData?.items || []);
+        } catch (error) {
+          console.error("Failed to load modules for track:", error);
+          setModulesFromStorage([]);
+        } finally {
+          setModulesLoading(false);
+        }
+      } else {
+        setModulesFromStorage([]);
+        setModulesLoading(false);
       }
-    }
-  }, []);
+    };
 
-  const handleSelectTracks = (trackName) => {
+    fetchModulesForTrack();
+  }, [formData.tracks, dispatch]);
+
+  const saveSelectedDataToStorage = (track, module) => {
+    const selectedData = {
+      track: track,
+      module: module,
+      timestamp: Date.now(),
+    };
+    localStorage.setItem("selectedTrackModule", JSON.stringify(selectedData));
+    console.log("Saved to storage:", selectedData);
+  };
+
+  // Update getSelectedDataFromStorage to be more defensive
+  const getSelectedDataFromStorage = () => {
+    try {
+      const data = localStorage.getItem("selectedTrackModule");
+      return data ? JSON.parse(data) : null;
+    } catch (error) {
+      console.error("Error reading from storage:", error);
+      return null;
+    }
+  };
+
+  // Only clear storage when explicitly needed (like when closing popup)
+  const clearSelectedDataFromStorage = () => {
+    localStorage.removeItem("selectedTrackModule");
+    console.log("Cleared storage");
+  };
+
+  // Update the handleSelectTracks function
+  const handleSelectTracks = async (trackName) => {
     setFormData((prevData) => ({
       ...prevData,
-      tracks: trackName, // Store track name instead of ID
+      tracks: trackName,
+      module: "", // Reset module when track changes
+      moduleName: "", // Reset module name
     }));
+
+    // Also reset challenge data module reference
+    setChallengeData((prevData) => ({
+      ...prevData,
+      module: "",
+    }));
+
+    // Save to localStorage
+    const currentSelected = getSelectedDataFromStorage();
+    saveSelectedDataToStorage(trackName, currentSelected?.module || "");
+
     setIsOpenTrack(false);
   };
 
@@ -199,18 +258,56 @@ const ParentComponent = () => {
 
   const handleSelectModule = (module) => {
     setSelectedModule(module);
-    localStorage.setItem("selectedModule", JSON.stringify(module));
 
-    setFormData((prevData) => ({
-      ...prevData,
-      module: module.id,
-      moduleName: module.name,
-    }));
+    const isTemplateModule = module._id?.startsWith("template-");
+
+    if (isTemplateModule) {
+      setFormData((prevData) => ({
+        ...prevData,
+        module: module._id,
+        moduleName: "", // Leave empty for user to fill
+        description: "",
+        cover_Photo: null,
+        videoFile_introduction: null,
+        videoFile_description: null,
+        content: "",
+      }));
+    } else {
+      setFormData((prevData) => ({
+        ...prevData,
+        module: module._id,
+        moduleName: module.moduleName || "",
+        description: module.description || "",
+        cover_Photo: module.cover_Photo || null,
+        videoFile_introduction: module.videoFile_introduction || null,
+        videoFile_description: module.videoFile_description || null,
+        content: module.content || "",
+        fileSize: module.fileSize || "",
+        isApproved: module.isApproved || "pending",
+        moduleType: module.moduleType || "Module",
+        tracks: module.tracks || formData.tracks,
+      }));
+    }
 
     setChallengeData((prevData) => ({
       ...prevData,
-      module: module.id,
+      module: module._id,
     }));
+
+    // Save to localStorage
+    const currentSelected = getSelectedDataFromStorage();
+    saveSelectedDataToStorage(
+      currentSelected?.track || formData.tracks,
+      module._id
+    );
+
+    // Set selected module in localStorage (existing code)
+    const selectedModuleData = {
+      id: module._id,
+      moduleName: module.moduleName,
+      uploadedById: module.uploaded_by || "68b5596571d47f3ed464a8f0",
+    };
+    localStorage.setItem("selectedModule", JSON.stringify(selectedModuleData));
 
     setIsOpenModule(false);
   };
@@ -259,7 +356,7 @@ const ParentComponent = () => {
     setShowPopup(false);
     setChallengeData(initialChallangeData);
     setFormData(initialModuleData);
-    settime({ duration: 0 }); // Reset time state
+    settime({ duration: 0 });
     setIsSectionVisible(true);
     setIsSection2Visible(false);
     setIsSection3Visible(false);
@@ -270,7 +367,23 @@ const ParentComponent = () => {
     setIsChallengeSelected(false);
     setModules([]);
     setChallenges([]);
+
+    // Clear stored data when closing popup
+    clearSelectedDataFromStorage();
   };
+
+  useEffect(() => {
+    if (showPopup) {
+      const storedData = getSelectedDataFromStorage();
+      if (storedData) {
+        setFormData((prev) => ({
+          ...prev,
+          tracks: storedData.track || prev.tracks,
+          module: storedData.module || prev.module,
+        }));
+      }
+    }
+  }, [showPopup]);
 
   const handleEditTrack = (trackObj) => {
     setEditTrack(trackObj);
@@ -305,7 +418,31 @@ const ParentComponent = () => {
       setShowTrackActionModal(false);
       setSelectedAction(null);
 
-      dispatch(showNotification("Track updated successfully!", "success"));
+      // Check if any modules were updated
+      const hasUpdates = modules.some(
+        (m) => m.isExistingModule === true || editingIndex !== null
+      );
+
+      dispatch(
+        showNotification(
+          "Your Modules have been successfully submitted for approval.",
+          "success"
+        )
+      );
+
+      clearSelectedDataFromStorage();
+      setLoadingLink(false);
+
+      // Show appropriate success modal
+      if (hasUpdates) {
+        setShowUpdateSuccessModal(true);
+      } else {
+        setShowSuccessModal(true);
+      }
+
+      clearSelectedDataFromStorage();
+      setLoadingLink(false);
+      setShowSuccessModal(true);
     } catch (error) {
       console.error("Update track error:", error);
       dispatch(
@@ -423,21 +560,105 @@ const ParentComponent = () => {
     }));
   };
 
-  const handleAddModule = () => {
+  const handleAddModule = async () => {
     if (!formData.moduleName) {
-      setisCreatedModuleVisible(true);
-      setIsSection2Visible(false);
+      dispatch(
+        showNotification("Title is required to create Module.", "error")
+      );
       return;
     }
 
-    const trackValue = modules[0]?.tracks || formData.tracks;
-    const newModule = {
-      ...formData,
-      tracks: trackValue,
-      tracks: trackValue,
-      uniqueUploadId: generateUniqueId(),
-    };
+    const selectedModule = JSON.parse(localStorage.getItem("selectedModule"));
+    const storedData = getSelectedDataFromStorage();
 
+    // Check if this is a NEW learning video being added (not editing existing one)
+    const isAddingNewVideo = editingIndex === null;
+
+    // FIXED: Check if user actually SELECTED an existing module from dropdown
+    // Only consider it an existing module selection if:
+    // 1. A module was selected from dropdown (formData.module exists)
+    // 2. It's not a template module
+    // 3. The module ID matches what's in localStorage (meaning user clicked on it)
+    const isExistingModuleSelected =
+      formData.module && // Module was set in formData
+      !formData.module.startsWith("template-") && // Not a template
+      selectedModule?.id === formData.module; // User explicitly selected it
+
+    let newModule;
+
+    if (isAddingNewVideo && isExistingModuleSelected) {
+      // SCENARIO: User selected existing module from dropdown, then clicked "Learning Video" button
+      // Check if this module is already in the modules array
+      const moduleAlreadyInList = modules.find(
+        (m) => m._id === selectedModule.id
+      );
+
+      if (moduleAlreadyInList) {
+        // Module already in list, so create a NEW one
+        newModule = {
+          ...formData,
+          tracks: storedData?.track || formData.tracks,
+          uniqueUploadId: generateUniqueId(),
+          _id: undefined, // NO _id = CREATE
+          isNewModule: true,
+          cover_Photo: formData.cover_Photo,
+          videoFile_introduction: formData.videoFile_introduction,
+          videoFile_description: formData.videoFile_description,
+        };
+      } else {
+        // First time adding this existing module to the list - keep its _id for UPDATE
+        newModule = {
+          ...formData,
+          tracks: storedData?.track || formData.tracks,
+          uniqueUploadId: formData.uniqueUploadId || generateUniqueId(),
+          _id: selectedModule.id, // Keep _id = UPDATE
+          isExistingModule: true, // Mark as existing
+          cover_Photo: formData.cover_Photo,
+          videoFile_introduction: formData.videoFile_introduction,
+          videoFile_description: formData.videoFile_description,
+        };
+      }
+    } else if (isAddingNewVideo && !isExistingModuleSelected) {
+      // FIXED: User did NOT select an existing module from dropdown
+      // This means they either:
+      // 1. Selected a template module
+      // 2. Didn't select any module at all
+      // 3. Just went straight to "Learning Video" button
+      // In ALL these cases, CREATE a new module
+      newModule = {
+        ...formData,
+        tracks: storedData?.track || formData.tracks,
+        uniqueUploadId: generateUniqueId(),
+        _id: undefined, // NO _id = CREATE
+        module: undefined, // Clear any module reference
+        isNewModule: true,
+        cover_Photo: formData.cover_Photo,
+        videoFile_introduction: formData.videoFile_introduction,
+        videoFile_description: formData.videoFile_description,
+      };
+    } else {
+      // User is EDITING an existing module from the list
+      newModule = {
+        ...formData,
+        tracks: storedData?.track || formData.tracks,
+        uniqueUploadId: formData.uniqueUploadId || generateUniqueId(),
+        _id: formData._id, // Keep the _id
+        isExistingModule: formData.isExistingModule, // Preserve the flag
+        cover_Photo: formData.cover_Photo,
+        videoFile_introduction: formData.videoFile_introduction,
+        videoFile_description: formData.videoFile_description,
+      };
+    }
+
+    console.log("Adding module:", {
+      moduleName: newModule.moduleName,
+      _id: newModule._id,
+      isNewModule: newModule.isNewModule,
+      isExistingModule: newModule.isExistingModule,
+      formDataModule: formData.module,
+      selectedModuleId: selectedModule?.id,
+      isExistingModuleSelected: isExistingModuleSelected,
+    });
     if (editingIndex !== null) {
       const updatedModules = [...modules];
       updatedModules[editingIndex] = newModule;
@@ -447,48 +668,30 @@ const ParentComponent = () => {
       setModules([...modules, newModule]);
     }
 
+    // Reset form
     setFormData({
       ...initialModuleData,
       uniqueUploadId: generateUniqueId(),
-      tracks: trackValue,
+      tracks: storedData?.track || formData.tracks,
+      module: "", // IMPORTANT: Clear module selection
     });
+
+    // IMPORTANT: Clear the selected module from localStorage when creating new
+    if (!isExistingModuleSelected) {
+      localStorage.removeItem("selectedModule");
+    }
+
     setIsSection2Visible(false);
     setisCreatedModuleVisible(true);
   };
 
-  const handleAddModulefromavilable = () => {
-    if (!formData.moduleName) {
-      dispatch(
-        showNotification("Title is required to create Module.", "error")
-      );
-      return;
-    }
+  // Then create a separate function to handle the actual submission
+  const handleConfirmModuleSubmit = async () => {
+    setShowSubmitConfirmation(false);
 
-    const trackValue = modules[0]?.tracks || formData.tracks;
-    const newModule = {
-      ...formData,
-      tracks: trackValue,
-      uniqueUploadId: generateUniqueId(),
-    };
-
-    const updatedModules =
-      editingIndex !== null
-        ? [
-            ...modules.slice(0, editingIndex),
-            newModule,
-            ...modules.slice(editingIndex + 1),
-          ]
-        : [...modules, newModule];
-
-    setModules(updatedModules);
-    setFormData({
-      ...initialModuleData,
-      uniqueUploadId: generateUniqueId(),
-      tracks: trackValue,
-    });
-    setIsSection2Visible(true);
-    setisCreatedModuleVisible(false);
-    setEditingIndex(null);
+    // Just navigate to the created modules section
+    setIsSection2Visible(false);
+    setisCreatedModuleVisible(true);
   };
 
   const handleDeleteModule = (index) => {
@@ -573,11 +776,146 @@ const ParentComponent = () => {
     setisCreatedContentVisible(true);
   };
 
-  const handleEditChallenge = (index) => {
-    setChallengeData(challenges[index]);
-    setEditingChallengeIndex(index);
-    setIsSection3Visible(true);
-    setisCreatedContentVisible(false);
+  // Handler for editing existing modules (name only)
+  const handleEditExistingModule = (module) => {
+    // Open a simple modal or form to edit just the module name
+    const newName = prompt("Enter new module name:", module.moduleName);
+    if (newName && newName.trim() !== "") {
+      // Call API to update module name only
+      dispatch(updateContent(module._id, { moduleName: newName.trim() }))
+        .then(() => {
+          // Refresh modules after successful update
+          dispatch(fetchModulesByTrack(formData.tracks));
+          dispatch(showNotification("Module updated successfully!", "success"));
+        })
+        .catch((error) => {
+          dispatch(showNotification("Failed to update module", "error"));
+        });
+    }
+  };
+
+  // Handler for saving existing module (name only)
+  const handleSaveExistingModule = async () => {
+    if (!editModule?._id || !editModule.moduleName) return;
+
+    try {
+      const updateData = {
+        moduleName: editModule.moduleName,
+        tracks: formData.tracks, // Include tracks field
+      };
+
+      await dispatch(updateContent(editModule._id, updateData));
+
+      // Refresh modules
+      const modulesData = await dispatch(fetchModulesByTrack(formData.tracks));
+      setModulesFromStorage(modulesData?.items || []);
+      setEditModule(null);
+
+      dispatch(showNotification("Module updated successfully!", "success"));
+    } catch (error) {
+      dispatch(showNotification("Failed to update module", "error"));
+    }
+  };
+
+  const handleCreateNewModule = async () => {
+    if (!editModule?.moduleName) {
+      dispatch(showNotification("Module name is required", "error"));
+      return;
+    }
+
+    try {
+      const userData = JSON.parse(localStorage.getItem("userData"));
+      const userId = userData?.id || localStorage.getItem("userId");
+      const storedData = getSelectedDataFromStorage();
+
+      if (!userId) {
+        dispatch(
+          showNotification("User not found. Please login again.", "error")
+        );
+        return;
+      }
+
+      const selectedModuleData = {
+        id: editModule._id,
+        moduleName: editModule.moduleName,
+        uploadedById: userId,
+      };
+
+      localStorage.setItem(
+        "selectedModule",
+        JSON.stringify(selectedModuleData)
+      );
+
+      // Use stored track data
+      const newModule = {
+        uniqueUploadId: generateUniqueId(),
+        tracks: storedData?.track || formData.tracks, // Use stored track
+        moduleName: editModule.moduleName,
+        moduleType: "Module",
+        fileSize: "",
+        isApproved: "pending",
+        description: "",
+        cover_Photo: editModule.cover_Photo,
+        videoFile_introduction: null,
+        videoFile_description: null,
+        content: "",
+      };
+
+      console.log("Creating new module with track:", newModule.tracks);
+
+      const response = await dispatch(createContent(newModule));
+
+      if (response?._id) {
+        const modulesData = await dispatch(
+          fetchModulesByTrack(formData.tracks)
+        );
+        setModulesFromStorage(modulesData?.items || []);
+        setEditModule(null);
+
+        const updatedSelectedModule = {
+          id: response._id,
+          moduleName: editModule.moduleName,
+          uploadedById: userId,
+        };
+        localStorage.setItem(
+          "selectedModule",
+          JSON.stringify(updatedSelectedModule)
+        );
+
+        // Update the modules array with stored track
+        setModules((prevModules) =>
+          prevModules.map((module) =>
+            module.uniqueUploadId === editModule._id
+              ? {
+                  ...module,
+                  _id: response._id,
+                  uniqueUploadId: response._id,
+                  moduleName: editModule.moduleName,
+                  tracks: storedData?.track || module.tracks, // Preserve track
+                }
+              : module
+          )
+        );
+
+        setFormData((prev) => ({
+          ...prev,
+          module: response._id,
+          moduleName: editModule.moduleName,
+          tracks: storedData?.track || prev.tracks, // Preserve track
+        }));
+
+        setChallengeData((prev) => ({
+          ...prev,
+          module: response._id,
+        }));
+
+        dispatch(showNotification("Module created successfully!", "success"));
+        setIsOpenModule(false);
+      }
+    } catch (error) {
+      console.error("Module creation error:", error);
+      dispatch(showNotification("Failed to create module", "error"));
+    }
   };
 
   const handleAddChallengefromavilablenew = () => {
@@ -642,6 +980,8 @@ const ParentComponent = () => {
     let progressCount = 0;
     const totalSteps = modules.length;
 
+    const storedData = getSelectedDataFromStorage();
+
     const smoothProgressUpdate = (target) => {
       let current = progress;
       const interval = setInterval(() => {
@@ -655,30 +995,181 @@ const ParentComponent = () => {
     };
 
     try {
-      for (let i = 0; i < modules.length; i++) {
-        const payload = modules[i];
-        const response = await dispatch(createContent(payload));
+      let hasUpdates = false;
+      let hasCreates = false;
 
-        if (response?._id) {
+      for (let i = 0; i < modules.length; i++) {
+        const module = modules[i];
+
+        console.log(`Processing module ${i + 1}:`, {
+          moduleName: module.moduleName,
+          _id: module._id,
+          isNewModule: module.isNewModule,
+          isExistingModule: module.isExistingModule,
+        });
+
+        // Determine if this is an existing module that needs UPDATE or a new one that needs CREATE
+        const shouldUpdate =
+          module.isExistingModule === true &&
+          module._id &&
+          !module._id.startsWith("template-");
+        const shouldCreate = !shouldUpdate;
+
+        let response;
+
+        if (shouldCreate) {
+          // CREATE NEW MODULE
+          hasCreates = true;
+          const moduleData = {
+            uniqueUploadId: module.uniqueUploadId || generateUniqueId(),
+            moduleName: module.moduleName || "",
+            description: module.description || "",
+            tracks: storedData?.track || module.tracks || "",
+            moduleType: module.moduleType || "Module",
+            fileSize: module.fileSize || "",
+            isApproved: module.isApproved || "pending",
+          };
+
+          if (module.cover_Photo instanceof File) {
+            moduleData.cover_Photo = module.cover_Photo;
+          }
+          if (module.videoFile_introduction instanceof File) {
+            moduleData.videoFile_introduction = module.videoFile_introduction;
+          }
+          if (module.videoFile_description instanceof File) {
+            moduleData.videoFile_description = module.videoFile_description;
+          }
+          if (module.content) {
+            moduleData.content = module.content;
+          }
+
+          console.log("✅ Creating NEW module:", module.moduleName);
+
+          try {
+            response = await dispatch(createContent(moduleData));
+            console.log("Create response:", response);
+          } catch (error) {
+            console.error("Create error:", error);
+            dispatch(
+              showNotification(
+                `Failed to create module: ${module.moduleName}`,
+                "error"
+              )
+            );
+            setLoadingLink(false);
+            return;
+          }
+        } else if (shouldUpdate) {
+          // UPDATE EXISTING MODULE
+          hasUpdates = true;
+
+          // Find original module to compare changes
+          const originalModule = modulesFromStorage.find(
+            (m) => m._id === module._id
+          );
+
+          // Check if anything changed
+          const hasChanges =
+            originalModule?.moduleName !== module.moduleName ||
+            originalModule?.description !== module.description ||
+            module.cover_Photo instanceof File ||
+            module.videoFile_introduction instanceof File ||
+            module.videoFile_description instanceof File ||
+            (module.content && originalModule?.content !== module.content);
+
+          if (hasChanges) {
+            const updateData = {
+              uniqueUploadId:
+                module.uniqueUploadId || originalModule?.uniqueUploadId,
+              moduleName: module.moduleName || "",
+              description: module.description || "",
+              tracks: storedData?.track || module.tracks || "",
+              moduleType: module.moduleType || "Module",
+              fileSize: module.fileSize || "",
+              isApproved: module.isApproved || "pending",
+            };
+
+            if (module.cover_Photo instanceof File) {
+              updateData.cover_Photo = module.cover_Photo;
+            }
+            if (module.videoFile_introduction instanceof File) {
+              updateData.videoFile_introduction = module.videoFile_introduction;
+            }
+            if (module.videoFile_description instanceof File) {
+              updateData.videoFile_description = module.videoFile_description;
+            }
+            if (module.content) {
+              updateData.content = module.content;
+            }
+
+            console.log("🔄 Updating EXISTING module:", module.moduleName);
+
+            try {
+              response = await dispatch(updateContent(module._id, updateData));
+              console.log("Update response:", response);
+            } catch (error) {
+              console.error("Update error:", error);
+              dispatch(
+                showNotification(
+                  `Failed to update module: ${module.moduleName}`,
+                  "error"
+                )
+              );
+              setLoadingLink(false);
+              return;
+            }
+          } else {
+            console.log("⏭️ Skipping module (no changes):", module.moduleName);
+            response = { _id: module._id };
+          }
+        }
+
+        // Check response validity - be more lenient with the check
+        if (response && (response._id || response.id || response.success)) {
           progressCount++;
           smoothProgressUpdate((progressCount / totalSteps) * 100);
         } else {
-          dispatch(showNotification("Failed to upload module.", "error"));
+          console.error(
+            "Invalid response for module:",
+            module.moduleName,
+            response
+          );
+          dispatch(
+            showNotification(
+              `Failed to process module: ${module.moduleName}`,
+              "error"
+            )
+          );
           setLoadingLink(false);
           return;
         }
       }
 
-      dispatch(
-        showNotification(
-          "Your Modules have been successfully submitted for approval.",
-          "success"
-        )
-      );
+      // Show appropriate success message based on what operations were performed
+      let successMessage = "";
+      if (hasUpdates && hasCreates) {
+        successMessage =
+          "Your Modules have been successfully created and updated!";
+      } else if (hasUpdates) {
+        successMessage = "Your Modules have been successfully updated!";
+      } else {
+        successMessage =
+          "Your Modules have been successfully submitted for approval.";
+      }
 
+      dispatch(showNotification(successMessage, "success"));
+
+      clearSelectedDataFromStorage();
       setLoadingLink(false);
-      setShowSuccessModal(true);
+
+      // Show appropriate success modal
+      if (hasUpdates) {
+        setShowUpdateSuccessModal(true);
+      } else {
+        setShowSuccessModal(true);
+      }
     } catch (error) {
+      console.error("Submission error:", error);
       dispatch(
         showNotification("An error occurred during submission.", "error")
       );
@@ -1005,9 +1496,9 @@ const ParentComponent = () => {
                                           )}
                                         </span>
                                         <div
-                                          className={`text-sm text-white${
+                                          className={`text-sm ${
                                             darkMode
-                                              ? "text-white "
+                                              ? "text-white"
                                               : "text-black"
                                           }`}
                                         >
@@ -1186,8 +1677,6 @@ const ParentComponent = () => {
                                             </div>
                                           </label>
 
-                                          {/* Single Save Button that shows the action modal */}
-
                                           <div className="flex gap-2 justify-between mt-2">
                                             <button
                                               className="bg-[#F48567] px-4 py-1 rounded-md text-sm w-[145px] text-black"
@@ -1290,201 +1779,518 @@ const ParentComponent = () => {
                             Choose a Module{" "}
                             <span className="text-red-500">*</span>
                           </label>
-                          {/* Module Dropdown with Selection and Edit */}
                           <div className="dropdown-container mb-3">
                             <div
                               className={`dropdown-btn flex p-2 rounded-md ${
                                 darkMode ? "bg-[#333333]" : "bg-gray-200"
-                              } focus:outline-none mb-2 cursor-pointer w-[380px] h-[40px]`}
-                              onClick={toggleModuleOpen}
+                              } focus:outline-none mb-2 cursor-pointer w-[380px] h-[40px] ${
+                                !formData.tracks
+                                  ? "opacity-50 cursor-not-allowed"
+                                  : ""
+                              }`}
+                              onClick={() =>
+                                formData.tracks && toggleModuleOpen()
+                              }
                             >
                               <span className="text-[13px]">
-                                {formData.moduleName || "Module Name"}
+                                {modulesLoading
+                                  ? "Loading modules..."
+                                  : formData.moduleName ||
+                                    (formData.tracks
+                                      ? "Select Module"
+                                      : "Select Track First")}
                               </span>
                               <span>
-                                <svg
-                                  width="12"
-                                  height="7"
-                                  viewBox="0 0 12 7"
-                                  fill="none"
-                                >
-                                  <path
-                                    fillRule="evenodd"
-                                    clipRule="evenodd"
-                                    d="M6.59245 6.46417L11.3066 1.75L10.1283 0.571671L6.00328 4.69667L1.87828 0.571671L0.699951 1.75L5.41412 6.46417C5.57039 6.6204 5.78231 6.70816 6.00328 6.70816C6.22425 6.70816 6.43618 6.6204 6.59245 6.46417Z"
-                                    fill="#C7C7C7"
-                                  />
-                                </svg>
+                                {modulesLoading ? (
+                                  <Spin size="small" />
+                                ) : (
+                                  <svg
+                                    width="12"
+                                    height="7"
+                                    viewBox="0 0 12 7"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      clipRule="evenodd"
+                                      d="M6.59245 6.46417L11.3066 1.75L10.1283 0.571671L6.00328 4.69667L1.87828 0.571671L0.699951 1.75L5.41412 6.46417C5.57039 6.6204 5.78231 6.70816 6.00328 6.70816C6.22425 6.70816 6.43618 6.6204 6.59245 6.46417Z"
+                                      fill="#C7C7C7"
+                                    />
+                                  </svg>
+                                )}
                               </span>
                             </div>
 
-                            {isOpenModule && (
-                              <div
-                                className={`dropdown-menu flex flex-col items-center w-full p-2 rounded-md ${
-                                  darkMode ? "bg-[#333333]" : "bg-gray-200"
-                                }`}
-                              >
-                                {modulesFromStorage.map((module, index) => (
-                                  <div
-                                    key={index}
-                                    className="dropdown-item flex flex-col w-full p-2 rounded-md mb-2"
-                                  >
-                                    {/* Clickable row for selection */}
-                                    <div
-                                      className="flex items-center gap-2 justify-between cursor-pointer"
-                                      onClick={() => handleSelectModule(module)}
-                                    >
-                                      <div className="flex items-center gap-2">
-                                        <span className="w-4 h-4 rounded-full border-2 border-[#F48567] flex items-center justify-center">
-                                          {formData.module === module.id && (
-                                            <span className="w-2 h-2 rounded-full bg-[#F48567]" />
-                                          )}
-                                        </span>
-                                        <span
-                                          className={`text-sm ${
+                            {isOpenModule &&
+                              formData.tracks &&
+                              !modulesLoading && (
+                                <div
+                                  className={`dropdown-menu flex flex-col items-center w-full p-2 rounded-md ${
+                                    darkMode ? "bg-[#333333]" : "bg-gray-200"
+                                  } max-h-60 overflow-y-auto`}
+                                >
+                                  {/* Show existing modules */}
+                                  {modulesFromStorage.length > 0 ? (
+                                    <>
+                                      {modulesFromStorage.map((module) => (
+                                        <div
+                                          key={module._id}
+                                          className={`dropdown-item flex flex-col w-full p-2 rounded-md mb-2 ${
                                             darkMode
-                                              ? "text-white"
-                                              : "text-black"
+                                              ? "bg-[#333333]"
+                                              : "bg-gray-200"
                                           }`}
                                         >
-                                          {module.name}
-                                        </span>
-                                      </div>
-
-                                      {/* Edit Pencil Icon */}
-                                      <Pencil
-                                        size={16}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleModuleEdit(module);
-                                        }}
-                                        className="text-[#C7C7C7] hover:text-[#F48567]"
-                                      />
-                                    </div>
-
-                                    {/* Edit Form (shown when editing) */}
-                                    {editModule?.id === module.id && (
-                                      <div className="mt-2 flex flex-col gap-2">
-                                        <input
-                                          type="text"
-                                          placeholder="Module Name"
-                                          className={`p-2 rounded-md border border-gray-600 focus:outline-none ${
-                                            darkMode
-                                              ? "bg-[#333333] text-white"
-                                              : "bg-white text-black"
-                                          }`}
-                                          value={editModule.name}
-                                          onChange={(e) =>
-                                            setEditModule({
-                                              ...editModule,
-                                              name: e.target.value,
-                                            })
-                                          }
-                                        />
-                                        {/* 
-                                        <label
-                                          className={`flex items-center justify-between p-2 cursor-pointer w-full rounded-md border border-gray-600 focus:outline-none ${
-                                            darkMode
-                                              ? "bg-inherit text-white"
-                                              : "bg-inherit text-black"
-                                          }`}
-                                        >
-                                          <span className="text-sm text-gray-400">
-                                            Upload Module Photo
-                                          </span>
-                                          <Upload size={16} />
-                                          <input
-                                            type="file"
-                                            accept="image/*"
-                                            className="hidden"
-                                            onChange={(e) =>
-                                              setEditModule({
-                                                ...editModule,
-                                                trackPhoto: e.target.files[0],
-                                              })
-                                            }
-                                          />
-                                        </label> */}
-
-                                        <div className="flex gap-2 justify-between mt-2">
-                                          <button
-                                            className="bg-[#F48567] px-4 py-1 rounded-md text-sm w-[145px] text-black"
-                                            onClick={async (e) => {
-                                              e.stopPropagation();
-                                              try {
-                                                // Prepare update data
-                                                const updateData = {
-                                                  moduleName: editModule.name,
-                                                  description:
-                                                    "Default module description", // Default description
-                                                  isApproved:
-                                                    module.isApproved ||
-                                                    "pending", // Keep original approval status
-                                                };
-
-                                                // Call the updateContent API
-                                                await dispatch(
-                                                  updateContent(
-                                                    editModule.id,
-                                                    updateData
-                                                  )
-                                                );
-
-                                                // Update local state and localStorage after successful API call
-                                                const updatedModules =
-                                                  modulesFromStorage.map((m) =>
-                                                    m.id === editModule.id
-                                                      ? {
-                                                          ...m,
-                                                          name: editModule.name,
-                                                        }
-                                                      : m
-                                                  );
-
-                                                setModulesFromStorage(
-                                                  updatedModules
-                                                );
-                                                localStorage.setItem(
-                                                  "moduleInfo",
-                                                  JSON.stringify(updatedModules)
-                                                );
-                                                setEditModule(null);
-
-                                                // Show success message
-                                                console.log(
-                                                  "Module updated successfully!"
-                                                );
-                                                // You can add a toast notification here if you have one
-                                              } catch (error) {
-                                                console.error(
-                                                  "Error updating module:",
-                                                  error
-                                                );
-                                                // Show error message to user
-                                                alert(
-                                                  "Failed to update module. Please try again."
-                                                );
+                                          <div className="flex items-center justify-between cursor-pointer">
+                                            <div
+                                              className="flex items-center gap-2 flex-1"
+                                              onClick={() =>
+                                                handleSelectModule(module)
                                               }
-                                            }}
-                                          >
-                                            Save
-                                          </button>
-                                          <button
-                                            className="bg-[#C7C7C7] px-4 py-1 rounded-md text-sm w-[145px] text-black"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setEditModule(null);
-                                            }}
-                                          >
-                                            Cancel
-                                          </button>
+                                            >
+                                              <span className="w-4 h-4 rounded-full border-2 border-[#F48567] flex items-center justify-center">
+                                                {formData.module ===
+                                                  module._id && (
+                                                  <span className="w-2 h-2 rounded-full bg-[#F48567]" />
+                                                )}
+                                              </span>
+                                              <span
+                                                className={`text-sm ${
+                                                  darkMode
+                                                    ? "text-white"
+                                                    : "text-black"
+                                                }`}
+                                              >
+                                                {module.moduleName}
+                                              </span>
+                                            </div>
+
+                                            {/* Pencil for existing modules - edit name only */}
+                                            <Pencil
+                                              size={14}
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setEditModule(
+                                                  module._id === editModule?._id
+                                                    ? null
+                                                    : module
+                                                );
+                                              }}
+                                              className="ml-2"
+                                            />
+                                          </div>
+
+                                          {/* Edit Section for Existing Module - Only Name */}
+                                          {editModule &&
+                                            editModule._id === module._id && (
+                                              <div className="mt-2 flex flex-col gap-2 text-white">
+                                                <input
+                                                  type="text"
+                                                  placeholder="Module Name"
+                                                  className={`p-2 rounded-md border border-gray-600 focus:outline-none bg-inherit placeholder-gray-400 text-sm ${
+                                                    darkMode
+                                                      ? "bg-[#333333] text-white"
+                                                      : "bg-white text-black"
+                                                  }`}
+                                                  value={
+                                                    editModule.moduleName || ""
+                                                  }
+                                                  onChange={(e) =>
+                                                    setEditModule({
+                                                      ...editModule,
+                                                      moduleName:
+                                                        e.target.value,
+                                                    })
+                                                  }
+                                                />
+
+                                                <div className="flex gap-2 justify-between mt-2">
+                                                  <button
+                                                    className="bg-[#F48567] px-4 py-1 rounded-md text-sm w-[145px] text-black"
+                                                    onClick={() =>
+                                                      handleSaveExistingModule()
+                                                    }
+                                                  >
+                                                    Save
+                                                  </button>
+
+                                                  <button
+                                                    className="bg-[#C7C7C7] px-4 py-1 rounded-md text-sm w-[145px] text-black"
+                                                    onClick={() =>
+                                                      setEditModule(null)
+                                                    }
+                                                  >
+                                                    Cancel
+                                                  </button>
+                                                </div>
+                                              </div>
+                                            )}
                                         </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
+                                      ))}
+
+                                      {/* Show template modules for remaining slots (up to 15 total) */}
+                                      {Array.from({
+                                        length: Math.max(
+                                          0,
+                                          15 - modulesFromStorage.length
+                                        ),
+                                      }).map((_, index) => {
+                                        const moduleNumber =
+                                          modulesFromStorage.length + index + 1;
+                                        const templateModule = {
+                                          _id: `template-${moduleNumber}`,
+                                          moduleName: `Module ${moduleNumber}`,
+                                          isTemplate: true,
+                                        };
+
+                                        return (
+                                          <div
+                                            key={templateModule._id}
+                                            className={`dropdown-item flex flex-col w-full p-2 rounded-md mb-2 opacity-70 ${
+                                              darkMode
+                                                ? "bg-[#333333]"
+                                                : "bg-gray-200"
+                                            }`}
+                                          >
+                                            <div className="flex items-center justify-between cursor-pointer">
+                                              <div
+                                                className="flex items-center gap-2 flex-1"
+                                                onClick={() =>
+                                                  handleSelectModule(
+                                                    templateModule
+                                                  )
+                                                }
+                                              >
+                                                <span className="w-4 h-4 rounded-full border-2 border-[#F48567] flex items-center justify-center">
+                                                  {formData.module ===
+                                                    templateModule._id && (
+                                                    <span className="w-2 h-2 rounded-full bg-[#F48567]" />
+                                                  )}
+                                                </span>
+                                                <span
+                                                  className={`text-sm ${
+                                                    darkMode
+                                                      ? "text-white"
+                                                      : "text-black"
+                                                  }`}
+                                                >
+                                                  {templateModule.moduleName}
+                                                </span>
+                                              </div>
+
+                                              {/* Pencil for template modules - create new module */}
+                                              <Pencil
+                                                size={14}
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setEditModule(
+                                                    templateModule._id ===
+                                                      editModule?._id
+                                                      ? null
+                                                      : templateModule
+                                                  );
+                                                }}
+                                                className="ml-2"
+                                              />
+                                            </div>
+
+                                            {/* Create Section for Template Module - Name + Cover Photo */}
+                                            {editModule &&
+                                              editModule._id ===
+                                                templateModule._id && (
+                                                <div className="mt-2 flex flex-col gap-2 text-white">
+                                                  <input
+                                                    type="text"
+                                                    placeholder="Module Name"
+                                                    className={`p-2 rounded-md border border-gray-600 focus:outline-none bg-inherit placeholder-gray-400 text-sm ${
+                                                      darkMode
+                                                        ? "bg-[#333333] text-white"
+                                                        : "bg-white text-black"
+                                                    }`}
+                                                    value={
+                                                      editModule.moduleName ||
+                                                      ""
+                                                    }
+                                                    onChange={(e) =>
+                                                      setEditModule({
+                                                        ...editModule,
+                                                        moduleName:
+                                                          e.target.value,
+                                                      })
+                                                    }
+                                                  />
+
+                                                  {/* Cover Photo Upload for New Module */}
+                                                  {/* Cover Photo Upload for New Module */}
+                                                  <label
+                                                    className={`flex items-center justify-between p-2 cursor-pointer w-full rounded-md border border-gray-600 focus:outline-none ${
+                                                      darkMode
+                                                        ? "bg-inherit text-white"
+                                                        : "bg-inherit text-black"
+                                                    }`}
+                                                  >
+                                                    <div className="flex flex-col flex-1">
+                                                      <span className="text-sm text-gray-400">
+                                                        {editModule.cover_Photo
+                                                          ? "Change Cover Photo"
+                                                          : "Upload Cover Photo"}
+                                                      </span>
+                                                      {editModule.cover_Photo && (
+                                                        <span className="text-xs text-[#F48567] mt-1 truncate">
+                                                          {
+                                                            editModule
+                                                              .cover_Photo.name
+                                                          }
+                                                        </span>
+                                                      )}
+                                                    </div>
+                                                    <div className="flex items-center">
+                                                      {editModule.cover_Photo ? (
+                                                        <svg
+                                                          width="18"
+                                                          height="18"
+                                                          viewBox="0 0 18 18"
+                                                          fill="none"
+                                                          xmlns="http://www.w3.org/2000/svg"
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setEditModule({
+                                                              ...editModule,
+                                                              cover_Photo: null,
+                                                            });
+                                                          }}
+                                                          className="cursor-pointer ml-2"
+                                                        >
+                                                          <path
+                                                            d="M9 0.25C4.125 0.25 0.25 4.125 0.25 9C0.25 13.875 4.125 17.75 9 17.75C13.875 17.75 17.75 13.875 17.75 9C17.75 4.125 13.875 0.25 9 0.25ZM12.375 13.375L9 10L5.625 13.375L4.625 12.375L8 9L4.625 5.625L5.625 4.625L9 8L12.375 4.625L13.375 5.625L10 9L13.375 12.375L12.375 13.375Z"
+                                                            fill="#DD441B"
+                                                          />
+                                                        </svg>
+                                                      ) : (
+                                                        <Upload size={16} />
+                                                      )}
+                                                      <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        className="hidden"
+                                                        onChange={(e) => {
+                                                          const file =
+                                                            e.target.files[0];
+                                                          if (file) {
+                                                            setEditModule({
+                                                              ...editModule,
+                                                              cover_Photo: file,
+                                                            });
+                                                          }
+                                                        }}
+                                                      />
+                                                    </div>
+                                                  </label>
+
+                                                  <div className="flex gap-2 justify-between mt-2">
+                                                    <button
+                                                      className="bg-[#F48567] px-4 py-1 rounded-md text-sm w-[145px] text-black"
+                                                      onClick={() =>
+                                                        handleCreateNewModule()
+                                                      }
+                                                    >
+                                                      Save
+                                                    </button>
+
+                                                    <button
+                                                      className="bg-[#C7C7C7] px-4 py-1 rounded-md text-sm w-[145px] text-black"
+                                                      onClick={() =>
+                                                        setEditModule(null)
+                                                      }
+                                                    >
+                                                      Cancel
+                                                    </button>
+                                                  </div>
+                                                </div>
+                                              )}
+                                          </div>
+                                        );
+                                      })}
+                                    </>
+                                  ) : (
+                                    // If no modules exist, show 15 template modules
+                                    Array.from({ length: 15 }).map(
+                                      (_, index) => {
+                                        const moduleNumber = index + 1;
+                                        const templateModule = {
+                                          _id: `template-${moduleNumber}`,
+                                          moduleName: `Module ${moduleNumber}`,
+                                          isTemplate: true,
+                                        };
+
+                                        return (
+                                          <div
+                                            key={templateModule._id}
+                                            className={`dropdown-item flex flex-col w-full p-2 rounded-md mb-2 opacity-70 ${
+                                              darkMode
+                                                ? "bg-[#333333]"
+                                                : "bg-gray-200"
+                                            }`}
+                                          >
+                                            <div className="flex items-center justify-between cursor-pointer">
+                                              <div
+                                                className="flex items-center gap-2 flex-1"
+                                                onClick={() =>
+                                                  handleSelectModule(
+                                                    templateModule
+                                                  )
+                                                }
+                                              >
+                                                <span className="w-4 h-4 rounded-full border-2 border-[#F48567] flex items-center justify-center">
+                                                  {formData.module ===
+                                                    templateModule._id && (
+                                                    <span className="w-2 h-2 rounded-full bg-[#F48567]" />
+                                                  )}
+                                                </span>
+                                                <span
+                                                  className={`text-sm ${
+                                                    darkMode
+                                                      ? "text-white"
+                                                      : "text-black"
+                                                  }`}
+                                                >
+                                                  {templateModule.moduleName}
+                                                </span>
+                                              </div>
+
+                                              {/* Pencil for template modules - create new module */}
+                                              <Pencil
+                                                size={14}
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setEditModule(
+                                                    templateModule._id ===
+                                                      editModule?._id
+                                                      ? null
+                                                      : templateModule
+                                                  );
+                                                }}
+                                                className="ml-2"
+                                              />
+                                            </div>
+
+                                            {/* Create Section for Template Module - Name + Cover Photo */}
+                                            {editModule &&
+                                              editModule._id ===
+                                                templateModule._id && (
+                                                <div className="mt-2 flex flex-col gap-2 text-white">
+                                                  <input
+                                                    type="text"
+                                                    placeholder="Module Name"
+                                                    className={`p-2 rounded-md border border-gray-600 focus:outline-none bg-inherit placeholder-gray-400 text-sm ${
+                                                      darkMode
+                                                        ? "bg-[#333333] text-white"
+                                                        : "bg-white text-black"
+                                                    }`}
+                                                    value={
+                                                      editModule.moduleName ||
+                                                      ""
+                                                    }
+                                                    onChange={(e) =>
+                                                      setEditModule({
+                                                        ...editModule,
+                                                        moduleName:
+                                                          e.target.value,
+                                                      })
+                                                    }
+                                                  />
+
+                                                  {/* Cover Photo Upload for New Module */}
+                                                  <label
+                                                    className={`flex items-center justify-between p-2 cursor-pointer w-full rounded-md border border-gray-600 focus:outline-none ${
+                                                      darkMode
+                                                        ? "bg-inherit text-white"
+                                                        : "bg-inherit text-black"
+                                                    }`}
+                                                  >
+                                                    <div className="flex flex-col flex-1">
+                                                      <span className="text-sm text-gray-400">
+                                                        {editModule.cover_Photo
+                                                          ? "Change Cover Photo"
+                                                          : "Upload Cover Photo"}
+                                                      </span>
+                                                      {editModule.cover_Photo && (
+                                                        <span className="text-xs text-[#F48567] mt-1 truncate">
+                                                          {editModule
+                                                            .cover_Photo.name ||
+                                                            editModule.cover_Photo}
+                                                        </span>
+                                                      )}
+                                                    </div>
+                                                    <div className="flex items-center">
+                                                      {editModule.cover_Photo ? (
+                                                        <svg
+                                                          width="18"
+                                                          height="18"
+                                                          viewBox="0 0 18 18"
+                                                          fill="none"
+                                                          xmlns="http://www.w3.org/2000/svg"
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setEditModule({
+                                                              ...editModule,
+                                                              cover_Photo: null,
+                                                            });
+                                                          }}
+                                                          className="cursor-pointer ml-2"
+                                                        >
+                                                          <path
+                                                            d="M9 0.25C4.125 0.25 0.25 4.125 0.25 9C0.25 13.875 4.125 17.75 9 17.75C13.875 17.75 17.75 13.875 17.75 9C17.75 4.125 13.875 0.25 9 0.25ZM12.375 13.375L9 10L5.625 13.375L4.625 12.375L8 9L4.625 5.625L5.625 4.625L9 8L12.375 4.625L13.375 5.625L10 9L13.375 12.375L12.375 13.375Z"
+                                                            fill="#DD441B"
+                                                          />
+                                                        </svg>
+                                                      ) : (
+                                                        <Upload size={16} />
+                                                      )}
+                                                      <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        className="hidden"
+                                                        onChange={(e) =>
+                                                          setEditModule({
+                                                            ...editModule,
+                                                            cover_Photo:
+                                                              e.target.files[0],
+                                                          })
+                                                        }
+                                                      />
+                                                    </div>
+                                                  </label>
+
+                                                  <div className="flex gap-2 justify-between mt-2">
+                                                    <button
+                                                      className="bg-[#F48567] px-4 py-1 rounded-md text-sm w-[145px] text-black"
+                                                      onClick={() =>
+                                                        handleCreateNewModule()
+                                                      }
+                                                    >
+                                                      Save
+                                                    </button>
+
+                                                    <button
+                                                      className="bg-[#C7C7C7] px-4 py-1 rounded-md text-sm w-[145px] text-black"
+                                                      onClick={() =>
+                                                        setEditModule(null)
+                                                      }
+                                                    >
+                                                      Cancel
+                                                    </button>
+                                                  </div>
+                                                </div>
+                                              )}
+                                          </div>
+                                        );
+                                      }
+                                    )
+                                  )}
+                                </div>
+                              )}
                           </div>
                         </div>
                       </div>
@@ -1750,22 +2556,16 @@ const ParentComponent = () => {
                             <button
                               type="button"
                               className="bg-[#F48567] px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#000] flex items-center justify-center"
-                              onClick={handleAddModule}
+                              onClick={handleAddModule} // This should call handleAddModule
                               disabled={loading}
                             >
-                              {loading ? (
-                                <Spin size="small" />
-                              ) : editingIndex !== null ? (
-                                "Save"
-                              ) : (
-                                "Save"
-                              )}
+                              {loading ? <Spin size="small" /> : "Save"}
                             </button>
                           </div>
 
                           <div className="flex flex-col w-full">
                             <button
-                              onClick={handleClosePopup}
+                              onClick={handleCancelConfirmation}
                               className="bg-[#C7C7C7] px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#000]"
                             >
                               Cancel
@@ -1793,163 +2593,197 @@ const ParentComponent = () => {
                       <SquarePlus />
                     </button>
 
-                    {modules.map((module, index) => {
-                      const coverPhotoURL = module.cover_Photo
-                        ? URL.createObjectURL(module.cover_Photo)
-                        : null;
-                      const videoIntroURL = module.videoFile_introduction
-                        ? URL.createObjectURL(module.videoFile_introduction)
-                        : null;
-                      const videoDescURL = module.videoFile_description
-                        ? URL.createObjectURL(module.videoFile_description)
-                        : null;
+                    {modules &&
+                      modules.map((module, index) => {
+                        // Safe URL creation with validation
+                        const createSafeURL = (fileData) => {
+                          if (!fileData) return null;
 
-                      return (
-                        <div className="">
-                          <label className=" mb-1">
-                            Learing Video {index + 1}
-                          </label>
-                          <div className="flex justify-between items-start gap-2">
-                            <div
-                              key={module.uniqueUploadId}
-                              className="w-full  p-2 rounded-xl border border-gray-600 focus:outline-none shadow-md"
-                            >
-                              {/* Module Header with Dropdown Toggle */}
+                          // If it's already a File/Blob object
+                          if (
+                            fileData instanceof File ||
+                            fileData instanceof Blob
+                          ) {
+                            try {
+                              return URL.createObjectURL(fileData);
+                            } catch (error) {
+                              console.error(
+                                "Error creating object URL:",
+                                error
+                              );
+                              return null;
+                            }
+                          }
+
+                          // If it's already a string URL (from API), return as is
+                          if (
+                            typeof fileData === "string" &&
+                            fileData.startsWith("http")
+                          ) {
+                            return fileData;
+                          }
+
+                          return null;
+                        };
+
+                        const coverPhotoURL = createSafeURL(module.cover_Photo);
+                        const videoIntroURL = createSafeURL(
+                          module.videoFile_introduction
+                        );
+                        const videoDescURL = createSafeURL(
+                          module.videoFile_description
+                        );
+
+                        return (
+                          <div className="">
+                            <label className=" mb-1">
+                              Learing Video {index + 1}
+                            </label>
+                            <div className="flex justify-between items-start gap-2">
                               <div
-                                className="flex justify-between items-center cursor-pointer"
-                                onClick={() =>
-                                  setExpandedIndex(
-                                    expandedIndex === index ? null : index
-                                  )
-                                }
+                                key={module.uniqueUploadId}
+                                className="w-full  p-2 rounded-xl border border-gray-600 focus:outline-none shadow-md"
                               >
-                                <h3 className="">Learing Video {index + 1}</h3>
-                                <span className="text-gray-400">
-                                  {expandedIndex === index}
-                                </span>
-
-                                <svg
-                                  width="12"
-                                  height="7"
-                                  viewBox="0 0 12 7"
-                                  fill="none"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className={`transition-transform duration-300 ${
-                                    expandedIndex === index ? "rotate-180" : ""
-                                  }`}
+                                {/* Module Header with Dropdown Toggle */}
+                                <div
+                                  className="flex justify-between items-center cursor-pointer"
+                                  onClick={() =>
+                                    setExpandedIndex(
+                                      expandedIndex === index ? null : index
+                                    )
+                                  }
                                 >
-                                  <path
-                                    fillRule="evenodd"
-                                    clipRule="evenodd"
-                                    d="M5.15828 0.536211L0.444115 5.25038L1.62245 6.42871L5.74745 2.30371L9.87245 6.42871L11.0508 5.25038L6.33662 0.536211C6.18034 0.379985 5.96842 0.292222 5.74745 0.292222C5.52648 0.292222 5.31455 0.379985 5.15828 0.536211Z"
-                                    fill="#C7C7C7"
-                                  />
-                                </svg>
-                              </div>
+                                  <h3 className="">
+                                    Learing Video {index + 1}
+                                  </h3>
+                                  <span className="text-gray-400">
+                                    {expandedIndex === index}
+                                  </span>
 
-                              {/* Dropdown Content */}
-                              {expandedIndex === index && (
-                                <div className="mt-2 p-2 ">
-                                  <div className="flex justify-between">
-                                    <span>
-                                      <p className="text-sm">Title</p>
-                                      <p className="text-sm mt-2">
-                                        {module.moduleName}
-                                      </p>
-                                    </span>
-                                    <svg
-                                      onClick={() => {
-                                        setFormData(module);
-                                        setEditingIndex(index);
-                                        setIsSection2Visible(true); // Show edit section
-                                        setisCreatedModuleVisible(false); // Hide available modules
-                                      }}
-                                      className="cursor-pointer"
-                                      width="21"
-                                      height="20"
-                                      viewBox="0 0 21 20"
-                                      fill="none"
-                                      xmlns="http://www.w3.org/2000/svg"
-                                    >
-                                      <path
-                                        opacity="0.16"
-                                        d="M4.91732 13.3333L4.08398 16.6667L7.41732 15.8333L15.7507 7.5L13.2507 5L4.91732 13.3333Z"
-                                        fill="#C7C7C7"
-                                      />
-                                      <path
-                                        d="M13.2507 5.00007L15.7507 7.50007M11.584 16.6667H18.2507M4.91732 13.3334L4.08398 16.6667L7.41732 15.8334L17.0723 6.17841C17.3848 5.86586 17.5603 5.44201 17.5603 5.00007C17.5603 4.55813 17.3848 4.13429 17.0723 3.82174L16.929 3.67841C16.6164 3.36596 16.1926 3.19043 15.7507 3.19043C15.3087 3.19043 14.8849 3.36596 14.5723 3.67841L4.91732 13.3334Z"
-                                        stroke="#C7C7C7"
-                                        stroke-width="1.25"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                      />
-                                    </svg>
-                                  </div>
-                                  <div className="mt-4">
-                                    <p className="text-sm">Description</p>
-                                    <p className="text-sm mt-2">
-                                      {module.description}
-                                    </p>
-                                  </div>
-                                  <section className="flex justify-between w-[90%] mt-4">
-                                    <div>
-                                      <p className="text-sm">Cover Photo</p>
-                                      {coverPhotoURL && (
-                                        <img
-                                          src={coverPhotoURL}
-                                          alt="Cover"
-                                          className="w-20 h-20 object-cover rounded-xl border border-gray-600 focus:outline-none-md mt-2"
-                                        />
-                                      )}
-                                    </div>
-
-                                    <div>
-                                      <p className="text-sm">Module Video:</p>
-                                      {videoIntroURL && (
-                                        <video
-                                          src={videoIntroURL}
-                                          controls
-                                          className="w-20 h-20 focus:outline-none-md object-cover rounded-xl border border-gray-600 focus:outline-none-md mt-2"
-                                        />
-                                      )}
-                                    </div>
-                                    <div>
-                                      <p className="text-sm">
-                                        Explanatory Video:
-                                      </p>
-                                      {videoDescURL && (
-                                        <video
-                                          src={videoDescURL}
-                                          controls
-                                          className="w-20 h-20  focus:outline-none-md object-cover rounded-xl border border-gray-600 focus:outline-none-md mt-2"
-                                        />
-                                      )}
-                                    </div>
-                                  </section>
+                                  <svg
+                                    width="12"
+                                    height="7"
+                                    viewBox="0 0 12 7"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className={`transition-transform duration-300 ${
+                                      expandedIndex === index
+                                        ? "rotate-180"
+                                        : ""
+                                    }`}
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      clipRule="evenodd"
+                                      d="M5.15828 0.536211L0.444115 5.25038L1.62245 6.42871L5.74745 2.30371L9.87245 6.42871L11.0508 5.25038L6.33662 0.536211C6.18034 0.379985 5.96842 0.292222 5.74745 0.292222C5.52648 0.292222 5.31455 0.379985 5.15828 0.536211Z"
+                                      fill="#C7C7C7"
+                                    />
+                                  </svg>
                                 </div>
-                              )}
+
+                                {/* Dropdown Content */}
+                                {expandedIndex === index && (
+                                  <div className="mt-2 p-2 ">
+                                    <div className="flex justify-between">
+                                      <span>
+                                        <p className="text-sm">Title</p>
+                                        <p className="text-sm mt-2">
+                                          {module.moduleName}
+                                        </p>
+                                      </span>
+                                      <svg
+                                        onClick={() => {
+                                          setFormData(module);
+                                          setEditingIndex(index);
+                                          setIsSection2Visible(true); // Show edit section
+                                          setisCreatedModuleVisible(false); // Hide available modules
+                                        }}
+                                        className="cursor-pointer"
+                                        width="21"
+                                        height="20"
+                                        viewBox="0 0 21 20"
+                                        fill="none"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                      >
+                                        <path
+                                          opacity="0.16"
+                                          d="M4.91732 13.3333L4.08398 16.6667L7.41732 15.8333L15.7507 7.5L13.2507 5L4.91732 13.3333Z"
+                                          fill="#C7C7C7"
+                                        />
+                                        <path
+                                          d="M13.2507 5.00007L15.7507 7.50007M11.584 16.6667H18.2507M4.91732 13.3334L4.08398 16.6667L7.41732 15.8334L17.0723 6.17841C17.3848 5.86586 17.5603 5.44201 17.5603 5.00007C17.5603 4.55813 17.3848 4.13429 17.0723 3.82174L16.929 3.67841C16.6164 3.36596 16.1926 3.19043 15.7507 3.19043C15.3087 3.19043 14.8849 3.36596 14.5723 3.67841L4.91732 13.3334Z"
+                                          stroke="#C7C7C7"
+                                          stroke-width="1.25"
+                                          stroke-linecap="round"
+                                          stroke-linejoin="round"
+                                        />
+                                      </svg>
+                                    </div>
+                                    <div className="mt-4">
+                                      <p className="text-sm">Description</p>
+                                      <p className="text-sm mt-2">
+                                        {module.description}
+                                      </p>
+                                    </div>
+                                    <section className="flex justify-between w-[90%] mt-4">
+                                      <div>
+                                        <p className="text-sm">Cover Photo</p>
+                                        {coverPhotoURL && (
+                                          <img
+                                            src={coverPhotoURL}
+                                            alt="Cover"
+                                            className="w-20 h-20 object-cover rounded-xl border border-gray-600 focus:outline-none-md mt-2"
+                                          />
+                                        )}
+                                      </div>
+
+                                      <div>
+                                        <p className="text-sm">Module Video:</p>
+                                        {videoIntroURL && (
+                                          <video
+                                            src={videoIntroURL}
+                                            controls
+                                            className="w-20 h-20 focus:outline-none-md object-cover rounded-xl border border-gray-600 focus:outline-none-md mt-2"
+                                          />
+                                        )}
+                                      </div>
+                                      <div>
+                                        <p className="text-sm">
+                                          Explanatory Video:
+                                        </p>
+                                        {videoDescURL && (
+                                          <video
+                                            src={videoDescURL}
+                                            controls
+                                            className="w-20 h-20  focus:outline-none-md object-cover rounded-xl border border-gray-600 focus:outline-none-md mt-2"
+                                          />
+                                        )}
+                                      </div>
+                                    </section>
+                                  </div>
+                                )}
+                              </div>
+                              <svg
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteModule(index);
+                                }}
+                                className="cursor-pointer mt-3"
+                                width="17"
+                                height="18"
+                                viewBox="0 0 17 18"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M7.3125 2.8125V3.125H10.4375V2.8125C10.4375 2.3981 10.2729 2.00067 9.97985 1.70765C9.68683 1.41462 9.2894 1.25 8.875 1.25C8.4606 1.25 8.06317 1.41462 7.77015 1.70765C7.47712 2.00067 7.3125 2.3981 7.3125 2.8125ZM6.0625 3.125V2.8125C6.0625 2.06658 6.35882 1.35121 6.88626 0.823762C7.41371 0.296316 8.12908 0 8.875 0C9.62092 0 10.3363 0.296316 10.8637 0.823762C11.3912 1.35121 11.6875 2.06658 11.6875 2.8125V3.125H16.375C16.5408 3.125 16.6997 3.19085 16.8169 3.30806C16.9342 3.42527 17 3.58424 17 3.75C17 3.91576 16.9342 4.07473 16.8169 4.19194C16.6997 4.30915 16.5408 4.375 16.375 4.375H15.4325L14.25 14.73C14.1628 15.4926 13.798 16.1965 13.2251 16.7073C12.6522 17.2182 11.9113 17.5004 11.1437 17.5H6.60625C5.83866 17.5004 5.09779 17.2182 4.52491 16.7073C3.95202 16.1965 3.5872 15.4926 3.5 14.73L2.3175 4.375H1.375C1.20924 4.375 1.05027 4.30915 0.933058 4.19194C0.815848 4.07473 0.75 3.91576 0.75 3.75C0.75 3.58424 0.815848 3.42527 0.933058 3.30806C1.05027 3.19085 1.20924 3.125 1.375 3.125H6.0625ZM7.625 7.1875C7.625 7.02174 7.55915 6.86277 7.44194 6.74556C7.32473 6.62835 7.16576 6.5625 7 6.5625C6.83424 6.5625 6.67527 6.62835 6.55806 6.74556C6.44085 6.86277 6.375 7.02174 6.375 7.1875V13.4375C6.375 13.6033 6.44085 13.7622 6.55806 13.8794C6.67527 13.9967 6.83424 14.0625 7 14.0625C7.16576 14.0625 7.32473 13.9967 7.44194 13.8794C7.55915 13.7622 7.625 13.6033 7.625 13.4375V7.1875ZM10.75 6.5625C10.5842 6.5625 10.4253 6.62835 10.3081 6.74556C10.1908 6.86277 10.125 7.02174 10.125 7.1875V13.4375C10.125 13.6033 10.1908 13.7622 10.3081 13.8794C10.4253 13.9967 10.5842 14.0625 10.75 14.0625C10.9158 14.0625 11.0747 13.9967 11.1919 13.8794C11.3092 13.7622 11.375 13.6033 11.375 13.4375V7.1875C11.375 7.02174 11.3092 6.86277 11.1919 6.74556C11.0747 6.62835 10.9158 6.5625 10.75 6.5625Z"
+                                  fill="#DD441B"
+                                />
+                              </svg>
                             </div>
-                            <svg
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteModule(index);
-                              }}
-                              className="cursor-pointer mt-3"
-                              width="17"
-                              height="18"
-                              viewBox="0 0 17 18"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                d="M7.3125 2.8125V3.125H10.4375V2.8125C10.4375 2.3981 10.2729 2.00067 9.97985 1.70765C9.68683 1.41462 9.2894 1.25 8.875 1.25C8.4606 1.25 8.06317 1.41462 7.77015 1.70765C7.47712 2.00067 7.3125 2.3981 7.3125 2.8125ZM6.0625 3.125V2.8125C6.0625 2.06658 6.35882 1.35121 6.88626 0.823762C7.41371 0.296316 8.12908 0 8.875 0C9.62092 0 10.3363 0.296316 10.8637 0.823762C11.3912 1.35121 11.6875 2.06658 11.6875 2.8125V3.125H16.375C16.5408 3.125 16.6997 3.19085 16.8169 3.30806C16.9342 3.42527 17 3.58424 17 3.75C17 3.91576 16.9342 4.07473 16.8169 4.19194C16.6997 4.30915 16.5408 4.375 16.375 4.375H15.4325L14.25 14.73C14.1628 15.4926 13.798 16.1965 13.2251 16.7073C12.6522 17.2182 11.9113 17.5004 11.1437 17.5H6.60625C5.83866 17.5004 5.09779 17.2182 4.52491 16.7073C3.95202 16.1965 3.5872 15.4926 3.5 14.73L2.3175 4.375H1.375C1.20924 4.375 1.05027 4.30915 0.933058 4.19194C0.815848 4.07473 0.75 3.91576 0.75 3.75C0.75 3.58424 0.815848 3.42527 0.933058 3.30806C1.05027 3.19085 1.20924 3.125 1.375 3.125H6.0625ZM7.625 7.1875C7.625 7.02174 7.55915 6.86277 7.44194 6.74556C7.32473 6.62835 7.16576 6.5625 7 6.5625C6.83424 6.5625 6.67527 6.62835 6.55806 6.74556C6.44085 6.86277 6.375 7.02174 6.375 7.1875V13.4375C6.375 13.6033 6.44085 13.7622 6.55806 13.8794C6.67527 13.9967 6.83424 14.0625 7 14.0625C7.16576 14.0625 7.32473 13.9967 7.44194 13.8794C7.55915 13.7622 7.625 13.6033 7.625 13.4375V7.1875ZM10.75 6.5625C10.5842 6.5625 10.4253 6.62835 10.3081 6.74556C10.1908 6.86277 10.125 7.02174 10.125 7.1875V13.4375C10.125 13.6033 10.1908 13.7622 10.3081 13.8794C10.4253 13.9967 10.5842 14.0625 10.75 14.0625C10.9158 14.0625 11.0747 13.9967 11.1919 13.8794C11.3092 13.7622 11.375 13.6033 11.375 13.4375V7.1875C11.375 7.02174 11.3092 6.86277 11.1919 6.74556C11.0747 6.62835 10.9158 6.5625 10.75 6.5625Z"
-                                fill="#DD441B"
-                              />
-                            </svg>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
 
                     <div className="flex gap-4 mt-4 w-full">
                       <div className="flex flex-col w-full">
@@ -2269,7 +3103,7 @@ const ParentComponent = () => {
                                     <svg
                                       onClick={() => {
                                         setFormData(module);
-                                        handleEditChallenge(index);
+                                        // handleEditChallenge(index);
                                         setIsSection3Visible(true); // Show edit section
                                         setisCreatedModuleVisible(false); // Hide available modules
                                       }}
@@ -2756,6 +3590,47 @@ const ParentComponent = () => {
           </div>
         </div>
       )}
+      <ConfirmationModal
+        isOpen={showUpdateSuccessModal}
+        onClose={() => {
+          setShowUpdateSuccessModal(false);
+          // Reset to first section and show "Submitted" text
+          setIsSectionVisible(true);
+          setIsSection2Visible(false);
+          setisCreatedModuleVisible(false);
+          setModules([]);
+          setFormData(initialModuleData);
+
+          // Set submitted state
+          setLearningVideoSubmitted(true);
+
+          // Reset after 2 seconds
+          setTimeout(() => {
+            setLearningVideoSubmitted(false);
+          }, 2000);
+        }}
+        onConfirm={() => {
+          setShowUpdateSuccessModal(false);
+          // Reset to first section and show "Submitted" text
+          setIsSectionVisible(true);
+          setIsSection2Visible(false);
+          setisCreatedModuleVisible(false);
+          setModules([]);
+          setFormData(initialModuleData);
+
+          // Set submitted state
+          setLearningVideoSubmitted(true);
+
+          // Reset after 2 seconds
+          setTimeout(() => {
+            setLearningVideoSubmitted(false);
+          }, 2000);
+        }}
+        message="Your Learning Video Successfully Updated."
+        confirmText="OK"
+        showCancel={false}
+        darkMode={darkMode}
+      />
     </>
   );
 };

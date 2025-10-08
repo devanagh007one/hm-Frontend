@@ -258,7 +258,7 @@ const Profilecreads = () => {
               Role :{" "}
               <span className="text-[#F48567] font-medium">{userroles}</span>
             </div>
-            <div className="mt-6 ml-3 flex flex-col gap-12">
+            <div className=" ml-3 mt-4 flex flex-col gap-6">
               <div className="flex flex-col font-medium">
                 Joined On :
                 <span className="ml-2 mt-2 font-light">{formattedDate}</span>

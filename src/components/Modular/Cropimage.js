@@ -168,9 +168,7 @@ const ImageEditor = () => {
         <div className="popup-overlay">
           <div className=" bg-[rgb(30,30,30)] w-[1100px] h-[90%] overflow-y-auto">
             <section className="flex items-center justify-between pl-8 pr-4 pt-5 pb-5 bg-[#333333]">
-              <div className="text-2xl text-[#F48567]">
-                Edit your cover photo
-              </div>
+              <div className="text-2xl text-[#F48567]">Edit Profile Photo</div>
               <div>
                 <svg
                   onClick={handleClosePopup}

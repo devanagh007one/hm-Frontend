@@ -20,9 +20,10 @@ export const FETCH_TRACKS_SUCCESS = "FETCH_TRACKS_SUCCESS";
 export const FETCH_TRACKS_FAILURE = "FETCH_TRACKS_FAILURE";
 export const UPDATE_TRACK_SUCCESS = "UPDATE_TRACK_SUCCESS";
 export const UPDATE_TRACK_FAILURE = "UPDATE_TRACK_FAILURE";
-
 export const START_FRESH_SUCCESS = "START_FRESH_SUCCESS";
 export const START_FRESH_FAILURE = "START_FRESH_FAILURE";
+export const FETCH_MODULES_BY_TRACK_SUCCESS = "FETCH_MODULES_BY_TRACK_SUCCESS";
+export const FETCH_MODULES_BY_TRACK_FAILURE = "FETCH_MODULES_BY_TRACK_FAILURE";
 
 // Action for fetching all content
 export const fetchAllContent = () => async (dispatch) => {
@@ -115,29 +116,55 @@ export const updateContent = (contentId, updateData) => async (dispatch) => {
   try {
     const authToken = localStorage.getItem("authToken");
 
-    // Construct the request payload
-    const requestPayload = {
-      moduleName: updateData.moduleName || "",
-      description: updateData.description || "",
-      isApproved: updateData.isApproved || "pending", // "approved", "rejected", or "pending"
-      ...updateData, // Include any additional fields passed in updateData
-    };
+    // Use FormData for file uploads
+    const formData = new FormData();
 
-    console.log(
-      "Sending PUT Request for Content ID:",
-      contentId,
-      requestPayload
-    );
+    // Append all text fields
+    formData.append("moduleName", updateData.moduleName || "");
+    formData.append("description", updateData.description || "");
+    formData.append("isApproved", updateData.isApproved || "pending");
+    formData.append("tracks", updateData.tracks || "");
+    formData.append("moduleType", updateData.moduleType || "Module");
+    formData.append("fileSize", updateData.fileSize || "");
+
+    // Append files if they exist
+    if (updateData.cover_Photo && updateData.cover_Photo instanceof File) {
+      formData.append("cover_Photo", updateData.cover_Photo);
+    }
+    if (
+      updateData.videoFile_introduction &&
+      updateData.videoFile_introduction instanceof File
+    ) {
+      formData.append(
+        "videoFile_introduction",
+        updateData.videoFile_introduction
+      );
+    }
+    if (
+      updateData.videoFile_description &&
+      updateData.videoFile_description instanceof File
+    ) {
+      formData.append(
+        "videoFile_description",
+        updateData.videoFile_description
+      );
+    }
+
+    console.log("Sending PUT Request for Content ID:", contentId);
+    console.log("FormData entries:");
+    for (let [key, value] of formData.entries()) {
+      console.log(key, value);
+    }
 
     const response = await fetch(
       `${process.env.REACT_APP_STATIC_API_URL}/api/contant/contants/${contentId}`,
       {
         method: "PUT",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${authToken}`,
+          // Don't set Content-Type - let browser set it with boundary for FormData
         },
-        body: JSON.stringify(requestPayload),
+        body: formData,
       }
     );
 
@@ -150,17 +177,14 @@ export const updateContent = (contentId, updateData) => async (dispatch) => {
     const data = await response.json();
     console.log("Updated Content via PUT:", data);
 
-    // Dispatch UPDATE_CONTENT_SUCCESS with updated content
     dispatch({ type: UPDATE_CONTENT_SUCCESS, payload: data });
-
-    return data; // Return data for component use
+    return data;
   } catch (error) {
     console.error("Error in updateContent:", error);
     dispatch({ type: UPDATE_CONTENT_FAILURE, payload: error.message });
-    throw error; // Re-throw to handle in component if needed
+    throw error;
   }
 };
-
 // Action for Patching the Challenge
 export const patchTheChallenge = (challengeId, status) => async (dispatch) => {
   try {
@@ -558,5 +582,43 @@ export const startFresh = (trackId) => async (dispatch) => {
     console.error("Error in startFresh:", error);
     dispatch({ type: START_FRESH_FAILURE, payload: error.message });
     throw error; // Re-throw to handle in component
+  }
+};
+// Action for fetching modules by track
+export const fetchModulesByTrack = (trackName) => async (dispatch) => {
+  try {
+    const authToken = localStorage.getItem("authToken");
+
+    console.log("Fetching modules for track:", trackName);
+
+    const response = await fetch(
+      `${process.env.REACT_APP_STATIC_API_URL}/api/contant/by-track`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({
+          tracks: trackName,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch modules by track");
+    }
+
+    const data = await response.json();
+    console.log("Modules by track data:", data);
+
+    // Dispatch success action with modules data
+    dispatch({ type: FETCH_MODULES_BY_TRACK_SUCCESS, payload: data });
+
+    return data; // Return modules for component use
+  } catch (error) {
+    console.error("Error in fetchModulesByTrack:", error);
+    dispatch({ type: FETCH_MODULES_BY_TRACK_FAILURE, payload: error.message });
+    throw error;
   }
 };
