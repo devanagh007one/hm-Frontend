@@ -226,12 +226,40 @@ const UserManagement = () => {
     return filteredData.slice(start, end);
   }, [currentPage, pageSize, filteredData]);
 
-  // Handle bulk delete
   const handleBulkDelete = async () => {
-    const selectedUserIds = selectedIndices.map((index) => users[index]._id); // Get selected user IDs
-    await dispatch(deleteUser(selectedUserIds)); // Dispatch delete action with multiple user IDs
-    dispatch(fetchAllUsers()); // Fetch updated user list
-    setSelectedIndices([]); // Clear selection after deletion
+    if (selectedIndices.length === 0) {
+      dispatch(showNotification("Please select users to delete", "warning"));
+      return;
+    }
+
+    // Get selected user IDs from filteredData using the absolute indices
+    const selectedUserIds = selectedIndices
+      .map((absoluteIndex) => filteredData[absoluteIndex]._id)
+      .filter((id) => id); // Filter out any undefined IDs
+
+    console.log("Attempting to delete users:", selectedUserIds);
+
+    if (selectedUserIds.length === 0) {
+      dispatch(showNotification("No valid users selected", "error"));
+      return;
+    }
+
+    try {
+      const success = await dispatch(deleteUser(selectedUserIds));
+
+      if (success) {
+        // Refresh the user list
+        dispatch(fetchAllUsers());
+        // Clear selection after deletion
+        setSelectedIndices([]);
+        dispatch(showNotification("Users deleted successfully", "success"));
+      } else {
+        dispatch(showNotification("Failed to delete users", "error"));
+      }
+    } catch (error) {
+      console.error("Bulk delete error:", error);
+      dispatch(showNotification("Failed to delete users", "error"));
+    }
   };
 
   const handleDownload = () => {

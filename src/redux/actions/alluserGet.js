@@ -138,7 +138,11 @@ export const deleteUser = (userIds) => async (dispatch) => {
   try {
     const authToken = localStorage.getItem("authToken");
 
-    console.log(JSON.stringify({ userIds }));
+    // Ensure userIds is always an array
+    const idsToDelete = Array.isArray(userIds) ? userIds : [userIds];
+
+    console.log("Sending user IDs to delete:", idsToDelete);
+    console.log("Request payload:", JSON.stringify({ userIds: idsToDelete }));
 
     const response = await fetch(
       `${process.env.REACT_APP_STATIC_API_URL}/api/user/users-delete`,
@@ -148,24 +152,31 @@ export const deleteUser = (userIds) => async (dispatch) => {
           Authorization: `Bearer ${authToken}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ userIds }),
+        body: JSON.stringify({ userIds: idsToDelete }),
       }
     );
 
+    console.log("Response status:", response.status);
+
     if (!response.ok) {
       const errorData = await response.json();
+      console.log("Error response:", errorData);
       throw new Error(errorData.message || "Failed to delete users");
     }
 
     const data = await response.json();
-    console.log(data);
+    console.log("Success response:", data);
 
-    dispatch({ type: DELETE_USER_SUCCESS, payload: userIds });
+    dispatch({ type: DELETE_USER_SUCCESS, payload: idsToDelete });
+
+    // Return success for the component to handle
+    return true;
   } catch (error) {
+    console.log("Delete error:", error);
     dispatch({ type: DELETE_USER_FAILURE, payload: error.message });
+    return false;
   }
 };
-
 // Action for toggling the User status
 export const toggleUserStatus = (userIds) => async (dispatch) => {
   try {
