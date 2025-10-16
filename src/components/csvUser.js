@@ -621,7 +621,7 @@ const ParentComponent = () => {
                 <AiOutlineClose />
               </button>
               {tableData.length > 0 && (
-                <div className="flex-grow overflow-x-auto maintable-upl">
+                <div className="flex-grow overflow-x-auto overflow-y-auto max-h-[70vh] maintable-upl">
                   <h3 className="text-lg font-semibold mb-4">Uploaded CSV</h3>
                   <Table
                     components={components}
@@ -631,13 +631,13 @@ const ParentComponent = () => {
                     className={`rounded-lg the-uploardtable ${
                       darkMode ? "bg-[#333333]" : "bg-white"
                     } `}
-                    scroll={{ x: "max-content" }}
+                    scroll={{ x: "max-content", y: 400 }} // Add vertical scroll to table
                     rowClassName={`rounded-lg ${
                       darkMode
                         ? "bg-[#333333] text-white"
                         : "bg-white text-dark"
                     } `}
-                    pagination={false} // Disable pagination
+                    pagination={false}
                   />
 
                   <button

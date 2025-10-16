@@ -47,6 +47,15 @@ export const fetchAllUsers = () => async (dispatch) => {
     // Store partner users in localStorage
     localStorage.setItem("partnerUsers", JSON.stringify(partnerUsers));
 
+    // Get company name from localStorage and count users for that company
+    const storedCompanyName = localStorage.getItem("companyName") || "HappMe";
+    const companyUsers = data.filter(
+      (user) => user.company === storedCompanyName
+    );
+
+    // Store company user count in localStorage
+    localStorage.setItem("companyUserCount", companyUsers.length);
+
     // Dispatch FETCH_USERS_SUCCESS with ALL users (original data)
     dispatch({ type: FETCH_USERS_SUCCESS, payload: data });
   } catch (error) {

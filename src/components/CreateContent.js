@@ -801,8 +801,13 @@ const ParentComponent = () => {
     try {
       const updateData = {
         moduleName: editModule.moduleName,
-        tracks: formData.tracks, // Include tracks field
+        tracks: formData.tracks,
       };
+
+      // Add cover photo if it's a new file upload
+      if (editModule.cover_Photo instanceof File) {
+        updateData.cover_Photo = editModule.cover_Photo;
+      }
 
       await dispatch(updateContent(editModule._id, updateData));
 
@@ -1401,7 +1406,8 @@ const ParentComponent = () => {
                   {isSection2Visible && (
                     <div className="flex justify-start items-start">
                       <span className="text-white text-xl">
-                        {formData.moduleName || "New Module"}
+                        {/* {formData.moduleName || "New Module"} */}
+                        Module
                       </span>
                       <span className="mx-2 text-lg">/</span>
                       <span className="text-sm text-[#F48567] mt-1">
@@ -1881,7 +1887,7 @@ const ParentComponent = () => {
                                             />
                                           </div>
 
-                                          {/* Edit Section for Existing Module - Only Name */}
+                                          {/* Edit Section for Existing Module - Name + Cover Photo */}
                                           {editModule &&
                                             editModule._id === module._id && (
                                               <div className="mt-2 flex flex-col gap-2 text-white">
@@ -1904,6 +1910,75 @@ const ParentComponent = () => {
                                                     })
                                                   }
                                                 />
+
+                                                {/* Cover Photo Upload for Existing Module */}
+                                                <label
+                                                  className={`flex items-center justify-between p-2 cursor-pointer w-full rounded-md border border-gray-600 focus:outline-none ${
+                                                    darkMode
+                                                      ? "bg-inherit text-white"
+                                                      : "bg-inherit text-black"
+                                                  }`}
+                                                >
+                                                  <div className="flex flex-col flex-1">
+                                                    <span className="text-sm text-gray-400">
+                                                      {editModule.cover_Photo
+                                                        ? "Change Cover Photo"
+                                                        : "Upload Cover Photo"}
+                                                    </span>
+                                                    {editModule.cover_Photo && (
+                                                      <span className="text-xs text-[#F48567] mt-1 truncate">
+                                                        {typeof editModule.cover_Photo ===
+                                                        "object"
+                                                          ? editModule
+                                                              .cover_Photo.name
+                                                          : editModule.cover_Photo
+                                                              .split("/")
+                                                              .pop()}
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                  <div className="flex items-center">
+                                                    {editModule.cover_Photo ? (
+                                                      <svg
+                                                        width="18"
+                                                        height="18"
+                                                        viewBox="0 0 18 18"
+                                                        fill="none"
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          setEditModule({
+                                                            ...editModule,
+                                                            cover_Photo: null,
+                                                          });
+                                                        }}
+                                                        className="cursor-pointer ml-2"
+                                                      >
+                                                        <path
+                                                          d="M9 0.25C4.125 0.25 0.25 4.125 0.25 9C0.25 13.875 4.125 17.75 9 17.75C13.875 17.75 17.75 13.875 17.75 9C17.75 4.125 13.875 0.25 9 0.25ZM12.375 13.375L9 10L5.625 13.375L4.625 12.375L8 9L4.625 5.625L5.625 4.625L9 8L12.375 4.625L13.375 5.625L10 9L13.375 12.375L12.375 13.375Z"
+                                                          fill="#DD441B"
+                                                        />
+                                                      </svg>
+                                                    ) : (
+                                                      <Upload size={16} />
+                                                    )}
+                                                    <input
+                                                      type="file"
+                                                      accept="image/*"
+                                                      className="hidden"
+                                                      onChange={(e) => {
+                                                        const file =
+                                                          e.target.files[0];
+                                                        if (file) {
+                                                          setEditModule({
+                                                            ...editModule,
+                                                            cover_Photo: file,
+                                                          });
+                                                        }
+                                                      }}
+                                                    />
+                                                  </div>
+                                                </label>
 
                                                 <div className="flex gap-2 justify-between mt-2">
                                                   <button

@@ -109,7 +109,17 @@ const ParentComponent = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (isSaveDisabled) return;
+
+    if (isSaveDisabled) {
+      dispatch(
+        showNotification(
+          "Cannot create user. License limit has been reached for this organization.",
+          "error"
+        )
+      );
+      return;
+    }
+
     if (setShowPopup(false)) return;
 
     const fieldErrors = {};
@@ -118,6 +128,15 @@ const ParentComponent = () => {
       fieldErrors.email = "The Email ID is required.";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email?.trim())) {
       fieldErrors.email = "Invalid email format.";
+    }
+
+    if (!formData.company?.trim())
+      fieldErrors.company = "Organization name is required.";
+
+    // Final license check before submission
+    const finalValidation = validateLicenseLimit(formData.company);
+    if (!finalValidation.isValid) {
+      fieldErrors.company = finalValidation.message;
     }
 
     if (Object.keys(fieldErrors).length > 0) {
@@ -175,57 +194,42 @@ const ParentComponent = () => {
     setFormData((prevData) => ({ ...prevData, image: file }));
   };
 
-  const handleCompanyChange = (value) => {
-    // Ensure the restriction applies only when the role is "HR"
-    if (formData.roles !== "HR") {
-      setFormData((prevData) => ({
-        ...prevData,
-        company: value,
-        numberOfLicenses: 1, // Default for non-HR roles
-      }));
-      return;
-    }
-
-    const associatedLicense = licensing.find(
-      (license) => license.organisationName === value
+  const validateLicenseLimit = (selectedCompany) => {
+    // Find the license record for the selected company
+    const licenseRecord = licensing.find(
+      (license) => license.organisationName === selectedCompany
     );
 
-    if (associatedLicense) {
-      const { numberOfLicence } = associatedLicense;
-      const userCount = users.filter((user) => user.company === value).length;
-      const nextUserCount = userCount + 1; // Incremental value
-
-      setUserCount(userCount);
-      setTotalLicenses(numberOfLicence);
-
-      if (userCount >= numberOfLicence) {
-        setIsSaveDisabled(true);
-        dispatch(
-          showNotification(
-            `Max users (${numberOfLicence}) reached, but Partner, Admin, and Super Admin can still be added.`,
-            "error"
-          )
-        );
-      } else {
-        setIsSaveDisabled(false);
-      }
-
-      setFormData((prevData) => ({
-        ...prevData,
-        company: value,
-        numberOfLicenses: nextUserCount, // Store the incremented user count
-      }));
-    } else {
-      setUserCount(0);
-      setTotalLicenses(0);
-      setIsSaveDisabled(false);
-
-      setFormData((prevData) => ({
-        ...prevData,
-        company: value,
-        numberOfLicenses: 1, // Start from 1 if no existing users
-      }));
+    if (!licenseRecord) {
+      return {
+        isValid: true, // No license found, allow creation
+        message: "No license record found for this organization.",
+        totalLicenses: 0,
+        currentUserCount: 0,
+      };
     }
+
+    // Get the total allowed licenses from the license record
+    const { numberOfLicence } = licenseRecord;
+
+    // Count ALL users (regardless of role) assigned to this company
+    const usersInCompany = users.filter(
+      (user) => user.company === selectedCompany
+    );
+
+    const currentUserCount = usersInCompany.length;
+
+    // Check if adding one more user would exceed the limit
+    const isValid = currentUserCount < numberOfLicence;
+
+    return {
+      isValid,
+      message: isValid
+        ? `You can add ${numberOfLicence - currentUserCount} more user(s).`
+        : `License limit reached. Maximum users: ${numberOfLicence}, Current users: ${currentUserCount}`,
+      totalLicenses: numberOfLicence,
+      currentUserCount,
+    };
   };
 
   const handleChangeSocial = (e) => {
@@ -259,23 +263,92 @@ const ParentComponent = () => {
 
   const handleSelectChange = (value) => {
     setSelectedCompany(value);
-    setCustomCompany(""); // Clear custom input when selecting from dropdown
-    setShowDropdown(false); // Hide dropdown after selection
+    setCustomCompany("");
+    setShowDropdown(false);
 
-    // Update formData
+    // Validate license limit
+    const validation = validateLicenseLimit(value);
+
+    if (!validation.isValid) {
+      setIsSaveDisabled(true);
+      dispatch(
+        showNotification(
+          `Cannot add more users. ${validation.message}`,
+          "error"
+        )
+      );
+    } else {
+      setIsSaveDisabled(false);
+    }
+
+    setTotalLicenses(validation.totalLicenses);
+    setUserCount(validation.currentUserCount);
+
     setFormData((prevData) => ({
       ...prevData,
       company: value,
     }));
   };
 
+  const handleCompanyChange = (value) => {
+    // Validate license limit for this company
+    const validation = validateLicenseLimit(value);
+
+    if (!validation.isValid) {
+      setIsSaveDisabled(true);
+      dispatch(
+        showNotification(
+          `Cannot add more users. ${validation.message}`,
+          "error"
+        )
+      );
+    } else {
+      setIsSaveDisabled(false);
+      // Optional: show info message about remaining slots
+      console.log(validation.message);
+    }
+
+    setTotalLicenses(validation.totalLicenses);
+    setUserCount(validation.currentUserCount);
+
+    setFormData((prevData) => ({
+      ...prevData,
+      company: value,
+      numberOfLicenses: validation.currentUserCount + 1,
+    }));
+  };
+
+  // Update handleCustomChange to also validate
   const handleCustomChange = (e) => {
     const value = e.target.value;
     setCustomCompany(value);
-    setSelectedCompany(""); // Clear selected company when typing
-    setShowDropdown(true); // Show dropdown while typing
+    setSelectedCompany("");
+    setShowDropdown(true);
 
-    // Update formData
+    // Only validate if the input matches an actual company
+    const matchingCompany = licensing.find(
+      (license) => license.organisationName === value
+    );
+
+    if (matchingCompany) {
+      const validation = validateLicenseLimit(value);
+
+      if (!validation.isValid) {
+        setIsSaveDisabled(true);
+        dispatch(
+          showNotification(
+            `Cannot add more users. ${validation.message}`,
+            "error"
+          )
+        );
+      } else {
+        setIsSaveDisabled(false);
+      }
+
+      setTotalLicenses(validation.totalLicenses);
+      setUserCount(validation.currentUserCount);
+    }
+
     setFormData((prevData) => ({
       ...prevData,
       company: value,
@@ -580,7 +653,7 @@ const ParentComponent = () => {
                     <div className="flex flex-col w-full">
                       <button
                         type="submit"
-                        className="bg-[#F48567] px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#000]"
+                        className="bg-[#F48567] px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#000] hover:bg-[#F48567] transition-all"
                       >
                         Save
                       </button>
@@ -654,7 +727,6 @@ const ParentComponent = () => {
                     />
                   </div>
                 </div>
-
                 <div className="flex flex-col">
                   <label className=" mb-1">Email Address</label>
                   <input
@@ -666,7 +738,6 @@ const ParentComponent = () => {
                     className="p-2   rounded-xl border border-gray-600 focus:outline-none"
                   />
                 </div>
-
                 {/* Phone */}
                 <div className="flex flex-col">
                   <label className=" mb-1">Phone</label>
@@ -679,7 +750,6 @@ const ParentComponent = () => {
                     className="p-2   rounded-xl border border-gray-600 focus:outline-none"
                   />
                 </div>
-
                 {/* Location */}
                 <div className="flex flex-col">
                   <label className=" mb-1">Location</label>
@@ -691,7 +761,6 @@ const ParentComponent = () => {
                     className="p-2   rounded-xl border border-gray-600 focus:outline-none"
                   />
                 </div>
-
                 <div className="flex flex-col">
                   <label className=" mb-1">Role/ Title at Organization</label>
                   <input
@@ -750,18 +819,19 @@ const ParentComponent = () => {
                     ]}
                     className="p-2 flex justify-start gap-5 rounded-xl"
                     required
-                    value={formData.contact_method}
-                    onChange={(
-                      checkedValues // Changed from (e) to (checkedValues)
-                    ) =>
+                    value={
+                      formData.contact_method
+                        ? formData.contact_method.split(",")
+                        : []
+                    }
+                    onChange={(checkedValues) =>
                       setFormData({
                         ...formData,
-                        contact_method: checkedValues, // Changed from e.target.value to checkedValues
+                        contact_method: checkedValues.join(","), // Convert array to comma-separated string
                       })
                     }
                   />
                 </div>
-
                 <div className="flex flex-col">
                   <label className=" mb-1">Upload your Profile Picture</label>
                   <label className="p-2 pl-4 pr-4   rounded-xl border border-gray-600 focus:outline-none flex items-center justify-between cursor-pointer">
@@ -786,7 +856,6 @@ const ParentComponent = () => {
                     />
                   </label>
                 </div>
-
                 <div className="flex gap-4 mt-4 w-full">
                   <div className="flex flex-col w-full">
                     <button

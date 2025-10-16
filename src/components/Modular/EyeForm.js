@@ -116,39 +116,39 @@ const EyeForm = ({ data }) => {
     }
   };
 
-  const handleSave = async () => {
-    setIsLoading(true);
-    try {
-      const formDataToSend = new FormData();
+  const handleSave = () => {
+    const updatedData = {
+      ...formData,
+      image: uploadedImage, // Include the uploaded image if available
+    };
 
-      // Add all changed fields to FormData
-      Object.keys(formData).forEach((key) => {
-        if (formData[key] !== (currentUser[key] || currentUser.user?.[key])) {
-          formDataToSend.append(key, formData[key]);
-        }
-      });
+    const formDataToSend = new FormData();
 
-      // Add image if uploaded
-      if (uploadedImage) {
-        formDataToSend.append("image", uploadedImage);
+    for (const key in updatedData) {
+      if (
+        data &&
+        updatedData[key] === data[key] &&
+        (key === "userId" || key === "email")
+      ) {
+        continue; // Skip adding unchanged userId and email
       }
-
-      if (currentUser?._id) {
-        await dispatch(editUserProfile(currentUser._id, formDataToSend));
-        dispatch(showNotification("Profile updated successfully!", "success"));
-      }
-
-      setIsEditing(false);
-      setIsLoading(false);
-
-      // Refresh after 2 seconds
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
-    } catch (error) {
-      setIsLoading(false);
-      dispatch(showNotification("Failed to update profile", "error"));
+      formDataToSend.append(key, updatedData[key]);
     }
+
+    if (data?._id) {
+      dispatch(editUserProfile(data._id, formDataToSend));
+    }
+
+    setIsEditing(false);
+    handleClosePopup();
+    dispatch(showNotification("Edited User successful!", "success"));
+
+    localStorage.setItem("activeComponent", "Usersmanagement"); // Store Licensing before reload
+
+    // Refresh the page after 3 seconds
+    setTimeout(() => {
+      // window.location.reload();
+    }, 3000);
   };
 
   const handleDeleteUser = () => {

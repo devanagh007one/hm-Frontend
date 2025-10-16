@@ -24,6 +24,8 @@ export const START_FRESH_SUCCESS = "START_FRESH_SUCCESS";
 export const START_FRESH_FAILURE = "START_FRESH_FAILURE";
 export const FETCH_MODULES_BY_TRACK_SUCCESS = "FETCH_MODULES_BY_TRACK_SUCCESS";
 export const FETCH_MODULES_BY_TRACK_FAILURE = "FETCH_MODULES_BY_TRACK_FAILURE";
+export const UPDATE_LEARNING_VIDEO_SUCCESS = "UPDATE_LEARNING_VIDEO_SUCCESS";
+export const UPDATE_LEARNING_VIDEO_FAILURE = "UPDATE_LEARNING_VIDEO_FAILURE";
 
 // Action for fetching all content
 export const fetchAllContent = () => async (dispatch) => {
@@ -622,3 +624,63 @@ export const fetchModulesByTrack = (trackName) => async (dispatch) => {
     throw error;
   }
 };
+export const updateLearningVideos =
+  (videoId, updateData) => async (dispatch) => {
+    try {
+      const authToken = localStorage.getItem("authToken");
+      const formData = new FormData();
+
+      // Append new files if provided
+      if (updateData.videoFile_introduction instanceof File) {
+        formData.append(
+          "videoFile_introduction",
+          updateData.videoFile_introduction
+        );
+      }
+      if (updateData.videoFile_description instanceof File) {
+        formData.append(
+          "videoFile_description",
+          updateData.videoFile_description
+        );
+      }
+
+      // Append remove flags if present
+      if (updateData.remove_videoFile_introduction)
+        formData.append(
+          "remove_videoFile_introduction",
+          updateData.remove_videoFile_introduction
+        );
+      if (updateData.remove_videoFile_description)
+        formData.append(
+          "remove_videoFile_description",
+          updateData.remove_videoFile_description
+        );
+
+      console.log("Sending PUT Request for Learning Video:", videoId);
+      for (let [key, val] of formData.entries()) console.log(key, val);
+
+      const response = await fetch(
+        `${process.env.REACT_APP_STATIC_API_URL}/api/contant/learning-videos/${videoId}`,
+        {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${authToken}` },
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        const err = await response.text();
+        throw new Error(err || "Failed to update learning video");
+      }
+
+      const data = await response.json();
+      console.log("Updated Learning Video:", data);
+
+      dispatch({ type: UPDATE_LEARNING_VIDEO_SUCCESS, payload: data });
+      return data;
+    } catch (error) {
+      console.error("Error in updateLearningVideos:", error);
+      dispatch({ type: UPDATE_LEARNING_VIDEO_FAILURE, payload: error.message });
+      throw error;
+    }
+  };

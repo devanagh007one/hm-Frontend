@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchAllLicensing } from "../redux/actions/allLicensingGet.js";
+import { hrLicenseGet } from "../redux/actions/allLicensingGet.js";
 import { fetchAllUsers, createUser } from "../redux/actions/alluserGet";
 import { showNotification } from "../redux/actions/notificationActions"; // Import showNotification
 import "./popup.css"; // Import custom CSS
@@ -48,7 +48,7 @@ const ParentComponentHr = () => {
   console.log(formData);
 
   useEffect(() => {
-    dispatch(fetchAllLicensing());
+    dispatch(hrLicenseGet());
     dispatch(fetchAllUsers());
 
     // Get company name from local storage
@@ -87,7 +87,21 @@ const ParentComponentHr = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (isSaveDisabled) return;
+
+    const totalLicenses = parseInt(localStorage.getItem("totalLicenses")) || 0;
+    const companyUserCount =
+      parseInt(localStorage.getItem("companyUserCount")) || 0;
+
+    // Final check before creating user
+    if (companyUserCount >= totalLicenses) {
+      dispatch(
+        showNotification(
+          `Cannot create user. License limit (${totalLicenses}) reached.`,
+          "error"
+        )
+      );
+      return;
+    }
 
     if (!validatePassword(formData.password)) {
       dispatch(
@@ -96,12 +110,11 @@ const ParentComponentHr = () => {
           "error"
         )
       );
-
       return;
     }
+
     if (!formData.company) {
       dispatch(showNotification("Organisation is required.", "error"));
-
       return;
     }
 
@@ -109,7 +122,6 @@ const ParentComponentHr = () => {
       .then(() => {
         dispatch(showNotification("User created successfully", "success"));
         localStorage.setItem("activeComponent", "Usersmanagement");
-
         setTimeout(() => {
           handleClosePopup();
           window.location.reload();
@@ -128,7 +140,31 @@ const ParentComponentHr = () => {
     setFormData((prevData) => ({ ...prevData, firstName, lastName }));
   };
 
-  const handleViewPopup = () => setShowPopup(true);
+  const handleViewPopup = () => {
+    const totalLicenses = parseInt(localStorage.getItem("totalLicenses")) || 0;
+    const companyUserCount =
+      parseInt(localStorage.getItem("companyUserCount")) || 0;
+
+    setUserCount(companyUserCount);
+    setTotalLicenses(totalLicenses);
+
+    // Check if limit reached
+    if (companyUserCount >= totalLicenses) {
+      setIsSaveDisabled(true);
+      dispatch(
+        showNotification(
+          `Maximum number of users (${totalLicenses}) reached for this organisation.`,
+          "error"
+        )
+      );
+      return; // Don't open popup
+    } else {
+      setIsSaveDisabled(false);
+    }
+
+    setShowPopup(true);
+  };
+
   const handleClosePopup = () => setShowPopup(false);
 
   const handleFileChange = (event) => {
@@ -339,7 +375,7 @@ const ParentComponentHr = () => {
               </div>
               <div className="flex flex-col">
                 <label className="mb-1">
-                  Organization [
+                  Organisation [
                   {totalLicenses ? `${userCount} / ${totalLicenses}` : ""}]
                 </label>
                 <input

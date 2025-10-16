@@ -34,7 +34,7 @@ export const fetchAllLicensing = () => async (dispatch) => {
     }
 
     const data = await response.json();
-    console.log(data.licenses)
+    console.log(data.licenses);
     dispatch({ type: FETCH_LICENSINGS_SUCCESS, payload: data.licenses });
   } catch (error) {
     dispatch({ type: FETCH_LICENSINGS_FAILURE, payload: error.message });
@@ -76,8 +76,6 @@ export const licencingUser = (licencingData) => async (dispatch) => {
   }
 };
 
-
-
 // Action for toggling the license status
 export const toggleLicenseStatus = (licenseId) => async (dispatch) => {
   try {
@@ -110,6 +108,7 @@ export const toggleLicenseStatus = (licenseId) => async (dispatch) => {
 };
 
 // Action for toggling the license status
+// Action for getting HR license data
 export const hrLicenseGet = (hrUser) => async (dispatch) => {
   try {
     const authToken = localStorage.getItem("authToken");
@@ -128,25 +127,37 @@ export const hrLicenseGet = (hrUser) => async (dispatch) => {
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.message || "Failed to toggle license status");
+      throw new Error(errorData.message || "Failed to get license status");
     }
 
     const data = await response.json();
     console.log(data);
 
+    // Store license data in localStorage
+    if (data.success && data.licenseDetails) {
+      localStorage.setItem("totalLicenses", data.totalLicenses);
+      localStorage.setItem("assignedLicenses", data.assignedLicenses);
+      localStorage.setItem("remainingLicenses", data.remainingLicenses);
+      localStorage.setItem(
+        "licenseOrgName",
+        data.licenseDetails.organisationName
+      );
+    }
+
     dispatch({ type: HR_LICENSE_STATUS_SUCCESS, payload: data });
+    return data; // Return data for component use
   } catch (error) {
     dispatch({ type: HR_LICENSE_STATUS_FAILURE, payload: error.message });
+    throw error;
   }
 };
-
 
 // Action for changing the license type (Paid/Subscription)
 export const changeLicenseType = (licenseId, newPeriod) => async (dispatch) => {
   try {
     const authToken = localStorage.getItem("authToken");
 
-    console.log(licenseId, newPeriod)
+    console.log(licenseId, newPeriod);
     const response = await fetch(
       `${process.env.REACT_APP_STATIC_API_URL}/api/company/change-type`,
       {
@@ -203,7 +214,6 @@ export const fetchLicenseData = (licenseId) => async (dispatch) => {
   }
 };
 
-
 export const updateLicense = (id, licenseData) => async (dispatch) => {
   try {
     const authToken = localStorage.getItem("authToken");
@@ -213,10 +223,14 @@ export const updateLicense = (id, licenseData) => async (dispatch) => {
     }
 
     const formData = new FormData();
-    
+
     // Append all fields except 'uploaded_by'
     for (const key in licenseData) {
-      if (licenseData.hasOwnProperty(key) && key !== "uploaded_by" && licenseData[key] !== null) {
+      if (
+        licenseData.hasOwnProperty(key) &&
+        key !== "uploaded_by" &&
+        licenseData[key] !== null
+      ) {
         formData.append(key, licenseData[key]);
       }
     }
@@ -248,7 +262,10 @@ export const updateLicense = (id, licenseData) => async (dispatch) => {
         return;
       }
 
-      if (data?.message === "License updated successfully" && data?.license?._id) {
+      if (
+        data?.message === "License updated successfully" &&
+        data?.license?._id
+      ) {
         dispatch({ type: UPDATE_LICENSE_SUCCESS, payload: data.license });
         return data.license;
       } else {
