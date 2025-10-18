@@ -113,13 +113,18 @@ const ContentManagement = ({ data }) => {
   const [modalContent, setModalContent] = useState(null);
   const videoRef = useRef(null);
 
-  const handleOpenModal = (content) => {
-    if (content?.src) {
+  const handleOpenModal = (content, index = 0) => {
+    if (Array.isArray(content?.src)) {
+      // If it's an array, use the first video or a specific index
+      if (content.src.length > 0) {
+        setModalContent({ ...content, src: content.src[index] });
+        setIsModalOpen(true);
+      }
+    } else if (content?.src) {
       setModalContent(content);
       setIsModalOpen(true);
     }
   };
-
   const handleCloseModal = () => {
     setIsModalOpen(false);
     if (videoRef.current) {
@@ -129,8 +134,23 @@ const ContentManagement = ({ data }) => {
 
   const mediaItems = [
     { type: "image", src: data?.cover_Photo },
-    { type: "video", src: data?.videoFile_description },
-    { type: "video", src: data?.videoFile_introduction },
+    // Handle arrays by taking the first video or mapping all videos
+    ...(Array.isArray(data?.videoFile_description)
+      ? data.videoFile_description.map((video) => ({
+          type: "video",
+          src: video,
+        }))
+      : data?.videoFile_description
+      ? [{ type: "video", src: data.videoFile_description }]
+      : []),
+    ...(Array.isArray(data?.videoFile_introduction)
+      ? data.videoFile_introduction.map((video) => ({
+          type: "video",
+          src: video,
+        }))
+      : data?.videoFile_introduction
+      ? [{ type: "video", src: data.videoFile_introduction }]
+      : []),
   ].filter((item) => item.src); // Ensure only valid items are processed
 
   const handleUpdateStatus = (id, status) => {
@@ -250,6 +270,26 @@ const ContentManagement = ({ data }) => {
                           className="w-24 h-24 object-cover cursor-pointer"
                           onClick={() => handleOpenModal(item)}
                         />
+                      ) : // For videos, you might want to show multiple thumbnails or just the first one
+                      Array.isArray(item.src) ? (
+                        // Show first video as thumbnail, or you can map through all
+                        item.src
+                          .slice(0, 1)
+                          .map((video, videoIndex) => (
+                            <video
+                              key={videoIndex}
+                              src={
+                                `${
+                                  process.env.REACT_APP_STATIC_API_URL
+                                }/${video.replace(
+                                  /^\/root\/happme_adminuser_management\//,
+                                  ""
+                                )}` || "/fallback-image.jpg"
+                              }
+                              className="w-24 h-24 object-cover cursor-pointer"
+                              onClick={() => handleOpenModal(item, videoIndex)}
+                            />
+                          ))
                       ) : (
                         <video
                           src={
@@ -266,49 +306,6 @@ const ContentManagement = ({ data }) => {
                       )}
                     </div>
                   ))}
-
-                  <Modal
-                    open={isModalOpen}
-                    onCancel={handleCloseModal}
-                    footer={null}
-                    centered
-                    bodyStyle={{
-                      height: "830px",
-                      backgroundColor: "rgb(30,30,30)",
-                      overflow: "hidden",
-                    }}
-                  >
-                    {modalContent?.src ? (
-                      modalContent.type === "image" ? (
-                        <img
-                          src={
-                            `${
-                              process.env.REACT_APP_STATIC_API_URL
-                            }/${modalContent.src.replace(
-                              /^\/root\/happme_adminuser_management\//,
-                              ""
-                            )}` || "/fallback-image.jpg"
-                          }
-                          className="h-[830px] w-auto"
-                        />
-                      ) : (
-                        <video
-                          ref={videoRef}
-                          src={
-                            `${
-                              process.env.REACT_APP_STATIC_API_URL
-                            }/${modalContent.src.replace(
-                              /^\/root\/happme_adminuser_management\//,
-                              ""
-                            )}` || "/fallback-image.jpg"
-                          }
-                          controls
-                          autoPlay
-                          className="h-[830px] w-auto"
-                        />
-                      )
-                    ) : null}
-                  </Modal>
                 </div>
               </div>
 

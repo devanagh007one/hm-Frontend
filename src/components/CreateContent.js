@@ -97,8 +97,10 @@ const ParentComponent = () => {
     isApproved: "pending",
     description: "",
     cover_Photo: "",
-    videoFile_introduction: "",
-    videoFile_description: null,
+    existingIntroVideos: [], // NEW: Store existing videos from database
+    existingDescVideos: [], // NEW: Store existing videos from database
+    videoFile_introduction: [], // NEW videos to be added
+    videoFile_description: [], // NEW videos to be added
     content: "",
   };
   const initialChallangeData = {
@@ -256,62 +258,6 @@ const ParentComponent = () => {
     "partner 7",
   ];
 
-  const handleSelectModule = (module) => {
-    setSelectedModule(module);
-
-    const isTemplateModule = module._id?.startsWith("template-");
-
-    if (isTemplateModule) {
-      setFormData((prevData) => ({
-        ...prevData,
-        module: module._id,
-        moduleName: "", // Leave empty for user to fill
-        description: "",
-        cover_Photo: null,
-        videoFile_introduction: null,
-        videoFile_description: null,
-        content: "",
-      }));
-    } else {
-      setFormData((prevData) => ({
-        ...prevData,
-        module: module._id,
-        moduleName: module.moduleName || "",
-        description: module.description || "",
-        cover_Photo: module.cover_Photo || null,
-        videoFile_introduction: module.videoFile_introduction || null,
-        videoFile_description: module.videoFile_description || null,
-        content: module.content || "",
-        fileSize: module.fileSize || "",
-        isApproved: module.isApproved || "pending",
-        moduleType: module.moduleType || "Module",
-        tracks: module.tracks || formData.tracks,
-      }));
-    }
-
-    setChallengeData((prevData) => ({
-      ...prevData,
-      module: module._id,
-    }));
-
-    // Save to localStorage
-    const currentSelected = getSelectedDataFromStorage();
-    saveSelectedDataToStorage(
-      currentSelected?.track || formData.tracks,
-      module._id
-    );
-
-    // Set selected module in localStorage (existing code)
-    const selectedModuleData = {
-      id: module._id,
-      moduleName: module.moduleName,
-      uploadedById: module.uploaded_by || "68b5596571d47f3ed464a8f0",
-    };
-    localStorage.setItem("selectedModule", JSON.stringify(selectedModuleData));
-
-    setIsOpenModule(false);
-  };
-
   const module = [
     "module 1",
     "module 2",
@@ -332,13 +278,35 @@ const ParentComponent = () => {
     setIsSection3Visible(true);
   };
 
-  const handleFileChange = (e, fieldName) => {
-    const file = e.target.files[0];
-
-    setFormData((prevData) => ({
-      ...prevData,
-      [fieldName]: file, // Dynamically update the specific field with the selected file
+  // Function to remove specific video from array
+  const handleRemoveVideoFromArray = (fieldName, index) => {
+    setFormData((prev) => ({
+      ...prev,
+      [fieldName]: prev[fieldName].filter((_, i) => i !== index),
     }));
+  };
+
+  const handleFileChange = (e, fieldName) => {
+    const files = e.target.files;
+
+    if (
+      fieldName === "videoFile_introduction" ||
+      fieldName === "videoFile_description"
+    ) {
+      // For video fields, handle multiple files
+      const fileArray = Array.from(files);
+      setFormData((prevData) => ({
+        ...prevData,
+        [fieldName]: [...(prevData[fieldName] || []), ...fileArray], // Append new files
+      }));
+    } else {
+      // For single file fields like cover_Photo
+      const file = files[0];
+      setFormData((prevData) => ({
+        ...prevData,
+        [fieldName]: file,
+      }));
+    }
   };
   const handleVideoChange = (e, fieldName) => {
     const file = e.target.files[0];
@@ -560,6 +528,11 @@ const ParentComponent = () => {
     }));
   };
 
+  // Add this helper function at the top with your other functions
+  const isModuleAlreadyInList = (moduleId) => {
+    return modules.some((m) => m._id === moduleId);
+  };
+
   const handleAddModule = async () => {
     if (!formData.moduleName) {
       dispatch(
@@ -571,120 +544,351 @@ const ParentComponent = () => {
     const selectedModule = JSON.parse(localStorage.getItem("selectedModule"));
     const storedData = getSelectedDataFromStorage();
 
-    // Check if this is a NEW learning video being added (not editing existing one)
-    const isAddingNewVideo = editingIndex === null;
-
-    // FIXED: Check if user actually SELECTED an existing module from dropdown
-    // Only consider it an existing module selection if:
-    // 1. A module was selected from dropdown (formData.module exists)
-    // 2. It's not a template module
-    // 3. The module ID matches what's in localStorage (meaning user clicked on it)
-    const isExistingModuleSelected =
-      formData.module && // Module was set in formData
-      !formData.module.startsWith("template-") && // Not a template
-      selectedModule?.id === formData.module; // User explicitly selected it
-
-    let newModule;
-
-    if (isAddingNewVideo && isExistingModuleSelected) {
-      // SCENARIO: User selected existing module from dropdown, then clicked "Learning Video" button
-      // Check if this module is already in the modules array
-      const moduleAlreadyInList = modules.find(
-        (m) => m._id === selectedModule.id
-      );
-
-      if (moduleAlreadyInList) {
-        // Module already in list, so create a NEW one
-        newModule = {
-          ...formData,
-          tracks: storedData?.track || formData.tracks,
-          uniqueUploadId: generateUniqueId(),
-          _id: undefined, // NO _id = CREATE
-          isNewModule: true,
-          cover_Photo: formData.cover_Photo,
-          videoFile_introduction: formData.videoFile_introduction,
-          videoFile_description: formData.videoFile_description,
-        };
-      } else {
-        // First time adding this existing module to the list - keep its _id for UPDATE
-        newModule = {
-          ...formData,
-          tracks: storedData?.track || formData.tracks,
-          uniqueUploadId: formData.uniqueUploadId || generateUniqueId(),
-          _id: selectedModule.id, // Keep _id = UPDATE
-          isExistingModule: true, // Mark as existing
-          cover_Photo: formData.cover_Photo,
-          videoFile_introduction: formData.videoFile_introduction,
-          videoFile_description: formData.videoFile_description,
-        };
-      }
-    } else if (isAddingNewVideo && !isExistingModuleSelected) {
-      // FIXED: User did NOT select an existing module from dropdown
-      // This means they either:
-      // 1. Selected a template module
-      // 2. Didn't select any module at all
-      // 3. Just went straight to "Learning Video" button
-      // In ALL these cases, CREATE a new module
-      newModule = {
-        ...formData,
-        tracks: storedData?.track || formData.tracks,
-        uniqueUploadId: generateUniqueId(),
-        _id: undefined, // NO _id = CREATE
-        module: undefined, // Clear any module reference
-        isNewModule: true,
-        cover_Photo: formData.cover_Photo,
-        videoFile_introduction: formData.videoFile_introduction,
-        videoFile_description: formData.videoFile_description,
-      };
-    } else {
-      // User is EDITING an existing module from the list
-      newModule = {
-        ...formData,
-        tracks: storedData?.track || formData.tracks,
-        uniqueUploadId: formData.uniqueUploadId || generateUniqueId(),
-        _id: formData._id, // Keep the _id
-        isExistingModule: formData.isExistingModule, // Preserve the flag
-        cover_Photo: formData.cover_Photo,
-        videoFile_introduction: formData.videoFile_introduction,
-        videoFile_description: formData.videoFile_description,
-      };
-    }
-
-    console.log("Adding module:", {
-      moduleName: newModule.moduleName,
-      _id: newModule._id,
-      isNewModule: newModule.isNewModule,
-      isExistingModule: newModule.isExistingModule,
-      formDataModule: formData.module,
-      selectedModuleId: selectedModule?.id,
-      isExistingModuleSelected: isExistingModuleSelected,
-    });
     if (editingIndex !== null) {
+      // Editing existing entry
+      const updatedModule = {
+        ...modules[editingIndex],
+        moduleName: formData.moduleName,
+        description: formData.description,
+        content: formData.content,
+        tracks: storedData?.track || formData.tracks,
+        cover_Photo: formData.cover_Photo || modules[editingIndex].cover_Photo,
+
+        // Merge videos from this entry with new ones
+        videoFile_introduction: [
+          ...(modules[editingIndex].videoFile_introduction || []),
+          ...(Array.isArray(formData.videoFile_introduction)
+            ? formData.videoFile_introduction.filter(
+                (file) => file instanceof File
+              )
+            : []),
+        ],
+
+        videoFile_description: [
+          ...(modules[editingIndex].videoFile_description || []),
+          ...(Array.isArray(formData.videoFile_description)
+            ? formData.videoFile_description.filter(
+                (file) => file instanceof File
+              )
+            : []),
+        ],
+
+        _id: formData._id,
+        isExistingModule: formData.isExistingModule,
+        entryNumber: formData.entryNumber || editingIndex + 1,
+      };
+
       const updatedModules = [...modules];
-      updatedModules[editingIndex] = newModule;
+      updatedModules[editingIndex] = updatedModule;
       setModules(updatedModules);
       setEditingIndex(null);
     } else {
-      setModules([...modules, newModule]);
+      // Adding new entry
+      const newLearningVideoEntry = {
+        ...formData,
+        tracks: storedData?.track || formData.tracks,
+        uniqueUploadId: generateUniqueId(),
+        _id: selectedModule?.id || formData._id,
+        isExistingModule: true,
+        cover_Photo: formData.cover_Photo,
+        videoFile_introduction: Array.isArray(formData.videoFile_introduction)
+          ? formData.videoFile_introduction.map((file) => file)
+          : [],
+        videoFile_description: Array.isArray(formData.videoFile_description)
+          ? formData.videoFile_description.map((file) => file)
+          : [],
+        entryNumber: modules.length + 1,
+      };
+
+      setModules((prevModules) => [...prevModules, newLearningVideoEntry]);
     }
 
     // Reset form
-    setFormData({
-      ...initialModuleData,
+    const resetFormData = {
       uniqueUploadId: generateUniqueId(),
       tracks: storedData?.track || formData.tracks,
-      module: "", // IMPORTANT: Clear module selection
-    });
+      moduleName: formData.moduleName,
+      moduleType: "Module",
+      fileSize: "",
+      isApproved: "pending",
+      description: "",
+      cover_Photo: null,
+      videoFile_introduction: [],
+      videoFile_description: [],
+      content: "",
+      module: formData.module,
+      _id: selectedModule?.id || formData._id,
+    };
 
-    // IMPORTANT: Clear the selected module from localStorage when creating new
-    if (!isExistingModuleSelected) {
-      localStorage.removeItem("selectedModule");
-    }
-
+    setFormData(resetFormData);
     setIsSection2Visible(false);
     setisCreatedModuleVisible(true);
   };
 
+  // STEP 4: CRITICAL FIX - Update handleCreateContent to merge ALL videos
+  const handleCreateContent = async () => {
+    setShowSubmitConfirmation(false);
+    setIsSection2Visible(false);
+    setisCreatedModuleVisible(false);
+    setLoadingLink(true);
+    let progressCount = 0;
+
+    const storedData = getSelectedDataFromStorage();
+
+    const smoothProgressUpdate = (target) => {
+      let current = progress;
+      const interval = setInterval(() => {
+        if (current < target) {
+          current += 1;
+          setProgress(current);
+        } else {
+          clearInterval(interval);
+        }
+      }, 50);
+    };
+
+    try {
+      // Group all learning video entries by module ID
+      const moduleGroups = modules.reduce((acc, entry) => {
+        const moduleId = entry._id;
+        if (!acc[moduleId]) {
+          acc[moduleId] = [];
+        }
+        acc[moduleId].push(entry);
+        return acc;
+      }, {});
+
+      const totalSteps = Object.keys(moduleGroups).length;
+
+      console.log("📦 Starting bulk update for", totalSteps, "modules");
+
+      // Process each module
+      for (const [moduleId, entries] of Object.entries(moduleGroups)) {
+        console.log(
+          `\n🔄 Processing module ${moduleId} with ${entries.length} entries`
+        );
+
+        // Collect ALL NEW videos from ALL entries
+        const allNewIntroVideos = [];
+        const allNewDescVideos = [];
+
+        let latestEntry = entries[0];
+        let coverPhoto = null;
+        let description = "";
+
+        entries.forEach((entry, idx) => {
+          console.log(`  Entry ${idx + 1}:`, {
+            newIntroVideos: entry.videoFile_introduction?.length || 0,
+            newDescVideos: entry.videoFile_description?.length || 0,
+          });
+
+          // Collect NEW intro videos (File objects only)
+          if (Array.isArray(entry.videoFile_introduction)) {
+            entry.videoFile_introduction.forEach((video) => {
+              if (video instanceof File) {
+                allNewIntroVideos.push(video);
+              }
+            });
+          }
+
+          // Collect NEW description videos (File objects only)
+          if (Array.isArray(entry.videoFile_description)) {
+            entry.videoFile_description.forEach((video) => {
+              if (video instanceof File) {
+                allNewDescVideos.push(video);
+              }
+            });
+          }
+
+          if (entry.cover_Photo instanceof File) {
+            coverPhoto = entry.cover_Photo;
+          }
+          if (entry.description) {
+            description = entry.description;
+          }
+        });
+
+        console.log("📊 Video Summary:", {
+          newIntroVideos: allNewIntroVideos.length,
+          newDescVideos: allNewDescVideos.length,
+          videoNames: allNewIntroVideos.map((v) => v.name),
+        });
+
+        // Create FormData for multipart upload
+        const formDataToSend = new FormData();
+
+        formDataToSend.append("uniqueUploadId", latestEntry.uniqueUploadId);
+        formDataToSend.append("moduleName", latestEntry.moduleName || "");
+        formDataToSend.append(
+          "tracks",
+          storedData?.track || latestEntry.tracks || ""
+        );
+        formDataToSend.append("moduleType", latestEntry.moduleType || "Module");
+        formDataToSend.append("fileSize", latestEntry.fileSize || "");
+        formDataToSend.append(
+          "isApproved",
+          latestEntry.isApproved || "pending"
+        );
+
+        // CRITICAL: Set append flags to true to APPEND new videos to existing ones
+        formDataToSend.append("append_intro", "true");
+        formDataToSend.append("append_desc", "true");
+
+        // Add description if present
+        if (description) {
+          formDataToSend.append("description", description);
+        }
+
+        if (coverPhoto instanceof File) {
+          formDataToSend.append("cover_Photo", coverPhoto);
+        }
+
+        // Add ALL NEW intro videos
+        allNewIntroVideos.forEach((video, index) => {
+          formDataToSend.append("videoFile_introduction", video);
+          console.log(
+            `  ➕ Adding NEW intro video ${index + 1}: ${video.name}`
+          );
+        });
+
+        // Add ALL NEW desc videos
+        allNewDescVideos.forEach((video, index) => {
+          formDataToSend.append("videoFile_description", video);
+          console.log(`  ➕ Adding NEW desc video ${index + 1}: ${video.name}`);
+        });
+
+        if (latestEntry.content) {
+          formDataToSend.append("content", latestEntry.content);
+        }
+
+        console.log(`\n🚀 Sending to API with append_intro=true`);
+
+        try {
+          // Use direct fetch instead of redux action for better control
+          const authToken = localStorage.getItem("authToken");
+
+          const response = await fetch(
+            `${process.env.REACT_APP_STATIC_API_URL}/api/contant/contants/${moduleId}`,
+            {
+              method: "PUT",
+              headers: {
+                Authorization: `Bearer ${authToken}`,
+                // Don't set Content-Type; browser will handle it with FormData
+              },
+              body: formDataToSend,
+            }
+          );
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Failed to update content:", errorText);
+            throw new Error(errorText || "Failed to update content");
+          }
+
+          const data = await response.json();
+
+          console.log("✅ Update response:", {
+            success: data?.success,
+            finalIntroVideoCount: data?.content?.videoFile_introduction?.length,
+            finalDescVideoCount: data?.content?.videoFile_description?.length,
+            message: data?.message,
+          });
+
+          if (data && (data.success || data._id || data.id)) {
+            progressCount++;
+            smoothProgressUpdate((progressCount / totalSteps) * 100);
+          } else {
+            throw new Error("Invalid response");
+          }
+        } catch (error) {
+          console.error("❌ Update error:", error);
+          dispatch(
+            showNotification(
+              `Failed to update module: ${latestEntry.moduleName}`,
+              "error"
+            )
+          );
+          setLoadingLink(false);
+          return;
+        }
+      }
+
+      dispatch(
+        showNotification(
+          "Your Learning Videos have been successfully added to the module!",
+          "success"
+        )
+      );
+
+      clearSelectedDataFromStorage();
+      setLoadingLink(false);
+      setShowUpdateSuccessModal(true);
+    } catch (error) {
+      console.error("Submission error:", error);
+      dispatch(
+        showNotification("An error occurred during submission.", "error")
+      );
+      setLoadingLink(false);
+    }
+  };
+
+  // Also update the handleSelectModule function to NOT set editingIndex
+  const handleSelectModule = async (module) => {
+    setSelectedModule(module);
+
+    const isTemplateModule = module._id?.startsWith("template-");
+
+    if (isTemplateModule) {
+      setFormData((prevData) => ({
+        ...prevData,
+        module: module._id,
+        moduleName: "",
+        description: "",
+        cover_Photo: null,
+        videoFile_introduction: [],
+        videoFile_description: [],
+        content: "",
+      }));
+    } else {
+      // Store the module data - videos will be fetched fresh from API during submit
+      setFormData((prevData) => ({
+        ...prevData,
+        module: module._id,
+        moduleName: module.moduleName || "",
+        description: "",
+        cover_Photo: null,
+        videoFile_introduction: [], // Empty for NEW videos
+        videoFile_description: [], // Empty for NEW videos
+        content: "",
+        fileSize: module.fileSize || "",
+        isApproved: module.isApproved || "pending",
+        moduleType: module.moduleType || "Module",
+        tracks: module.tracks || formData.tracks,
+        _id: module._id,
+      }));
+    }
+
+    setChallengeData((prevData) => ({
+      ...prevData,
+      module: module._id,
+    }));
+
+    const currentSelected = getSelectedDataFromStorage();
+    saveSelectedDataToStorage(
+      currentSelected?.track || formData.tracks,
+      module._id
+    );
+
+    const selectedModuleData = {
+      id: module._id,
+      moduleName: module.moduleName,
+      uploadedById: module.uploaded_by || "68b5596571d47f3ed464a8f0",
+    };
+    localStorage.setItem("selectedModule", JSON.stringify(selectedModuleData));
+
+    setIsOpenModule(false);
+    setEditingIndex(null);
+  };
   // Then create a separate function to handle the actual submission
   const handleConfirmModuleSubmit = async () => {
     setShowSubmitConfirmation(false);
@@ -929,10 +1133,22 @@ const ParentComponent = () => {
   };
 
   const handleRemoveFile = (field) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: null, // Reset the specific field to null
-    }));
+    if (
+      field === "videoFile_introduction" ||
+      field === "videoFile_description"
+    ) {
+      // Clear entire array
+      setFormData((prev) => ({
+        ...prev,
+        [field]: [],
+      }));
+    } else {
+      // Single file
+      setFormData((prev) => ({
+        ...prev,
+        [field]: null,
+      }));
+    }
   };
   const handleRemoveChaFile = (field) => {
     setChallengeData((prev) => ({
@@ -975,211 +1191,6 @@ const ParentComponent = () => {
 
   const handleConfirmSubmitModule = async () => {
     setShowSubmitConfirmation(true);
-  };
-
-  const handleCreateContent = async () => {
-    setShowSubmitConfirmation(false);
-    setIsSection2Visible(false);
-    setisCreatedModuleVisible(false);
-    setLoadingLink(true);
-    let progressCount = 0;
-    const totalSteps = modules.length;
-
-    const storedData = getSelectedDataFromStorage();
-
-    const smoothProgressUpdate = (target) => {
-      let current = progress;
-      const interval = setInterval(() => {
-        if (current < target) {
-          current += 1;
-          setProgress(current);
-        } else {
-          clearInterval(interval);
-        }
-      }, 50);
-    };
-
-    try {
-      let hasUpdates = false;
-      let hasCreates = false;
-
-      for (let i = 0; i < modules.length; i++) {
-        const module = modules[i];
-
-        console.log(`Processing module ${i + 1}:`, {
-          moduleName: module.moduleName,
-          _id: module._id,
-          isNewModule: module.isNewModule,
-          isExistingModule: module.isExistingModule,
-        });
-
-        // Determine if this is an existing module that needs UPDATE or a new one that needs CREATE
-        const shouldUpdate =
-          module.isExistingModule === true &&
-          module._id &&
-          !module._id.startsWith("template-");
-        const shouldCreate = !shouldUpdate;
-
-        let response;
-
-        if (shouldCreate) {
-          // CREATE NEW MODULE
-          hasCreates = true;
-          const moduleData = {
-            uniqueUploadId: module.uniqueUploadId || generateUniqueId(),
-            moduleName: module.moduleName || "",
-            description: module.description || "",
-            tracks: storedData?.track || module.tracks || "",
-            moduleType: module.moduleType || "Module",
-            fileSize: module.fileSize || "",
-            isApproved: module.isApproved || "pending",
-          };
-
-          if (module.cover_Photo instanceof File) {
-            moduleData.cover_Photo = module.cover_Photo;
-          }
-          if (module.videoFile_introduction instanceof File) {
-            moduleData.videoFile_introduction = module.videoFile_introduction;
-          }
-          if (module.videoFile_description instanceof File) {
-            moduleData.videoFile_description = module.videoFile_description;
-          }
-          if (module.content) {
-            moduleData.content = module.content;
-          }
-
-          console.log("✅ Creating NEW module:", module.moduleName);
-
-          try {
-            response = await dispatch(createContent(moduleData));
-            console.log("Create response:", response);
-          } catch (error) {
-            console.error("Create error:", error);
-            dispatch(
-              showNotification(
-                `Failed to create module: ${module.moduleName}`,
-                "error"
-              )
-            );
-            setLoadingLink(false);
-            return;
-          }
-        } else if (shouldUpdate) {
-          // UPDATE EXISTING MODULE
-          hasUpdates = true;
-
-          // Find original module to compare changes
-          const originalModule = modulesFromStorage.find(
-            (m) => m._id === module._id
-          );
-
-          // Check if anything changed
-          const hasChanges =
-            originalModule?.moduleName !== module.moduleName ||
-            originalModule?.description !== module.description ||
-            module.cover_Photo instanceof File ||
-            module.videoFile_introduction instanceof File ||
-            module.videoFile_description instanceof File ||
-            (module.content && originalModule?.content !== module.content);
-
-          if (hasChanges) {
-            const updateData = {
-              uniqueUploadId:
-                module.uniqueUploadId || originalModule?.uniqueUploadId,
-              moduleName: module.moduleName || "",
-              description: module.description || "",
-              tracks: storedData?.track || module.tracks || "",
-              moduleType: module.moduleType || "Module",
-              fileSize: module.fileSize || "",
-              isApproved: module.isApproved || "pending",
-            };
-
-            if (module.cover_Photo instanceof File) {
-              updateData.cover_Photo = module.cover_Photo;
-            }
-            if (module.videoFile_introduction instanceof File) {
-              updateData.videoFile_introduction = module.videoFile_introduction;
-            }
-            if (module.videoFile_description instanceof File) {
-              updateData.videoFile_description = module.videoFile_description;
-            }
-            if (module.content) {
-              updateData.content = module.content;
-            }
-
-            console.log("🔄 Updating EXISTING module:", module.moduleName);
-
-            try {
-              response = await dispatch(updateContent(module._id, updateData));
-              console.log("Update response:", response);
-            } catch (error) {
-              console.error("Update error:", error);
-              dispatch(
-                showNotification(
-                  `Failed to update module: ${module.moduleName}`,
-                  "error"
-                )
-              );
-              setLoadingLink(false);
-              return;
-            }
-          } else {
-            console.log("⏭️ Skipping module (no changes):", module.moduleName);
-            response = { _id: module._id };
-          }
-        }
-
-        // Check response validity - be more lenient with the check
-        if (response && (response._id || response.id || response.success)) {
-          progressCount++;
-          smoothProgressUpdate((progressCount / totalSteps) * 100);
-        } else {
-          console.error(
-            "Invalid response for module:",
-            module.moduleName,
-            response
-          );
-          dispatch(
-            showNotification(
-              `Failed to process module: ${module.moduleName}`,
-              "error"
-            )
-          );
-          setLoadingLink(false);
-          return;
-        }
-      }
-
-      // Show appropriate success message based on what operations were performed
-      let successMessage = "";
-      if (hasUpdates && hasCreates) {
-        successMessage =
-          "Your Modules have been successfully created and updated!";
-      } else if (hasUpdates) {
-        successMessage = "Your Modules have been successfully updated!";
-      } else {
-        successMessage =
-          "Your Modules have been successfully submitted for approval.";
-      }
-
-      dispatch(showNotification(successMessage, "success"));
-
-      clearSelectedDataFromStorage();
-      setLoadingLink(false);
-
-      // Show appropriate success modal
-      if (hasUpdates) {
-        setShowUpdateSuccessModal(true);
-      } else {
-        setShowSuccessModal(true);
-      }
-    } catch (error) {
-      console.error("Submission error:", error);
-      dispatch(
-        showNotification("An error occurred during submission.", "error")
-      );
-      setLoadingLink(false);
-    }
   };
 
   const handleSave = async () => {
@@ -1782,8 +1793,9 @@ const ParentComponent = () => {
 
                         <div className="flex flex-col w-full">
                           <label className="mb-1">
-                            Choose a Module{" "}
-                            <span className="text-red-500">*</span>
+                            Module: {formData.moduleName}
+                            {modules[0]?.videoFile_introduction?.length > 0 &&
+                              ` (${modules[0].videoFile_introduction.length} videos)`}
                           </label>
                           <div className="dropdown-container mb-3">
                             <div
@@ -2480,7 +2492,11 @@ const ParentComponent = () => {
 
                         {/* Form for adding/editing module */}
                         <label className="mb-5">
-                          Learning Video {modules.length + 1}
+                          Learning Video{" "}
+                          {editingIndex !== null
+                            ? modules[editingIndex]?.entryNumber ||
+                              editingIndex + 1
+                            : modules.length + 1}
                         </label>
 
                         <div className="flex mt-3 flex-col">
@@ -2571,23 +2587,70 @@ const ParentComponent = () => {
                           </label>
                         </div>
 
-                        <div className="flex flex-col w-full  mt-3">
-                          <label className=" mb-1">Upload Learning Video</label>
-                          <label className="p-2 pl-4 pr-4   rounded-xl border border-gray-600 focus:outline-none flex items-center justify-between cursor-pointer">
+                        <div className="flex flex-col w-full mt-3">
+                          <label className="mb-1">
+                            Upload Learning Video(s)
+                          </label>
+
+                          {/* Show existing videos */}
+                          {Array.isArray(formData.videoFile_introduction) &&
+                            formData.videoFile_introduction.length > 0 && (
+                              <div className="mb-2 space-y-2">
+                                {formData.videoFile_introduction.map(
+                                  (video, index) => (
+                                    <div
+                                      key={index}
+                                      className="flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-800 rounded-md"
+                                    >
+                                      <span className="text-sm truncate flex-1">
+                                        {video instanceof File
+                                          ? video.name
+                                          : video.split("/").pop()}
+                                      </span>
+                                      <svg
+                                        width="18"
+                                        height="18"
+                                        viewBox="0 0 18 18"
+                                        fill="none"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        onClick={() =>
+                                          handleRemoveVideoFromArray(
+                                            "videoFile_introduction",
+                                            index
+                                          )
+                                        }
+                                        className="cursor-pointer ml-2"
+                                      >
+                                        <path
+                                          d="M9 0.25C4.125 0.25 0.25 4.125 0.25 9C0.25 13.875 4.125 17.75 9 17.75C13.875 17.75 17.75 13.875 17.75 9C17.75 4.125 13.875 0.25 9 0.25ZM12.375 13.375L9 10L5.625 13.375L4.625 12.375L8 9L4.625 5.625L5.625 4.625L9 8L12.375 4.625L13.375 5.625L10 9L13.375 12.375L12.375 13.375Z"
+                                          fill="#DD441B"
+                                        />
+                                      </svg>
+                                    </div>
+                                  )
+                                )}
+                              </div>
+                            )}
+
+                          {/* Upload button */}
+                          <label className="p-2 pl-4 pr-4 rounded-xl border border-gray-600 focus:outline-none flex items-center justify-between cursor-pointer">
                             <div>
-                              {formData.videoFile_introduction?.name ||
-                                "Upload Learning Video"}
+                              {formData.videoFile_introduction?.length > 0
+                                ? `${formData.videoFile_introduction.length} video(s) selected - Add more`
+                                : "Upload Learning Video(s)"}
                             </div>
                             <div className="flex items-center">
                               <input
                                 name="videoFile_introduction"
                                 type="file"
+                                multiple
+                                accept="video/*"
                                 className="hidden"
                                 onChange={(e) =>
                                   handleFileChange(e, "videoFile_introduction")
                                 }
                               />
-                              {formData.videoFile_introduction ? (
+                              {formData.videoFile_introduction?.length > 0 ? (
                                 <svg
                                   width="18"
                                   height="18"
@@ -2595,10 +2658,10 @@ const ParentComponent = () => {
                                   fill="none"
                                   xmlns="http://www.w3.org/2000/svg"
                                   onClick={(e) => {
-                                    e.stopPropagation(); // Prevent file input dialog from opening
+                                    e.stopPropagation();
                                     handleRemoveFile("videoFile_introduction");
                                   }}
-                                  className="cursor-pointer ml-2"
+                                  className="cursor-pointer"
                                 >
                                   <path
                                     d="M9 0.25C4.125 0.25 0.25 4.125 0.25 9C0.25 13.875 4.125 17.75 9 17.75C13.875 17.75 17.75 13.875 17.75 9C17.75 4.125 13.875 0.25 9 0.25ZM12.375 13.375L9 10L5.625 13.375L4.625 12.375L8 9L4.625 5.625L5.625 4.625L9 8L12.375 4.625L13.375 5.625L10 9L13.375 12.375L12.375 13.375Z"
@@ -2622,7 +2685,8 @@ const ParentComponent = () => {
                             </div>
                           </label>
                           <p className="text-xs text-[#C7C7C7]">
-                            Max 25 MB File Size & landscape format
+                            Max 25 MB per file & landscape format. You can
+                            select multiple videos.
                           </p>
                         </div>
 
@@ -2674,7 +2738,6 @@ const ParentComponent = () => {
                         const createSafeURL = (fileData) => {
                           if (!fileData) return null;
 
-                          // If it's already a File/Blob object
                           if (
                             fileData instanceof File ||
                             fileData instanceof Blob
@@ -2690,7 +2753,6 @@ const ParentComponent = () => {
                             }
                           }
 
-                          // If it's already a string URL (from API), return as is
                           if (
                             typeof fileData === "string" &&
                             fileData.startsWith("http")
@@ -2702,23 +2764,31 @@ const ParentComponent = () => {
                         };
 
                         const coverPhotoURL = createSafeURL(module.cover_Photo);
-                        const videoIntroURL = createSafeURL(
+
+                        // Handle video arrays
+                        const videoIntroURLs = Array.isArray(
                           module.videoFile_introduction
-                        );
-                        const videoDescURL = createSafeURL(
+                        )
+                          ? module.videoFile_introduction
+                              .map(createSafeURL)
+                              .filter(Boolean)
+                          : [];
+
+                        const videoDescURLs = Array.isArray(
                           module.videoFile_description
-                        );
+                        )
+                          ? module.videoFile_description
+                              .map(createSafeURL)
+                              .filter(Boolean)
+                          : [];
 
                         return (
-                          <div className="">
-                            <label className=" mb-1">
-                              Learing Video {index + 1}
+                          <div className="" key={module.uniqueUploadId}>
+                            <label className="mb-1">
+                              Learning Video {module.entryNumber || index + 1}
                             </label>
                             <div className="flex justify-between items-start gap-2">
-                              <div
-                                key={module.uniqueUploadId}
-                                className="w-full  p-2 rounded-xl border border-gray-600 focus:outline-none shadow-md"
-                              >
+                              <div className="w-full p-2 rounded-xl border border-gray-600 focus:outline-none shadow-md">
                                 {/* Module Header with Dropdown Toggle */}
                                 <div
                                   className="flex justify-between items-center cursor-pointer"
@@ -2729,7 +2799,8 @@ const ParentComponent = () => {
                                   }
                                 >
                                   <h3 className="">
-                                    Learing Video {index + 1}
+                                    Learning Video{" "}
+                                    {module.entryNumber || index + 1}
                                   </h3>
                                   <span className="text-gray-400">
                                     {expandedIndex === index}
@@ -2770,8 +2841,8 @@ const ParentComponent = () => {
                                         onClick={() => {
                                           setFormData(module);
                                           setEditingIndex(index);
-                                          setIsSection2Visible(true); // Show edit section
-                                          setisCreatedModuleVisible(false); // Hide available modules
+                                          setIsSection2Visible(true);
+                                          setisCreatedModuleVisible(false);
                                         }}
                                         className="cursor-pointer"
                                         width="21"
@@ -2788,9 +2859,9 @@ const ParentComponent = () => {
                                         <path
                                           d="M13.2507 5.00007L15.7507 7.50007M11.584 16.6667H18.2507M4.91732 13.3334L4.08398 16.6667L7.41732 15.8334L17.0723 6.17841C17.3848 5.86586 17.5603 5.44201 17.5603 5.00007C17.5603 4.55813 17.3848 4.13429 17.0723 3.82174L16.929 3.67841C16.6164 3.36596 16.1926 3.19043 15.7507 3.19043C15.3087 3.19043 14.8849 3.36596 14.5723 3.67841L4.91732 13.3334Z"
                                           stroke="#C7C7C7"
-                                          stroke-width="1.25"
-                                          stroke-linecap="round"
-                                          stroke-linejoin="round"
+                                          strokeWidth="1.25"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
                                         />
                                       </svg>
                                     </div>
@@ -2800,38 +2871,64 @@ const ParentComponent = () => {
                                         {module.description}
                                       </p>
                                     </div>
-                                    <section className="flex justify-between w-[90%] mt-4">
-                                      <div>
-                                        <p className="text-sm">Cover Photo</p>
-                                        {coverPhotoURL && (
-                                          <img
-                                            src={coverPhotoURL}
-                                            alt="Cover"
-                                            className="w-20 h-20 object-cover rounded-xl border border-gray-600 focus:outline-none-md mt-2"
-                                          />
-                                        )}
-                                      </div>
+                                    <section className="mt-4">
+                                      <div className="grid grid-cols-1 gap-4">
+                                        {/* Cover Photo */}
+                                        <div>
+                                          <p className="text-sm mb-2">
+                                            Cover Photo
+                                          </p>
+                                          {coverPhotoURL && (
+                                            <img
+                                              src={coverPhotoURL}
+                                              alt="Cover"
+                                              className="w-full h-32 object-cover rounded-xl border border-gray-600"
+                                            />
+                                          )}
+                                        </div>
 
-                                      <div>
-                                        <p className="text-sm">Module Video:</p>
-                                        {videoIntroURL && (
-                                          <video
-                                            src={videoIntroURL}
-                                            controls
-                                            className="w-20 h-20 focus:outline-none-md object-cover rounded-xl border border-gray-600 focus:outline-none-md mt-2"
-                                          />
+                                        {/* Introduction Videos */}
+                                        {videoIntroURLs.length > 0 && (
+                                          <div>
+                                            <p className="text-sm mb-2">
+                                              Learning Videos (
+                                              {videoIntroURLs.length})
+                                            </p>
+                                            <div className="grid grid-cols-2 gap-2">
+                                              {videoIntroURLs.map(
+                                                (url, vidIndex) => (
+                                                  <video
+                                                    key={vidIndex}
+                                                    src={url}
+                                                    controls
+                                                    className="w-full h-32 object-cover rounded-xl border border-gray-600"
+                                                  />
+                                                )
+                                              )}
+                                            </div>
+                                          </div>
                                         )}
-                                      </div>
-                                      <div>
-                                        <p className="text-sm">
-                                          Explanatory Video:
-                                        </p>
-                                        {videoDescURL && (
-                                          <video
-                                            src={videoDescURL}
-                                            controls
-                                            className="w-20 h-20  focus:outline-none-md object-cover rounded-xl border border-gray-600 focus:outline-none-md mt-2"
-                                          />
+
+                                        {/* Description Videos */}
+                                        {videoDescURLs.length > 0 && (
+                                          <div>
+                                            <p className="text-sm mb-2">
+                                              Explanatory Videos (
+                                              {videoDescURLs.length})
+                                            </p>
+                                            <div className="grid grid-cols-2 gap-2">
+                                              {videoDescURLs.map(
+                                                (url, vidIndex) => (
+                                                  <video
+                                                    key={vidIndex}
+                                                    src={url}
+                                                    controls
+                                                    className="w-full h-32 object-cover rounded-xl border border-gray-600"
+                                                  />
+                                                )
+                                              )}
+                                            </div>
+                                          </div>
                                         )}
                                       </div>
                                     </section>

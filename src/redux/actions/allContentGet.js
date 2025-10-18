@@ -118,45 +118,66 @@ export const updateContent = (contentId, updateData) => async (dispatch) => {
   try {
     const authToken = localStorage.getItem("authToken");
 
-    // Use FormData for file uploads
+    // FormData for files + text fields
     const formData = new FormData();
 
-    // Append all text fields
-    formData.append("moduleName", updateData.moduleName || "");
-    formData.append("description", updateData.description || "");
-    formData.append("isApproved", updateData.isApproved || "pending");
-    formData.append("tracks", updateData.tracks || "");
-    formData.append("moduleType", updateData.moduleType || "Module");
-    formData.append("fileSize", updateData.fileSize || "");
+    // Append text fields
+    if (updateData.moduleName)
+      formData.append("moduleName", updateData.moduleName);
+    if (updateData.description)
+      formData.append("description", updateData.description);
+    if (updateData.isApproved)
+      formData.append("isApproved", updateData.isApproved);
+    if (updateData.tracks) formData.append("tracks", updateData.tracks);
+    if (updateData.moduleType)
+      formData.append("moduleType", updateData.moduleType);
+    if (updateData.fileSize) formData.append("fileSize", updateData.fileSize);
 
-    // Append files if they exist
-    if (updateData.cover_Photo && updateData.cover_Photo instanceof File) {
-      formData.append("cover_Photo", updateData.cover_Photo);
+    // CRITICAL: Add append flags - default to true to preserve existing videos
+    const appendIntro =
+      updateData.append_intro !== undefined ? updateData.append_intro : true; // Default to append mode
+
+    const appendDesc =
+      updateData.append_desc !== undefined ? updateData.append_desc : true; // Default to append mode
+
+    formData.append("append_intro", appendIntro.toString());
+    formData.append("append_desc", appendDesc.toString());
+
+    // Append cover photo (single)
+    if (updateData.cover_Photo) {
+      if (updateData.cover_Photo instanceof File) {
+        formData.append("cover_Photo", updateData.cover_Photo);
+      }
     }
+
+    // Append multiple intro videos
     if (
       updateData.videoFile_introduction &&
-      updateData.videoFile_introduction instanceof File
+      Array.isArray(updateData.videoFile_introduction)
     ) {
-      formData.append(
-        "videoFile_introduction",
-        updateData.videoFile_introduction
-      );
-    }
-    if (
-      updateData.videoFile_description &&
-      updateData.videoFile_description instanceof File
-    ) {
-      formData.append(
-        "videoFile_description",
-        updateData.videoFile_description
-      );
+      updateData.videoFile_introduction.forEach((file) => {
+        if (file instanceof File)
+          formData.append("videoFile_introduction", file);
+      });
     }
 
-    console.log("Sending PUT Request for Content ID:", contentId);
-    console.log("FormData entries:");
-    for (let [key, value] of formData.entries()) {
-      console.log(key, value);
+    // Append multiple description videos
+    if (
+      updateData.videoFile_description &&
+      Array.isArray(updateData.videoFile_description)
+    ) {
+      updateData.videoFile_description.forEach((file) => {
+        if (file instanceof File)
+          formData.append("videoFile_description", file);
+      });
     }
+
+    console.log("Sending PUT Request for Content ID:", contentId, {
+      append_intro: appendIntro,
+      append_desc: appendDesc,
+      newIntroVideos: updateData.videoFile_introduction?.length || 0,
+      newDescVideos: updateData.videoFile_description?.length || 0,
+    });
 
     const response = await fetch(
       `${process.env.REACT_APP_STATIC_API_URL}/api/contant/contants/${contentId}`,
@@ -164,7 +185,7 @@ export const updateContent = (contentId, updateData) => async (dispatch) => {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${authToken}`,
-          // Don't set Content-Type - let browser set it with boundary for FormData
+          // Don't set Content-Type; browser will handle it with FormData
         },
         body: formData,
       }
@@ -187,6 +208,7 @@ export const updateContent = (contentId, updateData) => async (dispatch) => {
     throw error;
   }
 };
+
 // Action for Patching the Challenge
 export const patchTheChallenge = (challengeId, status) => async (dispatch) => {
   try {
