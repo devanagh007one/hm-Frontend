@@ -1445,8 +1445,8 @@ const ParentComponent = () => {
                   {isSection2Visible && (
                     <div className="flex justify-start items-start">
                       <span className="text-white text-xl">
-                        {/* {formData.moduleName || "New Module"} */}
-                        Module
+                        {formData.moduleName || "New Module"}
+                        {/* Module */}
                       </span>
                       <span className="mx-2 text-lg">/</span>
                       <span className="text-sm text-[#F48567] mt-1">
@@ -2552,7 +2552,7 @@ const ParentComponent = () => {
                           <label className="mb-1">Description</label>
                           <textarea
                             name="description"
-                            placeholder="Provide a brief overview of this yoga module. Explain what students will learn, the difficulty level, and any key benefits."
+                            placeholder="Provide a brief description"
                             className="p-2 rounded-xl border border-gray-600 focus:outline-none min-h-[100px]"
                             value={formData.description}
                             onChange={(e) =>
