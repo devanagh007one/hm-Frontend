@@ -101,6 +101,7 @@ const ParentComponent = () => {
     existingDescVideos: [], // NEW: Store existing videos from database
     videoFile_introduction: [], // NEW videos to be added
     videoFile_description: [], // NEW videos to be added
+    learningVideoTitles: [],
     content: "",
   };
   const initialChallangeData = {
@@ -280,24 +281,49 @@ const ParentComponent = () => {
 
   // Function to remove specific video from array
   const handleRemoveVideoFromArray = (fieldName, index) => {
-    setFormData((prev) => ({
-      ...prev,
-      [fieldName]: prev[fieldName].filter((_, i) => i !== index),
-    }));
+    if (fieldName === "videoFile_introduction") {
+      // Remove from BOTH introduction and description when removing learning videos
+      setFormData((prev) => ({
+        ...prev,
+        videoFile_introduction: prev.videoFile_introduction.filter(
+          (_, i) => i !== index
+        ),
+        videoFile_description: prev.videoFile_description.filter(
+          (_, i) => i !== index
+        ),
+      }));
+    } else {
+      // For other fields, remove only from that field
+      setFormData((prev) => ({
+        ...prev,
+        [fieldName]: prev[fieldName].filter((_, i) => i !== index),
+      }));
+    }
   };
 
   const handleFileChange = (e, fieldName) => {
     const files = e.target.files;
 
-    if (
-      fieldName === "videoFile_introduction" ||
-      fieldName === "videoFile_description"
-    ) {
-      // For video fields, handle multiple files
+    if (fieldName === "videoFile_introduction") {
+      // For learning videos, set BOTH introduction and description fields
       const fileArray = Array.from(files);
       setFormData((prevData) => ({
         ...prevData,
-        [fieldName]: [...(prevData[fieldName] || []), ...fileArray], // Append new files
+        videoFile_introduction: [
+          ...(prevData.videoFile_introduction || []),
+          ...fileArray,
+        ],
+        videoFile_description: [
+          ...(prevData.videoFile_description || []),
+          ...fileArray,
+        ], // Set same files for description
+      }));
+    } else if (fieldName === "videoFile_description") {
+      // Handle description videos separately if needed (though hidden in UI)
+      const fileArray = Array.from(files);
+      setFormData((prevData) => ({
+        ...prevData,
+        [fieldName]: [...(prevData[fieldName] || []), ...fileArray],
       }));
     } else {
       // For single file fields like cover_Photo
@@ -534,27 +560,34 @@ const ParentComponent = () => {
   };
 
   const handleAddModule = async () => {
-    if (!formData.moduleName) {
-      dispatch(
-        showNotification("Title is required to create Module.", "error")
+    // Validate that all uploaded videos have titles
+    if (formData.videoFile_introduction.length > 0) {
+      const hasEmptyTitles = formData.learningVideoTitles.some(
+        (title, idx) =>
+          idx < formData.videoFile_introduction.length && !title?.trim()
       );
-      return;
+      if (hasEmptyTitles) {
+        dispatch(
+          showNotification(
+            "Please provide titles for all learning videos.",
+            "error"
+          )
+        );
+        return;
+      }
     }
 
     const selectedModule = JSON.parse(localStorage.getItem("selectedModule"));
     const storedData = getSelectedDataFromStorage();
 
     if (editingIndex !== null) {
-      // Editing existing entry
       const updatedModule = {
         ...modules[editingIndex],
-        moduleName: formData.moduleName,
+        moduleName: formData.moduleName, // Keep module name from dropdown
         description: formData.description,
         content: formData.content,
         tracks: storedData?.track || formData.tracks,
         cover_Photo: formData.cover_Photo || modules[editingIndex].cover_Photo,
-
-        // Merge videos from this entry with new ones
         videoFile_introduction: [
           ...(modules[editingIndex].videoFile_introduction || []),
           ...(Array.isArray(formData.videoFile_introduction)
@@ -563,7 +596,6 @@ const ParentComponent = () => {
               )
             : []),
         ],
-
         videoFile_description: [
           ...(modules[editingIndex].videoFile_description || []),
           ...(Array.isArray(formData.videoFile_description)
@@ -572,7 +604,10 @@ const ParentComponent = () => {
               )
             : []),
         ],
-
+        learningVideoTitles: [
+          ...(modules[editingIndex].learningVideoTitles || []),
+          ...(formData.learningVideoTitles || []),
+        ],
         _id: formData._id,
         isExistingModule: formData.isExistingModule,
         entryNumber: formData.entryNumber || editingIndex + 1,
@@ -583,12 +618,12 @@ const ParentComponent = () => {
       setModules(updatedModules);
       setEditingIndex(null);
     } else {
-      // Adding new entry
       const newLearningVideoEntry = {
         ...formData,
         tracks: storedData?.track || formData.tracks,
         uniqueUploadId: generateUniqueId(),
         _id: selectedModule?.id || formData._id,
+        moduleName: formData.moduleName, // From dropdown
         isExistingModule: true,
         cover_Photo: formData.cover_Photo,
         videoFile_introduction: Array.isArray(formData.videoFile_introduction)
@@ -597,6 +632,7 @@ const ParentComponent = () => {
         videoFile_description: Array.isArray(formData.videoFile_description)
           ? formData.videoFile_description.map((file) => file)
           : [],
+        learningVideoTitles: formData.learningVideoTitles || [],
         entryNumber: modules.length + 1,
       };
 
@@ -607,14 +643,15 @@ const ParentComponent = () => {
     const resetFormData = {
       uniqueUploadId: generateUniqueId(),
       tracks: storedData?.track || formData.tracks,
-      moduleName: formData.moduleName,
+      moduleName: formData.moduleName, // Keep module name
       moduleType: "Module",
       fileSize: "",
       isApproved: "pending",
-      description: "",
+      description: formData.description, // Keep or reset as needed
       cover_Photo: null,
       videoFile_introduction: [],
       videoFile_description: [],
+      learningVideoTitles: [], // Reset titles
       content: "",
       module: formData.module,
       _id: selectedModule?.id || formData._id,
@@ -668,34 +705,22 @@ const ParentComponent = () => {
           `\n🔄 Processing module ${moduleId} with ${entries.length} entries`
         );
 
-        // Collect ALL NEW videos from ALL entries
-        const allNewIntroVideos = [];
-        const allNewDescVideos = [];
-
+        // Collect ALL NEW videos - now only for description
+        const allNewVideos = [];
         let latestEntry = entries[0];
         let coverPhoto = null;
         let description = "";
 
         entries.forEach((entry, idx) => {
           console.log(`  Entry ${idx + 1}:`, {
-            newIntroVideos: entry.videoFile_introduction?.length || 0,
-            newDescVideos: entry.videoFile_description?.length || 0,
+            newVideos: entry.videoFile_description?.length || 0,
           });
 
-          // Collect NEW intro videos (File objects only)
-          if (Array.isArray(entry.videoFile_introduction)) {
-            entry.videoFile_introduction.forEach((video) => {
-              if (video instanceof File) {
-                allNewIntroVideos.push(video);
-              }
-            });
-          }
-
-          // Collect NEW description videos (File objects only)
+          // Collect NEW videos for description field only
           if (Array.isArray(entry.videoFile_description)) {
             entry.videoFile_description.forEach((video) => {
               if (video instanceof File) {
-                allNewDescVideos.push(video);
+                allNewVideos.push(video);
               }
             });
           }
@@ -709,9 +734,8 @@ const ParentComponent = () => {
         });
 
         console.log("📊 Video Summary:", {
-          newIntroVideos: allNewIntroVideos.length,
-          newDescVideos: allNewDescVideos.length,
-          videoNames: allNewIntroVideos.map((v) => v.name),
+          newVideos: allNewVideos.length,
+          videoNames: allNewVideos.map((v) => v.name),
         });
 
         // Create FormData for multipart upload
@@ -730,11 +754,10 @@ const ParentComponent = () => {
           latestEntry.isApproved || "pending"
         );
 
-        // CRITICAL: Set append flags to true to APPEND new videos to existing ones
-        formDataToSend.append("append_intro", "true");
+        // CRITICAL: Set append flag for description videos only
         formDataToSend.append("append_desc", "true");
 
-        // Add description if present
+        // Add description field - THIS WAS MISSING
         if (description) {
           formDataToSend.append("description", description);
         }
@@ -743,28 +766,30 @@ const ParentComponent = () => {
           formDataToSend.append("cover_Photo", coverPhoto);
         }
 
-        // Add ALL NEW intro videos
-        allNewIntroVideos.forEach((video, index) => {
-          formDataToSend.append("videoFile_introduction", video);
-          console.log(
-            `  ➕ Adding NEW intro video ${index + 1}: ${video.name}`
-          );
-        });
+        const allTitles = entries
+          .flatMap((entry) => entry.learningVideoTitles || [])
+          .filter((title) => title && title.trim());
 
-        // Add ALL NEW desc videos
-        allNewDescVideos.forEach((video, index) => {
+        if (allTitles.length > 0) {
+          formDataToSend.append(
+            "learningVideoTitles",
+            JSON.stringify(allTitles)
+          );
+        }
+
+        // FIX: Send videos ONLY to description field (removed introduction)
+        allNewVideos.forEach((video, index) => {
           formDataToSend.append("videoFile_description", video);
-          console.log(`  ➕ Adding NEW desc video ${index + 1}: ${video.name}`);
+          console.log(`  ➕ Adding video ${index + 1}: ${video.name}`);
         });
 
         if (latestEntry.content) {
           formDataToSend.append("content", latestEntry.content);
         }
 
-        console.log(`\n🚀 Sending to API with append_intro=true`);
+        console.log(`\n🚀 Sending to API with only videoFile_description`);
 
         try {
-          // Use direct fetch instead of redux action for better control
           const authToken = localStorage.getItem("authToken");
 
           const response = await fetch(
@@ -773,7 +798,6 @@ const ParentComponent = () => {
               method: "PUT",
               headers: {
                 Authorization: `Bearer ${authToken}`,
-                // Don't set Content-Type; browser will handle it with FormData
               },
               body: formDataToSend,
             }
@@ -789,8 +813,8 @@ const ParentComponent = () => {
 
           console.log("✅ Update response:", {
             success: data?.success,
-            finalIntroVideoCount: data?.content?.videoFile_introduction?.length,
-            finalDescVideoCount: data?.content?.videoFile_description?.length,
+            finalVideoCount: data?.content?.videoFile_description?.length,
+            hasDescription: !!data?.content?.description,
             message: data?.message,
           });
 
@@ -1133,17 +1157,21 @@ const ParentComponent = () => {
   };
 
   const handleRemoveFile = (field) => {
-    if (
-      field === "videoFile_introduction" ||
-      field === "videoFile_description"
-    ) {
-      // Clear entire array
+    if (field === "videoFile_introduction") {
+      // Clear BOTH introduction and description arrays
+      setFormData((prev) => ({
+        ...prev,
+        videoFile_introduction: [],
+        videoFile_description: [],
+      }));
+    } else if (field === "videoFile_description") {
+      // Clear only description if needed
       setFormData((prev) => ({
         ...prev,
         [field]: [],
       }));
     } else {
-      // Single file
+      // Single file fields
       setFormData((prev) => ({
         ...prev,
         [field]: null,
@@ -2490,40 +2518,42 @@ const ParentComponent = () => {
                           </button> */}
                         </div>
 
-                        {/* Form for adding/editing module */}
-                        <label className="mb-5">
-                          Learning Video{" "}
-                          {editingIndex !== null
-                            ? modules[editingIndex]?.entryNumber ||
-                              editingIndex + 1
-                            : modules.length + 1}
-                        </label>
+                        {/* Always show multiple title inputs */}
+                        <div className="flex flex-col mt-3 space-y-2">
+                          <label className="mb-1">Learning Video Titles</label>
 
-                        <div className="flex mt-3 flex-col">
-                          <label className=" mb-1">Title</label>
-                          <input
-                            name="moduleName"
-                            required
-                            type="text"
-                            placeholder="Title"
-                            className="p-2   rounded-xl border border-gray-600 focus:outline-none"
-                            value={formData.moduleName}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                moduleName: e.target.value,
-                              })
-                            }
-                          />
+                          {Array.from({
+                            length: Math.max(
+                              1,
+                              formData.videoFile_introduction.length
+                            ),
+                          }).map((_, index) => (
+                            <input
+                              key={index}
+                              type="text"
+                              placeholder={`Title for Video ${index + 1}`}
+                              className="p-2 rounded-xl border border-gray-600 focus:outline-none"
+                              value={formData.learningVideoTitles[index] || ""}
+                              onChange={(e) => {
+                                const newTitles = [
+                                  ...(formData.learningVideoTitles || []),
+                                ];
+                                newTitles[index] = e.target.value;
+                                setFormData({
+                                  ...formData,
+                                  learningVideoTitles: newTitles,
+                                });
+                              }}
+                            />
+                          ))}
                         </div>
 
                         <div className="flex flex-col mt-3">
-                          <label className=" mb-1">Description</label>
+                          <label className="mb-1">Description</label>
                           <textarea
                             name="description"
-                            required
-                            placeholder="Enter Description"
-                            className="p-2   rounded-xl border border-gray-600 focus:outline-none"
+                            placeholder="Provide a brief overview of this yoga module. Explain what students will learn, the difficulty level, and any key benefits."
+                            className="p-2 rounded-xl border border-gray-600 focus:outline-none min-h-[100px]"
                             value={formData.description}
                             onChange={(e) =>
                               setFormData({
@@ -2587,12 +2617,13 @@ const ParentComponent = () => {
                           </label>
                         </div>
 
+                        {/* Learning Videos Upload Section - This will handle BOTH introduction and description */}
                         <div className="flex flex-col w-full mt-3">
                           <label className="mb-1">
                             Upload Learning Video(s)
                           </label>
 
-                          {/* Show existing videos */}
+                          {/* Show existing learning videos */}
                           {Array.isArray(formData.videoFile_introduction) &&
                             formData.videoFile_introduction.length > 0 && (
                               <div className="mb-2 space-y-2">
@@ -2632,7 +2663,7 @@ const ParentComponent = () => {
                               </div>
                             )}
 
-                          {/* Upload button */}
+                          {/* Upload button for learning videos */}
                           <label className="p-2 pl-4 pr-4 rounded-xl border border-gray-600 focus:outline-none flex items-center justify-between cursor-pointer">
                             <div>
                               {formData.videoFile_introduction?.length > 0
@@ -2829,10 +2860,11 @@ const ParentComponent = () => {
 
                                 {/* Dropdown Content */}
                                 {expandedIndex === index && (
-                                  <div className="mt-2 p-2 ">
+                                  <div className="mt-2 p-2">
+                                    {/* Module Name Header */}
                                     <div className="flex justify-between">
                                       <span>
-                                        <p className="text-sm">Title</p>
+                                        <p className="text-sm">Module</p>
                                         <p className="text-sm mt-2">
                                           {module.moduleName}
                                         </p>
@@ -2865,12 +2897,38 @@ const ParentComponent = () => {
                                         />
                                       </svg>
                                     </div>
+
+                                    {/* Learning Video Titles */}
+                                    {module.learningVideoTitles?.length > 0 && (
+                                      <div className="mt-4">
+                                        <p className="text-sm font-medium">
+                                          Learning Video Titles:
+                                        </p>
+                                        <div className="mt-2 space-y-1">
+                                          {module.learningVideoTitles.map(
+                                            (title, idx) => (
+                                              <p
+                                                key={idx}
+                                                className="text-sm text-gray-300 pl-2"
+                                              >
+                                                {idx + 1}.{" "}
+                                                {title || `Video ${idx + 1}`}
+                                              </p>
+                                            )
+                                          )}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Description */}
                                     <div className="mt-4">
                                       <p className="text-sm">Description</p>
                                       <p className="text-sm mt-2">
                                         {module.description}
                                       </p>
                                     </div>
+
+                                    {/* Media Section */}
                                     <section className="mt-4">
                                       <div className="grid grid-cols-1 gap-4">
                                         {/* Cover Photo */}
@@ -2897,12 +2955,29 @@ const ParentComponent = () => {
                                             <div className="grid grid-cols-2 gap-2">
                                               {videoIntroURLs.map(
                                                 (url, vidIndex) => (
-                                                  <video
+                                                  <div
                                                     key={vidIndex}
-                                                    src={url}
-                                                    controls
-                                                    className="w-full h-32 object-cover rounded-xl border border-gray-600"
-                                                  />
+                                                    className="relative"
+                                                  >
+                                                    <video
+                                                      src={url}
+                                                      controls
+                                                      className="w-full h-32 object-cover rounded-xl border border-gray-600"
+                                                    />
+                                                    {module
+                                                      .learningVideoTitles?.[
+                                                      vidIndex
+                                                    ] && (
+                                                      <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white text-xs p-1 rounded-b-xl truncate">
+                                                        {
+                                                          module
+                                                            .learningVideoTitles[
+                                                            vidIndex
+                                                          ]
+                                                        }
+                                                      </div>
+                                                    )}
+                                                  </div>
                                                 )
                                               )}
                                             </div>

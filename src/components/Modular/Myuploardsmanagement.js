@@ -1,27 +1,30 @@
 import React, { useState, useMemo, useEffect } from "react";
-import CryptoJS from "crypto-js";
 import {
-  updateEventStatus,
-  deleteEvent,
-} from "../../redux/actions/alleventGet.js";
+  fetchAllUsers,
+  deleteUser,
+  toggleUserStatus,
+} from "../../redux/actions/alluserGet";
+import { fetchUsers } from "../../redux/actions/authActions";
 
-import {
-  fetchAllContent,
-  patchTheContent,
-  patchTheChallenge,
-  deleteChallenge,
-  deleteContent,
-} from "../../redux/actions/allContentGet.js";
 import { useDispatch, useSelector } from "react-redux";
-import { Tooltip, Badge, Space, Pagination, Select, Spin, Card } from "antd";
-import CreateContent from "../CreateContent.js";
+import {
+  Table,
+  Badge,
+  Button,
+  Space,
+  Pagination,
+  Select,
+  Spin,
+  Card,
+} from "antd";
+import UserManagementFormhr from "../UserManagementFormhr.js";
+import { showNotification } from "../../redux/actions/notificationActions";
+import EyeForm from "./EyeFormhr";
+import AsignTeam from "./AsignTeam.js";
+import EdituserForm from "../EdituserForm";
+import CryptoJS from "crypto-js";
 
-import { showNotification } from "../../redux/actions/notificationActions"; // Import showNotification
-import ChallangeMannage from "./ContentMannage.js";
-import ContentMannage from "./Modulechange.js";
-import EventMannage from "./EventMannage.js";
 import { IconSearch } from "@tabler/icons-react";
-import EditContnet from "../EditContent.js";
 
 const SvgIcon = ({ onClick }) => (
   <svg
@@ -30,8 +33,8 @@ const SvgIcon = ({ onClick }) => (
     viewBox="0 0 13 12"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
-    onClick={onClick} // Add the onClick handler here
-    style={{ cursor: "pointer" }} // Optional: Makes it clear it's clickable
+    onClick={onClick}
+    style={{ cursor: "pointer" }}
   >
     <g clip-path="url(#clip0_3004_430)">
       <path
@@ -56,169 +59,41 @@ const SvgIcon = ({ onClick }) => (
   </svg>
 );
 
-const Myuploardsmanagement = () => {
+const UserManagement = () => {
   const darkMode = useSelector((state) => state.theme.darkMode);
-  const { content: contents } = useSelector((state) => state.content);
+  const { users, error } = useSelector((state) => state.user);
+  const userData = useSelector((state) => state.auth.userData);
   const dispatch = useDispatch();
   const [loadingRecordId, setLoadingRecordId] = useState(null);
-  const [showForm, setShowForm] = useState(false);
+
   const [showDownloadForm, setshowDownloadForm] = useState(false);
   const [showImportForm, setshowImportForm] = useState(false);
   const [selectedIndices, setSelectedIndices] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [filter, setFilter] = useState("all");
+  const [selectedRecordKey, setSelectedRecordKey] = useState(null);
 
-  // Decrypt user roles from localStorage
-  const encryptedRoles = localStorage.getItem("encryptedRoles");
-  let userRoles = [];
-
-  if (encryptedRoles) {
-    try {
-      const bytes = CryptoJS.AES.decrypt(
-        encryptedRoles,
-        "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1"
-      );
-      userRoles = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
-    } catch (error) {
-      console.error("Error decrypting roles:", error);
-    }
-  }
-
-  // Check if user has admin or super admin privileges
-  const isAdminUser =
-    userRoles.includes("Admin") || userRoles.includes("Super Admin");
-
-  // Fetch users on mount
   useEffect(() => {
-    dispatch(fetchAllContent());
-    console.log(contents);
+    dispatch(fetchAllUsers());
   }, [dispatch]);
 
-  const handleApprovalAction = (record, status) => {
-    const { _id, challengeName, moduleName, currentStatus, typeOfEvent } =
-      record;
-
-    // Convert status to Title Case (first letter uppercase, rest lowercase)
-    const formattedStatus =
-      status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
-
-    // Check if the current status is already the one you're trying to update to
-    if (currentStatus === formattedStatus) {
-      dispatch(
-        showNotification(
-          `${
-            challengeName || moduleName || typeOfEvent || "Record"
-          } is already ${formattedStatus}`,
-          "info"
-        )
-      );
-      return; // Early return to stop further processing
+  // Get current HR user ID from localStorage
+  const getCurrentUserId = () => {
+    const encryptedId = localStorage.getItem("userId");
+    if (encryptedId) {
+      try {
+        const bytes = CryptoJS.AES.decrypt(
+          encryptedId,
+          "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1"
+        );
+        return JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+      } catch (error) {
+        console.error("Failed to decrypt userId:", error);
+        return null;
+      }
     }
-
-    if (typeof typeOfEvent === "string" && typeOfEvent.trim() !== "") {
-      dispatch(updateEventStatus(_id, formattedStatus)) // Use title case status
-        .then(() => {
-          dispatch(
-            showNotification(
-              `Successfully updated event status to ${formattedStatus}`,
-              "success"
-            )
-          );
-          dispatch(fetchAllContent());
-        })
-        .catch(() => {
-          dispatch(
-            showNotification(
-              `Failed to update event status to ${formattedStatus}`,
-              "error"
-            )
-          );
-        });
-    } else if (
-      typeof challengeName === "string" &&
-      challengeName.trim() !== ""
-    ) {
-      dispatch(patchTheChallenge(_id, formattedStatus))
-        .then(() => {
-          dispatch(
-            showNotification(
-              `Successfully updated challenge status to ${formattedStatus}`,
-              "success"
-            )
-          );
-          dispatch(fetchAllContent());
-        })
-        .catch(() => {
-          dispatch(
-            showNotification(
-              `Failed to update challenge status to ${formattedStatus}`,
-              "error"
-            )
-          );
-        });
-    } else if (typeof moduleName === "string" && moduleName.trim() !== "") {
-      dispatch(patchTheContent(_id, formattedStatus))
-        .then(() => {
-          dispatch(
-            showNotification(
-              `Successfully updated content status to ${formattedStatus}`,
-              "success"
-            )
-          );
-          dispatch(fetchAllContent());
-        })
-        .catch(() => {
-          dispatch(
-            showNotification(
-              `Failed to update content status to ${formattedStatus}`,
-              "error"
-            )
-          );
-        });
-    } else {
-      dispatch(showNotification("Invalid record type", "error"));
-    }
-  };
-
-  const handleDeleteAction = (record) => {
-    const { _id, challengeName, moduleName, typeOfEvent } = record;
-
-    if (typeof typeOfEvent === "string" && typeOfEvent.trim() !== "") {
-      dispatch(deleteEvent(_id))
-        .then(() => {
-          dispatch(showNotification(`Successfully deleted event`, "success"));
-          dispatch(fetchAllContent());
-        })
-        .catch(() => {
-          dispatch(showNotification(`Failed to delete event`, "error"));
-        });
-    } else if (
-      typeof challengeName === "string" &&
-      challengeName.trim() !== ""
-    ) {
-      dispatch(deleteChallenge(_id))
-        .then(() => {
-          dispatch(
-            showNotification(`Successfully deleted challenge`, "success")
-          );
-          dispatch(fetchAllContent());
-        })
-        .catch(() => {
-          dispatch(showNotification(`Failed to delete challenge`, "error"));
-        });
-    } else if (typeof moduleName === "string" && moduleName.trim() !== "") {
-      dispatch(deleteContent(_id))
-        .then(() => {
-          dispatch(showNotification(`Successfully deleted content`, "success"));
-          dispatch(fetchAllContent());
-        })
-        .catch(() => {
-          dispatch(showNotification(`Failed to delete content`, "error"));
-        });
-    } else {
-      dispatch(showNotification("Invalid record type", "error"));
-    }
+    return null;
   };
 
   const handleChangePage = (page) => {
@@ -227,389 +102,134 @@ const Myuploardsmanagement = () => {
 
   const handlePageSizeChange = (size) => {
     setPageSize(size);
-    setCurrentPage(1); // Reset to page 1 when the page size changes
+    setCurrentPage(1);
   };
+
   const [specificSearchQuery, setSpecificSearchQuery] = useState("");
   const handlesetSpecificSearchQueryChange = (e) => {
     setSpecificSearchQuery(e.target.value);
   };
 
   const filteredData = useMemo(() => {
-    const { challenges = [], modules = [], events = [] } = contents.data || {}; // Default to empty arrays
+    const currentUserId = getCurrentUserId();
 
-    let combinedData = [];
-    let unmatchedChallenges = [];
-    let unmatchedModules = [];
+    if (!currentUserId) {
+      console.log("No current user ID found");
+      return [];
+    }
 
-    // Combine challenges and modules in pairs
-    challenges.forEach((challenge, index) => {
-      const matchingModule = modules[index];
+    console.log("Current HR User ID:", currentUserId);
+    console.log("All users:", users);
 
-      if (matchingModule) {
-        combinedData.push({ ...challenge });
-        combinedData.push({ ...matchingModule });
-      } else {
-        unmatchedChallenges.push({ ...challenge });
-      }
+    // Filter users to show only those created by the current HR user
+    let filtered = users.filter((user) => {
+      // Check if user was created by current HR user
+      const isCreatedByCurrentHR =
+        user.createdBy === currentUserId ||
+        user.uploaded_by?._id === currentUserId ||
+        user.uploaded_by === currentUserId;
+
+      console.log(
+        `User ${user._id}: createdBy=${user.createdBy}, uploaded_by=${
+          user.uploaded_by?._id || user.uploaded_by
+        }, matches=${isCreatedByCurrentHR}`
+      );
+
+      return isCreatedByCurrentHR;
     });
 
-    // Add remaining modules that don't have matching challenges
-    modules.slice(challenges.length).forEach((module) => {
-      unmatchedModules.push({ ...module });
-    });
+    console.log("Filtered users (created by current HR):", filtered);
 
-    // Add events to the combined data
-    const formattedEvents = events.map((event) => ({ ...event }));
-
-    combinedData = [
-      ...combinedData,
-      ...unmatchedChallenges,
-      ...unmatchedModules,
-      ...formattedEvents,
-    ];
-
-    // Filtering based on approval status
-    let filteredCombinedData = combinedData;
+    // Apply status filter (active/inactive)
     if (filter === "active") {
-      filteredCombinedData = filteredCombinedData.filter(
-        (data) => data.isApproved === "approved"
-      );
+      filtered = filtered.filter((user) => !user.blocked);
     } else if (filter === "inactive") {
-      filteredCombinedData = filteredCombinedData.filter(
-        (data) => data.isApproved === "pending"
-      );
-    } else if (filter === "rejected") {
-      filteredCombinedData = filteredCombinedData.filter(
-        (data) => data.isApproved === "rejected"
-      );
+      filtered = filtered.filter((user) => user.blocked);
     }
 
-    // Get user ID from localStorage and decrypt it
-    let userId = null;
-    const encryptedId = localStorage.getItem("userId");
-    if (encryptedId) {
-      const bytes = CryptoJS.AES.decrypt(
-        encryptedId,
-        "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1"
-      );
-      userId = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
-    }
-
-    // Filter data by user ID
-    if (userId) {
-      filteredCombinedData = filteredCombinedData.filter(
-        (data) =>
-          data.createdBy?._id === userId || data.uploaded_by?._id === userId
-      );
-    }
-
-    // Apply specific search query filtering
+    // Apply search query filter
     if (specificSearchQuery) {
-      const lowerCaseQuery = specificSearchQuery.toLowerCase();
-
-      filteredCombinedData = filteredCombinedData.filter((item) => {
-        const valuesToCheck = [
-          item?.uniChallengeId,
-          item?.challengeName?.uploaded_by?.firstName,
-          item?.challengeName?.uploaded_by?.lastName,
-          item?.moduleName,
-          item?.uploaded_by?.firstName,
-          item?.uploaded_by?.lastName,
-        ].filter(Boolean); // Remove undefined/null values
-
-        // Check in values
-        if (
-          valuesToCheck.some((val) =>
-            val.toLowerCase().includes(lowerCaseQuery)
-          )
-        ) {
-          return true;
-        }
-
-        // Check in roles if available
-        return (item?.roles || []).some((role) =>
-          role.toLowerCase().includes(lowerCaseQuery)
-        );
-      });
+      const query = specificSearchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (user) =>
+          (user.userName && user.userName.toLowerCase().includes(query)) ||
+          (user.firstName && user.firstName.toLowerCase().includes(query)) ||
+          (user.lastName && user.lastName.toLowerCase().includes(query)) ||
+          (user.email && user.email.toLowerCase().includes(query)) ||
+          (user.department && user.department.toLowerCase().includes(query)) ||
+          (user.designation &&
+            user.designation.toLowerCase().includes(query)) ||
+          (user.roles &&
+            user.roles.some((role) => role.toLowerCase().includes(query)))
+      );
     }
 
-    // Sorting
-    switch (filter) {
-      case "newestFirst":
-        filteredCombinedData.sort(
-          (b, a) => new Date(b.createdAt) - new Date(a.createdAt)
-        );
-        break;
+    // Apply sorting based on filter
+    const sorters = {
+      newestFirst: (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+      1234: (a, b) => (a.userId || 0) - (b.userId || 0),
+      ABCD: (a, b) => (a.userName || "").localeCompare(b.userName || ""),
+      location: (a, b) => (a.country || "").localeCompare(b.country || ""),
+      Department: (a, b) =>
+        (a.department || "").localeCompare(b.department || ""),
+      Designation: (a, b) =>
+        (a.designation || "").localeCompare(b.designation || ""),
+      Email: (a, b) => (a.email || "").localeCompare(b.email || ""),
+      Gender: (a, b) => (a.gender || "").localeCompare(b.gender || ""),
+      Phone: (a, b) => (a.mobile || "").localeCompare(b.mobile || ""),
+      startDate: (b, a) =>
+        new Date(a.joinedAt || 0) - new Date(b.joinedAt || 0),
+      inactiveFirst: (b, a) =>
+        a.blocked === b.blocked ? 0 : a.blocked ? 1 : -1,
+    };
 
-      case "1234":
-        filteredCombinedData.sort((a, b) => {
-          const idA = a.uniChallengeId ?? a.uniqueUploadId ?? Number.MAX_VALUE;
-          const idB = b.uniChallengeId ?? b.uniqueUploadId ?? Number.MAX_VALUE;
-          return idA - idB;
-        });
-        break;
+    if (sorters[filter]) filtered.sort(sorters[filter]);
 
-      case "ABCD":
-        filteredCombinedData.sort((a, b) => {
-          const nameA = a.challengeName || a.moduleName || "";
-          const nameB = b.challengeName || b.moduleName || "";
-          return nameA.localeCompare(nameB);
-        });
-        break;
+    console.log("Final filtered data:", filtered);
+    return filtered;
+  }, [filter, specificSearchQuery, users]);
 
-      case "endDate":
-        filteredCombinedData.sort((a, b) => {
-          const getLastEditDate = (logs) => {
-            if (!Array.isArray(logs) || logs.length === 0) return new Date(0); // Default to oldest date
-            return new Date(logs[logs.length - 1].date); // Use the last element's date
-          };
+  // Calculate Metrics for users created by current HR
+  const currentUserId = getCurrentUserId();
+  const hrCreatedUsers = users.filter(
+    (user) =>
+      user.createdBy === currentUserId ||
+      user.uploaded_by?._id === currentUserId ||
+      user.uploaded_by === currentUserId
+  );
 
-          return getLastEditDate(a.editLogs) - getLastEditDate(b.editLogs);
-        });
-        break;
-
-      case "startDate":
-        filteredCombinedData.sort(
-          (a, b) => new Date(a.joinedAt) - new Date(b.joinedAt)
-        );
-        break;
-
-      case "type":
-        filteredCombinedData.sort((a, b) => {
-          const typeA = a.challengeName
-            ? "challenge"
-            : a.moduleName
-            ? "module"
-            : "";
-          const typeB = b.challengeName
-            ? "challenge"
-            : b.moduleName
-            ? "module"
-            : "";
-
-          return typeA.localeCompare(typeB); // Sort "challenge" before "module"
-        });
-        break;
-
-      case "track":
-        filteredCombinedData.sort((a, b) => {
-          const trackA = a.tracks || a.module?.tracks || ""; // Use `module.tracks` if `tracks` is missing
-          const trackB = b.tracks || b.module?.tracks || "";
-
-          return trackA.localeCompare(trackB); // Sort alphabetically
-        });
-        break;
-
-      case "inactiveFirst":
-        if (
-          filteredCombinedData.every((item) => item.isApproved === "approved")
-        ) {
-          // If currently sorted by "approved", sort by "pending"
-          filteredCombinedData.sort((a, b) =>
-            a.isApproved === "pending" ? -1 : 1
-          );
-        } else if (
-          filteredCombinedData.every((item) => item.isApproved === "pending")
-        ) {
-          // If currently sorted by "pending", sort by "rejected"
-          filteredCombinedData.sort((a, b) =>
-            a.isApproved === "rejected" ? -1 : 1
-          );
-        } else {
-          // Default sorting: Approved first
-          filteredCombinedData.sort((a, b) =>
-            a.isApproved === "approved" ? -1 : 1
-          );
-        }
-        break;
-
-      default:
-        break;
-    }
-
-    return filteredCombinedData;
-  }, [filter, contents, specificSearchQuery]);
-
-  const contentSlice = Array.isArray(filteredData)
-    ? filteredData.slice(0, 50) // Slice the first 50 items of the filteredData
-    : [];
-
-  // console.log(contentSlice)
+  const totalUsers = hrCreatedUsers.length;
+  const activeUsers = hrCreatedUsers.filter((user) => !user.blocked).length;
+  const inactiveUsers = hrCreatedUsers.filter((user) => user.blocked).length;
 
   // Function to determine the background color for the status
   const getStatusBgColor = (status) => {
-    switch (status) {
-      case "Approved":
-        return "#00FF0033"; // Light green
-      case "Pending":
-        return "#FFA50033"; // Light orange for pending
-      case "Rejected":
-        return "#DD441B33"; // Light red
-      default:
-        return "#A6970C33"; // Light yellow for inactive
-    }
+    if (status === "Active") return "#00FF0033";
+    if (status === "Inactive") return "#DD441B33";
+    return "transparent";
   };
 
-  const userId = (() => {
-    const encryptedId = localStorage.getItem("userId");
-    if (encryptedId) {
-      const bytes = CryptoJS.AES.decrypt(
-        encryptedId,
-        "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1"
-      );
-      return JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
-    }
-    return null;
-  })();
-
+  // Card data to map
   const cardData = [
-    {
-      title: "Total Content",
-      value:
-        (Array.isArray(contents?.data?.challenges)
-          ? contents.data.challenges.filter(
-              (content) =>
-                content.createdBy?._id === userId ||
-                content.uploaded_by?._id === userId
-            ).length
-          : 0) +
-        (Array.isArray(contents?.data?.modules)
-          ? contents.data.modules.filter(
-              (content) =>
-                content.createdBy?._id === userId ||
-                content.uploaded_by?._id === userId
-            ).length
-          : 0) +
-        (Array.isArray(contents?.data?.events)
-          ? contents.data.events.filter(
-              (content) =>
-                content.createdBy?._id === userId ||
-                content.uploaded_by?._id === userId
-            ).length
-          : 0),
-      filter: "all",
-    },
-    {
-      title: "Approved Content",
-      value:
-        (Array.isArray(contents?.data?.challenges)
-          ? contents.data.challenges.filter(
-              (content) =>
-                (content.createdBy?._id === userId ||
-                  content.uploaded_by?._id === userId) &&
-                content.isApproved === "approved"
-            ).length
-          : 0) +
-        (Array.isArray(contents?.data?.modules)
-          ? contents.data.modules.filter(
-              (content) =>
-                (content.createdBy?._id === userId ||
-                  content.uploaded_by?._id === userId) &&
-                content.isApproved === "approved"
-            ).length
-          : 0) +
-        (Array.isArray(contents?.data?.events)
-          ? contents.data.events.filter(
-              (content) =>
-                (content.createdBy?._id === userId ||
-                  content.uploaded_by?._id === userId) &&
-                content.status === "Approved"
-            ).length
-          : 0),
-      filter: "active",
-    },
-    {
-      title: "Pending Content",
-      value:
-        (Array.isArray(contents?.data?.challenges)
-          ? contents.data.challenges.filter(
-              (content) =>
-                (content.createdBy?._id === userId ||
-                  content.uploaded_by?._id === userId) &&
-                content.isApproved === "pending"
-            ).length
-          : 0) +
-        (Array.isArray(contents?.data?.modules)
-          ? contents.data.modules.filter(
-              (content) =>
-                (content.createdBy?._id === userId ||
-                  content.uploaded_by?._id === userId) &&
-                content.isApproved === "pending"
-            ).length
-          : 0) +
-        (Array.isArray(contents?.data?.events)
-          ? contents.data.events.filter(
-              (content) =>
-                (content.createdBy?._id === userId ||
-                  content.uploaded_by?._id === userId) &&
-                content.status === "Pending"
-            ).length
-          : 0),
-      filter: "inactive",
-    },
-    {
-      title: "Rejected Content",
-      value:
-        (Array.isArray(contents?.data?.challenges)
-          ? contents.data.challenges.filter(
-              (content) =>
-                (content.createdBy?._id === userId ||
-                  content.uploaded_by?._id === userId) &&
-                content.isApproved === "rejected"
-            ).length
-          : 0) +
-        (Array.isArray(contents?.data?.modules)
-          ? contents.data.modules.filter(
-              (content) =>
-                (content.createdBy?._id === userId ||
-                  content.uploaded_by?._id === userId) &&
-                content.isApproved === "rejected"
-            ).length
-          : 0) +
-        (Array.isArray(contents?.data?.events)
-          ? contents.data.events.filter(
-              (content) =>
-                (content.createdBy?._id === userId ||
-                  content.uploaded_by?._id === userId) &&
-                content.status === "Rejected"
-            ).length
-          : 0),
-      filter: "rejected",
-    },
+    { title: "Total Users Created", value: totalUsers, filter: "all" },
+    { title: "Active Users", value: activeUsers, filter: "active" },
+    { title: "Inactive Users", value: inactiveUsers, filter: "inactive" },
   ];
 
+  // Paginate data using useMemo to optimize calculations
   const paginatedData = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
     const end = currentPage * pageSize;
-    return contentSlice.slice(start, end);
-  }, [currentPage, pageSize, contentSlice]);
+    return filteredData.slice(start, end);
+  }, [currentPage, pageSize, filteredData]);
 
-  // Handle row selection
-  const handleSelection = (index) => {
-    const absoluteIndex = (currentPage - 1) * pageSize + index; // Convert paginated index to absolute index
-    setSelectedIndices(
-      (prev) =>
-        prev.includes(absoluteIndex)
-          ? prev.filter((i) => i !== absoluteIndex) // Remove if already selected
-          : [...prev, absoluteIndex] // Add if not selected
-    );
-  };
-
-  const handleSelectAll = () => {
-    setSelectedIndices((prev) => {
-      const allSelected = prev.length === filteredData.length; // Check if all items are selected
-      return allSelected ? [] : filteredData.map((_, i) => i); // Select all or deselect all
-    });
-  };
-
-  const [selectedCard, setSelectedCard] = useState(0);
-
-  // Function to handle edit for both modules and challenges
-  const handleEditContent = (record) => {
-    // Store the record data for editing
-    localStorage.setItem("editContentData", JSON.stringify(record));
-    // You can also set a state or trigger the EditContent component here
-    console.log("Editing content:", record);
+  const handleToggleStatus = async (userIds, currentStatus) => {
+    try {
+      await dispatch(toggleUserStatus(userIds));
+      dispatch(fetchAllUsers());
+    } catch (error) {
+      dispatch(showNotification("Failed to toggle status", "error"));
+    }
   };
 
   const columns = [
@@ -617,93 +237,55 @@ const Myuploardsmanagement = () => {
       title: (
         <div className="flex items-center">
           <SvgIcon
-            onClick={() => setFilter((prev) => (prev === "1234" ? "" : "1234"))}
-          />
-          <span style={{ color: "#F48567", marginLeft: "8px" }}>Upload ID</span>
-        </div>
-      ),
-      key: "uniqueUploadId || uniChallengeId",
-      render: (text, record) => {
-        const id = record.uniqueUploadId || record.uniChallengeId || record._id;
-        return id ? id.toString().slice(0, 7) : "";
-      },
-    },
-    {
-      title: (
-        <div className="flex items-center">
-          <SvgIcon
             onClick={() => setFilter((prev) => (prev === "ABCD" ? "" : "ABCD"))}
           />
-          <span style={{ color: "#F48567", marginLeft: "8px" }}>
-            Content Name
-          </span>
+          <span style={{ color: "#F48567", marginLeft: "8px" }}>Name</span>
         </div>
       ),
-      dataIndex: "moduleName",
-      key: "moduleName || challengeName",
-      render: (text, record) => {
-        const contentName =
-          record.moduleName || record.challengeName || record.title;
-
-        return contentName.length > 15 ? (
-          <Tooltip title={contentName}>
-            <span>{contentName.substring(0, 15)}...</span>
-          </Tooltip>
-        ) : (
-          <span>{contentName}</span>
-        );
-      },
+      dataIndex: "firstName",
+      key: "name",
+      render: (text, record) =>
+        `${record.firstName || ""} ${record.lastName || ""}`.trim() || "N/A",
     },
     {
       title: (
         <div className="flex items-center">
           <SvgIcon />
           <span style={{ color: "#F48567", marginLeft: "8px" }}>
-            Uploaded By
+            Organization
           </span>
         </div>
       ),
-      dataIndex: "record",
-      key: "record",
-      render: (text, record) => {
-        // Try to get uploadedBy first, then fallback to createdBy
-        const uploadedBy =
-          typeof record?.uploaded_by === "object" &&
-          record?.uploaded_by !== null
-            ? record.uploaded_by
-            : record?.module?.uploaded_by;
-
-        const user =
-          uploadedBy ||
-          (typeof record?.createdBy === "object" && record?.createdBy !== null
-            ? record.createdBy
-            : record?.module?.createdBy);
-
-        if (!user) {
-          return "N/A"; // Fallback text
-        }
-
-        const firstName = user?.firstName ?? "N/A";
-        const lastName = user?.lastName ?? "";
-
-        return `${firstName} ${lastName}`.trim() || "N/A";
-      },
+      dataIndex: "company",
+      key: "company",
+      render: (text) => text || "N/A",
     },
     {
       title: (
         <div className="flex items-center">
           <SvgIcon
-            onClick={() => setFilter((prev) => (prev === "type" ? "" : "type"))}
+            onClick={() =>
+              setFilter((prev) => (prev === "location" ? "" : "location"))
+            }
           />
-          <span style={{ color: "#F48567", marginLeft: "8px" }}>Type</span>
+          <span style={{ color: "#F48567", marginLeft: "8px" }}>Location</span>
         </div>
       ),
-      key: "moduleType",
+      dataIndex: "location",
+      key: "location",
       render: (text, record) => {
-        if (record?.typeOfEvent) {
-          return "Event";
+        const address = record.address || "";
+        const country = record.country || "";
+
+        if (address && country) {
+          return `${address}, ${country}`;
+        } else if (address) {
+          return address;
+        } else if (country) {
+          return country;
+        } else {
+          return "N/A";
         }
-        return record?.moduleType || "Challenge";
       },
     },
     {
@@ -711,31 +293,104 @@ const Myuploardsmanagement = () => {
         <div className="flex items-center">
           <SvgIcon
             onClick={() =>
-              setFilter((prev) => (prev === "newestFirst" ? "" : "newestFirst"))
+              setFilter((prev) => (prev === "Department" ? "" : "Department"))
             }
           />
           <span style={{ color: "#F48567", marginLeft: "8px" }}>
-            Date Uploaded
+            Department
           </span>
         </div>
       ),
-      dataIndex: "createdAt",
-      key: "createdAt",
-      render: (createdAt) => {
-        if (!createdAt) return "N/A"; // Handle missing or invalid data
-
-        const formattedDate = new Date(createdAt).toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        });
-
-        return formattedDate;
-      },
+      dataIndex: "department",
+      key: "department",
+      render: (text) => text || "N/A",
     },
     {
       title: (
         <div className="flex items-center">
+          <SvgIcon
+            onClick={() => setFilter((prev) => (prev === "Role" ? "" : "Role"))}
+          />
+          <span style={{ color: "#F48567", marginLeft: "8px" }}>
+            Designation
+          </span>
+        </div>
+      ),
+      dataIndex: "roles",
+      key: "roles",
+      render: (roles) => (roles && roles.length > 0 ? roles.join(", ") : "N/A"),
+    },
+    {
+      title: (
+        <div className="flex items-center">
+          <SvgIcon
+            onClick={() =>
+              setFilter((prev) => (prev === "Email" ? "" : "Email"))
+            }
+          />
+          <span style={{ color: "#F48567", marginLeft: "8px" }}>Email</span>
+        </div>
+      ),
+      dataIndex: "email",
+      key: "email",
+      render: (text) => text || "N/A",
+    },
+    {
+      title: (
+        <div className="flex items-center">
+          <SvgIcon
+            onClick={() =>
+              setFilter((prev) => (prev === "Gender" ? "" : "Gender"))
+            }
+          />
+          <span style={{ color: "#F48567", marginLeft: "8px" }}>Gender</span>
+        </div>
+      ),
+      dataIndex: "gender",
+      key: "gender",
+      render: (text) => text || "N/A",
+    },
+    {
+      title: (
+        <div className="flex items-center">
+          <SvgIcon
+            onClick={() =>
+              setFilter((prev) => (prev === "Phone" ? "" : "Phone"))
+            }
+          />
+          <span style={{ color: "#F48567", marginLeft: "8px" }}>Phone</span>
+        </div>
+      ),
+      dataIndex: "mobile",
+      key: "mobile",
+      render: (text) => text || "N/A",
+    },
+    {
+      title: (
+        <div className="flex items-center">
+          <SvgIcon
+            onClick={() =>
+              setFilter((prev) => (prev === "startDate" ? "" : "startDate"))
+            }
+          />
+          <span style={{ color: "#F48567", marginLeft: "8px" }}>DOJ</span>
+        </div>
+      ),
+      dataIndex: "joinedAt",
+      key: "joinedAt",
+      render: (text) => {
+        return text
+          ? new Date(text).toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })
+          : "N/A";
+      },
+    },
+    {
+      title: (
+        <div className="flex items-center justify-center">
           <SvgIcon
             onClick={() =>
               setFilter((prev) =>
@@ -746,181 +401,44 @@ const Myuploardsmanagement = () => {
           <span style={{ color: "#F48567", marginLeft: "8px" }}>Status</span>
         </div>
       ),
-      dataIndex: "isApproved",
-      key: "isApproved",
-      render: (isApproved, record) => {
-        const statusMap = {
-          approved: "Approved",
-          pending: "Pending",
-          rejected: "Rejected",
-        };
-
-        const status =
-          statusMap[(isApproved || record.status)?.toLowerCase()] || "Inactive";
+      dataIndex: "blocked",
+      key: "blocked",
+      render: (blocked, record) => {
+        const status = blocked ? "Inactive" : "Active";
         const isLoading = loadingRecordId === record._id;
 
         return (
-          <Badge
-            color={
-              status === "Approved"
-                ? "green"
-                : status === "Pending"
-                ? "orange"
-                : "red"
-            }
-            text={
-              isLoading ? (
-                <Spin size="small" /> // Ant Design spinner
-              ) : (
-                status
-              )
-            }
-            style={{
-              backgroundColor: getStatusBgColor(status),
-              borderRadius: "10px",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              padding: "7px",
-              color: darkMode ? "white" : "black",
-              cursor: isLoading ? "not-allowed" : "pointer",
-              width: "90px", // Disable click while loading
-            }}
-          />
-        );
-      },
-    },
-    {
-      title: (
-        <div className="flex items-center">
-          <SvgIcon
-            onClick={() =>
-              setFilter((prev) => (prev === "track" ? "" : "track"))
-            }
-          />
-          <span style={{ color: "#F48567", marginLeft: "8px" }}>Tracks</span>
-        </div>
-      ),
-      key: "tracks",
-      render: (text, record) =>
-        record.tracks || record.module?.tracks || record.typeOfEvent,
-    },
-    {
-      title: (
-        <div className="flex items-center">
-          <SvgIcon />
-          <span style={{ color: "#F48567", marginLeft: "8px" }}>Actions</span>
-        </div>
-      ),
-      key: "actions",
-      render: (_, record) => {
-        // Define colors based on status
-        const statusColors = {
-          approved: "#00FF00", // Green
-          pending: "#FFA500", // Orange
-          rejected: "#DD441B", // Red
-        };
-
-        const status = record.isApproved?.toLowerCase(); // Convert to lowercase for consistency
-        const svgColor = statusColors[status] || "#A6970C"; // Default to yellow if undefined
-
-        return (
-          <div>
-            <Space>
-              {record.typeOfEvent ? (
-                <EventMannage data={record} />
-              ) : record.moduleName ? (
-                <ContentMannage data={record} />
-              ) : record.challengeName ? (
-                <ChallangeMannage data={record} />
-              ) : null}
-
-              {/* Edit Button for both Modules and Challenges */}
-              {/* {(record.moduleName || record.challengeName) && (
-                <div
-                  className="cursor-pointer"
-                  onClick={() => handleEditContent(record)}
-                >
-                  <EditContnet contentData={record} />
-                </div>
-              )} */}
-
-              {/* Only show approve/reject buttons for Admin/Super Admin users */}
-              {isAdminUser && (
-                <>
-                  {/* Reject Button */}
-                  <div
-                    className="cursor-pointer"
-                    onClick={() => handleApprovalAction(record, "rejected")}
-                  >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M9.99967 3.00007L12.49967 5.50007M8.33301 14.6667H14.9997M1.66634 11.3334L0.833008 14.6667L4.16634 13.8334L13.8213 4.17841C14.1338 3.86586 14.3093 3.44201 14.3093 3.00007C14.3093 2.55813 14.1338 2.13429 13.8213 1.82174L13.678 1.67841C13.3655 1.36596 12.9416 1.19043 12.4997 1.19043C12.0577 1.19043 11.6339 1.36596 11.3213 1.67841L1.66634 11.3334Z"
-                        stroke="#C7C7C7"
-                        stroke-width="1.25"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                  </div>
-
-                  {/* Approve Button */}
-                  <div
-                    className="cursor-pointer"
-                    onClick={() => handleApprovalAction(record, "approved")}
-                  >
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 20 20"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <g clipPath="url(#clip0_4249_2052)">
-                        <path
-                          fillRule="evenodd"
-                          clipRule="evenodd"
-                          d="M9.66933 0.087785C9.77004 0.030258 9.88402 0 10 0C10.116 0 10.23 0.030258 10.3307 0.087785L19.664 5.42112C19.766 5.4794 19.8509 5.56362 19.9099 5.66524C19.9689 5.76686 20 5.88228 20 5.99979V6.95978C20 9.90108 19.0418 12.7623 17.2704 15.1104C15.4991 17.4584 13.0109 19.1655 10.1827 19.9731C10.0633 20.0071 9.93674 20.0071 9.81733 19.9731C6.98931 19.1651 4.50142 17.458 2.73009 15.11C0.958768 12.762 0.00040046 9.90097 0 6.95978L0 5.99979C3.79027e-05 5.88228 0.031135 5.76686 0.0901407 5.66524C0.149146 5.56362 0.233964 5.4794 0.336 5.42112L9.66933 0.087785ZM9.42933 14.2811L15.1867 7.08245L14.1467 6.25045L9.23733 12.3851L5.76 9.48779L4.90667 10.5118L9.42933 14.2811Z"
-                          fill={svgColor}
-                        />
-                      </g>
-                      <defs>
-                        <clipPath id="clip0_4249_2052">
-                          <rect width="20" height="20" fill="white" />
-                        </clipPath>
-                      </defs>
-                    </svg>
-                  </div>
-                </>
-              )}
-
-              {/* Delete Button */}
-              {!userRoles.includes("Admin") && (
-                <div
-                  className="cursor-pointer"
-                  onClick={() => handleDeleteAction(record)}
-                >
-                  <svg
-                    width="19"
-                    height="18"
-                    viewBox="0 0 19 18"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M9.5 0.25C4.625 0.25 0.75 4.125 0.75 9C0.75 13.875 4.625 17.75 9.5 17.75C14.375 17.75 18.25 13.875 18.25 9C18.25 4.125 14.375 0.25 9.5 0.25ZM12.875 13.375L9.5 10L6.125 13.375L5.125 12.375L8.5 9L5.125 5.625L6.125 4.625L9.5 8L12.875 4.625L13.875 5.625L10.5 9L13.875 12.375L12.875 13.375Z"
-                      fill="#DD441B"
-                    />
-                  </svg>
-                </div>
-              )}
-            </Space>
+          <div className="flex items-center gap-3">
+            <div className="w-[80px]">
+              <Badge
+                color={status === "Active" ? "green" : "red"}
+                text={isLoading ? <Spin size="small" /> : status}
+                style={{
+                  backgroundColor: getStatusBgColor(status),
+                  borderRadius: "10px",
+                  padding: "7px",
+                  color: darkMode ? "white" : "black",
+                  display: "inline-block",
+                  cursor: isLoading ? "not-allowed" : "pointer",
+                }}
+                onClick={async () => {
+                  if (isLoading) return;
+                  setLoadingRecordId(record._id);
+                  try {
+                    await handleToggleStatus(record._id, status);
+                  } finally {
+                    setLoadingRecordId(null);
+                  }
+                }}
+              />
+            </div>
+            <div>
+              <Space>
+                <EyeForm data={record} />
+                <EdituserForm record={record} />
+                <AsignTeam record={record} />
+              </Space>
+            </div>
           </div>
         );
       },
@@ -938,7 +456,7 @@ const Myuploardsmanagement = () => {
           value={specificSearchQuery}
           onChange={handlesetSpecificSearchQueryChange}
           type="text"
-          placeholder="Search by Content ID, Title or Author"
+          placeholder="Search by Username, Role or Content"
           className="px-4 py-3 pl-10 rounded-lg focus:outline-none bg-transparent w-96"
         />
         <div className="absolute inset-y-0 left-0 flex items-center pl-3">
@@ -946,16 +464,18 @@ const Myuploardsmanagement = () => {
         </div>
       </div>
 
-      <div className="flex flex-col  p-5  thescreanhe">
+      <div className="flex flex-col p-5 thescreanhe">
         {/* Page Header */}
         <div
-          className={`flex justify-between items-center mb-6 px-12 py-1 rounded-lg mt- ${
+          className={`flex justify-between items-center mb-6 px-12 py-3 rounded-lg mt- ${
             darkMode ? "bg-[#333333]" : "bg-[#f1f5f9]"
           }`}
         >
-          <h1 className="text-2xl ml-[-20px] text-[#F48567]">My Uploads</h1>
-          <div className="flex gap-6">
-            <CreateContent />
+          <h1 className="text-2xl ml-[-20px] text-[#F48567]">
+            My Created Users
+          </h1>
+          <div className="flex space-x-8">
+            <UserManagementFormhr />
           </div>
         </div>
 
@@ -968,17 +488,9 @@ const Myuploardsmanagement = () => {
                 darkMode
                   ? "bg-[#1E1E1E] text-[#C7C7C7]"
                   : "bg-gray-100 text-black"
-              } shadow-lg rounded-lg transition-all duration-300 ease-in-out rounded-[10px]
-                                   ${
-                                     selectedCard === index
-                                       ? "bg-[#FFC9BB33] bg-opacity-30 border-[#F48567]"
-                                       : "hover:bg-[#f486673a]"
-                                   }`}
+              } shadow-lg rounded-lg transition-all duration-300 ease-in-out hover:bg-[#f486673a]`}
               bordered={true}
-              onClick={() => {
-                setSelectedCard(selectedCard === index ? null : index); // Toggle the selected card
-                setFilter(card.filter);
-              }}
+              onClick={() => setFilter(card.filter)}
             >
               <h2
                 className={`text-xl font-semibold ${
@@ -993,199 +505,180 @@ const Myuploardsmanagement = () => {
             </Card>
           ))}
         </div>
+
         <div className="flex-grow overflow-x-auto h-11 px-8 theusertab">
           <div className={darkMode ? "dark-mode" : "light-mode"}></div>
           <div className="relative">
-            {/* Select All Checkbox */}
-            <div className="absolute z-50 left-[-22px] top-6">
-              <input
-                className="custom-checkbox border-[#F48567] rounded-full"
-                type="checkbox"
-                checked={
-                  paginatedData.length > 0 &&
-                  paginatedData.every((_, index) =>
-                    selectedIndices.includes(
-                      (currentPage - 1) * pageSize + index
-                    )
-                  )
-                } // Check if all on the page are selected
-                onChange={handleSelectAll}
-              />
-            </div>
-
             <div
               className={`table-container ${
                 darkMode ? "bg-[#333333]" : "bg-[#f1f5f9]"
               } rounded-lg`}
             >
-              <table
-                className={`custom-table ${
-                  darkMode ? "bg-[#18181b]" : "bg-white"
-                }`}
-                style={{
-                  width: "100%",
-                  borderCollapse: "separate",
-                  borderSpacing: "0 10px",
-                }}
-              >
-                <thead
-                  className={`custom-table ${
-                    darkMode ? "bg-[#18181b]" : "bg-[#f1f5f9]"
+              {filteredData.length === 0 ? (
+                <div
+                  className={`text-center py-8 ${
+                    darkMode ? "text-white" : "text-black"
                   }`}
                 >
-                  <tr
-                    className={`rounded-custom ${
+                  No users found. Create your first user using the form above.
+                </div>
+              ) : (
+                <table
+                  className={`custom-table ${
+                    darkMode ? "bg-[#18181b]" : "bg-white"
+                  }`}
+                  style={{
+                    width: "100%",
+                    borderCollapse: "separate",
+                    borderSpacing: "0 10px",
+                  }}
+                >
+                  <thead
+                    className={`custom-table ${
                       darkMode ? "bg-[#18181b]" : "bg-[#f1f5f9]"
                     }`}
                   >
-                    {columns.map((column, index) => (
-                      <th
-                        key={index}
-                        className={`headtextxx headtable${index + 1} ${
-                          darkMode ? "bg-[#333333]" : "bg-white"
-                        } text-white`}
-                        style={{
-                          cursor: "default",
-                          userSelect: "none",
-                          backgroundColor:
-                            selectedIndices.length > 0
-                              ? "#F48567"
-                              : darkMode
-                              ? "#333333"
-                              : "#ffffff",
-                          color:
-                            selectedIndices.length > 0 ? "#ffffff" : "#F48567",
-                          padding: "10px",
-                          border: "none",
-                        }}
-                      >
-                        {typeof column.title === "string"
-                          ? column.title
-                          : column.title}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedData.map((row, rowIndex) => (
                     <tr
-                      key={row.key || rowIndex}
-                      className={`table-text rounded-lg ${
-                        darkMode ? "bg-[#333333] text-white" : "bg-[#f1f5f9]"
-                      }  ${
-                        selectedIndices.includes(rowIndex)
-                          ? "bg-[#f486673a]"
-                          : ""
-                      } headoptions`}
-                      style={{ cursor: "pointer" }}
+                      className={`rounded-custom ${
+                        darkMode ? "bg-[#18181b]" : "bg-[#f1f5f9]"
+                      }`}
                     >
-                      {columns.map((column, colIndex) => (
-                        <td
-                          key={colIndex}
+                      {columns.map((column, index) => (
+                        <th
+                          key={index}
+                          className={`headtextxx headtable${index + 1} ${
+                            darkMode ? "bg-[#333333]" : "bg-white"
+                          } text-white`}
                           style={{
-                            padding: "10px 10px",
+                            cursor: "default",
+                            userSelect: "none",
+                            backgroundColor:
+                              selectedIndices.length > 0
+                                ? "#F48567"
+                                : darkMode
+                                ? "#333333"
+                                : "#ffffff",
+                            color:
+                              selectedIndices.length > 0
+                                ? "#ffffff"
+                                : "#F48567",
+                            padding: "10px",
                             border: "none",
                           }}
                         >
-                          {column.render
-                            ? column.render(row[column.dataIndex], row)
-                            : row[column.dataIndex] || "N/A"}
-                        </td>
+                          {typeof column.title === "string"
+                            ? column.title
+                            : column.title}
+                        </th>
                       ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination */}
-            <div className="absolute left-[-20px] bottom-0 flex flex-col items-center justify h-full pt-[45px]">
-              {paginatedData.map((_, index) => {
-                const absoluteIndex = (currentPage - 1) * pageSize + index; // Convert paginated index to absolute
-                return (
-                  <span
-                    key={absoluteIndex}
-                    className="h-[60px] flex justify-center items-center"
-                  >
-                    <input
-                      className="custom-checkbox peer/draft border-[#F48567] rounded-full"
-                      type="checkbox"
-                      checked={selectedIndices.includes(absoluteIndex)}
-                      onChange={() => handleSelection(index)}
-                    />
-                  </span>
-                );
-              })}
+                  </thead>
+                  <tbody>
+                    {paginatedData.map((row, rowIndex) => (
+                      <tr
+                        key={row.key || rowIndex}
+                        className={`table-text rounded-lg ${
+                          darkMode ? "bg-[#333333] text-white" : "bg-[#f1f5f9]"
+                        }  ${
+                          selectedIndices.includes(rowIndex)
+                            ? "bg-[#f486673a]"
+                            : ""
+                        } headoptions`}
+                        style={{ cursor: "pointer" }}
+                      >
+                        {columns.map((column, colIndex) => (
+                          <td
+                            key={colIndex}
+                            style={{
+                              padding: "10px 10px",
+                              border: "none",
+                            }}
+                          >
+                            {column.render
+                              ? column.render(row[column.dataIndex], row)
+                              : row[column.dataIndex] || "N/A"}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
         </div>
+
         {/* Pagination Controls */}
-        <div className="flex justify-center gap-5 items-center mt-6 px-8">
-          {/* Pagination Controls */}
-          <Pagination
-            current={currentPage}
-            pageSize={pageSize}
-            total={filteredData.length} // Total number of items in your data
-            onChange={handleChangePage}
-            onShowSizeChange={(_, size) => handlePageSizeChange(size)}
-            itemRender={(page, type, originalElement) => {
-              if (type === "page") {
-                return (
-                  <span
-                    className={`inline-flex items-center justify-center w-8 h-8 cursor-pointer ${
-                      page === currentPage
-                        ? "bg-[#F48567] text-white hover:text-white"
-                        : "bg-transparent text-black hover:bg-[#F48567] hover:text-white"
-                    }`}
-                  >
-                    {page}
-                  </span>
-                );
-              }
-              if (type === "prev") {
-                return (
-                  <span
-                    className={`inline-flex items-center justify-center w-20 h-8 cursor-pointer bg-[#333333] text-white border hover:bg-[#F48567] hover:text-white`}
-                  >
-                    Back
-                  </span>
-                );
-              }
-              if (type === "next") {
-                return (
-                  <span
-                    className={`inline-flex items-center justify-center w-20 h-8 cursor-pointer bg-[#333333] text-white border hover:bg-[#F48567] hover:text-white`}
-                  >
-                    Next
-                  </span>
-                );
-              }
-              return originalElement;
-            }}
-          />
-
-          {/* Page Size Selector */}
-          <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-400 whitespace-nowrap">
-              Results per page
-            </span>
-            <Select
-              defaultValue={pageSize}
-              value={pageSize}
-              onChange={handlePageSizeChange}
-              style={{ width: 100, backgroundColor: "#333333", color: "#fff" }}
-              options={[
-                { value: 10, label: "10" },
-                { value: 20, label: "20" },
-                { value: 30, label: "30" },
-                { value: 50, label: "50" },
-              ]}
+        {filteredData.length > 0 && (
+          <div className="flex justify-center gap-5 items-center mt-6 px-8">
+            <Pagination
+              current={currentPage}
+              pageSize={pageSize}
+              total={filteredData.length}
+              onChange={handleChangePage}
+              onShowSizeChange={(_, size) => handlePageSizeChange(size)}
+              itemRender={(page, type, originalElement) => {
+                if (type === "page") {
+                  return (
+                    <span
+                      className={`inline-flex items-center justify-center w-8 h-8 cursor-pointer ${
+                        page === currentPage
+                          ? "bg-[#F48567] text-white hover:text-white"
+                          : "bg-transparent text-black hover:bg-[#F48567] hover:text-white"
+                      }`}
+                    >
+                      {page}
+                    </span>
+                  );
+                }
+                if (type === "prev") {
+                  return (
+                    <span
+                      className={`inline-flex items-center justify-center w-20 h-8 cursor-pointer bg-[#333333] text-white border hover:bg-[#F48567] hover:text-white`}
+                    >
+                      Back
+                    </span>
+                  );
+                }
+                if (type === "next") {
+                  return (
+                    <span
+                      className={`inline-flex items-center justify-center w-20 h-8 cursor-pointer bg-[#333333] text-white border hover:bg-[#F48567] hover:text-white`}
+                    >
+                      Next
+                    </span>
+                  );
+                }
+                return originalElement;
+              }}
             />
+
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-400 whitespace-nowrap">
+                Results per page
+              </span>
+              <Select
+                defaultValue={pageSize}
+                value={pageSize}
+                onChange={handlePageSizeChange}
+                style={{
+                  width: 100,
+                  backgroundColor: "#333333",
+                  color: "#fff",
+                }}
+                options={[
+                  { value: 10, label: "10" },
+                  { value: 20, label: "20" },
+                  { value: 30, label: "30" },
+                  { value: 50, label: "50" },
+                ]}
+              />
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </>
   );
 };
 
-export default Myuploardsmanagement;
+export default UserManagement;

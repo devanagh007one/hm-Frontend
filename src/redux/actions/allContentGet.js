@@ -113,12 +113,9 @@ export const patchTheContent = (userId, status) => async (dispatch) => {
   }
 };
 
-// NEW Action for updating content using PUT method
 export const updateContent = (contentId, updateData) => async (dispatch) => {
   try {
     const authToken = localStorage.getItem("authToken");
-
-    // FormData for files + text fields
     const formData = new FormData();
 
     // Append text fields
@@ -133,12 +130,22 @@ export const updateContent = (contentId, updateData) => async (dispatch) => {
       formData.append("moduleType", updateData.moduleType);
     if (updateData.fileSize) formData.append("fileSize", updateData.fileSize);
 
+    // Append learning video titles as JSON array
+    if (
+      updateData.learningVideoTitles &&
+      Array.isArray(updateData.learningVideoTitles)
+    ) {
+      formData.append(
+        "learningVideoTitles",
+        JSON.stringify(updateData.learningVideoTitles)
+      );
+    }
+
     // CRITICAL: Add append flags - default to true to preserve existing videos
     const appendIntro =
-      updateData.append_intro !== undefined ? updateData.append_intro : true; // Default to append mode
-
+      updateData.append_intro !== undefined ? updateData.append_intro : true;
     const appendDesc =
-      updateData.append_desc !== undefined ? updateData.append_desc : true; // Default to append mode
+      updateData.append_desc !== undefined ? updateData.append_desc : true;
 
     formData.append("append_intro", appendIntro.toString());
     formData.append("append_desc", appendDesc.toString());
@@ -177,6 +184,7 @@ export const updateContent = (contentId, updateData) => async (dispatch) => {
       append_desc: appendDesc,
       newIntroVideos: updateData.videoFile_introduction?.length || 0,
       newDescVideos: updateData.videoFile_description?.length || 0,
+      learningVideoTitles: updateData.learningVideoTitles || [],
     });
 
     const response = await fetch(
@@ -185,7 +193,6 @@ export const updateContent = (contentId, updateData) => async (dispatch) => {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${authToken}`,
-          // Don't set Content-Type; browser will handle it with FormData
         },
         body: formData,
       }
