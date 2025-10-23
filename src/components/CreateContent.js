@@ -1444,12 +1444,11 @@ const ParentComponent = () => {
 
                   {isSection2Visible && (
                     <div className="flex justify-start items-start">
-                      <span className="text-white text-xl">
+                      <span className="text-md text-[#F48567] mt-2">
                         {formData.moduleName || "New Module"}
-                        {/* Module */}
                       </span>
-                      <span className="mx-2 text-lg">/</span>
-                      <span className="text-sm text-[#F48567] mt-1">
+                      <span className="mx-2 text-xl mt-1">/</span>
+                      <span className="text-sm text-[#F48567] mt-2">
                         Learning Video
                       </span>
                     </div>

@@ -19,7 +19,6 @@ export const fetchAllUsers = () => async (dispatch) => {
   try {
     const authToken = localStorage.getItem("authToken");
 
-    // Fetch all users
     const response = await fetch(
       `${process.env.REACT_APP_STATIC_API_URL}/api/user/all-users`,
       {
@@ -34,7 +33,7 @@ export const fetchAllUsers = () => async (dispatch) => {
     }
 
     const data = await response.json();
-    console.log(data);
+    console.log("Fetched all users:", data);
 
     // Filter users with "Partner" role only and extract firstName and lastName for localStorage
     const partnerUsers = data
@@ -89,8 +88,6 @@ export const createUser = (userData) => async (dispatch) => {
     }
 
     const formData = new FormData();
-
-    // Append uploaded_by first
     formData.append("uploaded_by", userId);
 
     for (const key in userData) {
@@ -126,6 +123,10 @@ export const createUser = (userData) => async (dispatch) => {
     }
 
     dispatch({ type: CREATE_USER_SUCCESS, payload: data });
+
+    // Refresh users list after creating user
+    dispatch(fetchAllUsers());
+
     return data;
   } catch (error) {
     // dispatch({ type: CREATE_USER_FAILURE, payload: error.message });

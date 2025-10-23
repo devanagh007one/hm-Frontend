@@ -125,8 +125,10 @@ const ContentManagement = ({ data }) => {
       setIsModalOpen(true);
     }
   };
+
   const handleCloseModal = () => {
     setIsModalOpen(false);
+    setModalContent(null);
     if (videoRef.current) {
       videoRef.current.pause();
     }
@@ -173,6 +175,15 @@ const ContentManagement = ({ data }) => {
           )
         );
       });
+  };
+
+  // Helper function to get full URL
+  const getMediaUrl = (src) => {
+    if (!src) return "/fallback-image.jpg";
+    return `${process.env.REACT_APP_STATIC_API_URL}/${src.replace(
+      /^\/root\/happme_adminuser_management\//,
+      ""
+    )}`;
   };
 
   return (
@@ -259,47 +270,25 @@ const ContentManagement = ({ data }) => {
                     <div key={index}>
                       {item.type === "image" ? (
                         <img
-                          src={
-                            `${
-                              process.env.REACT_APP_STATIC_API_URL
-                            }/${item.src.replace(
-                              /^\/root\/happme_adminuser_management\//,
-                              ""
-                            )}` || "/fallback-image.jpg"
-                          }
+                          src={getMediaUrl(item.src)}
+                          alt="Cover"
                           className="w-24 h-24 object-cover cursor-pointer"
                           onClick={() => handleOpenModal(item)}
                         />
-                      ) : // For videos, you might want to show multiple thumbnails or just the first one
-                      Array.isArray(item.src) ? (
-                        // Show first video as thumbnail, or you can map through all
+                      ) : Array.isArray(item.src) ? (
                         item.src
                           .slice(0, 1)
                           .map((video, videoIndex) => (
                             <video
                               key={videoIndex}
-                              src={
-                                `${
-                                  process.env.REACT_APP_STATIC_API_URL
-                                }/${video.replace(
-                                  /^\/root\/happme_adminuser_management\//,
-                                  ""
-                                )}` || "/fallback-image.jpg"
-                              }
+                              src={getMediaUrl(video)}
                               className="w-24 h-24 object-cover cursor-pointer"
                               onClick={() => handleOpenModal(item, videoIndex)}
                             />
                           ))
                       ) : (
                         <video
-                          src={
-                            `${
-                              process.env.REACT_APP_STATIC_API_URL
-                            }/${item.src.replace(
-                              /^\/root\/happme_adminuser_management\//,
-                              ""
-                            )}` || "/fallback-image.jpg"
-                          }
+                          src={getMediaUrl(item.src)}
                           className="w-24 h-24 object-cover cursor-pointer"
                           onClick={() => handleOpenModal(item)}
                         />
@@ -467,6 +456,75 @@ const ContentManagement = ({ data }) => {
           </div>
         </div>
       )}
+
+      {/* MODAL FOR MAGNIFIED IMAGE AND VIDEO PLAYBACK */}
+      <Modal
+        open={isModalOpen}
+        onCancel={handleCloseModal}
+        footer={null}
+        width="90%"
+        centered
+        closeIcon={
+          <svg
+            width="32"
+            height="32"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            style={{
+              backgroundColor: "rgba(255, 255, 255, 0.9)",
+              borderRadius: "50%",
+              padding: "4px",
+            }}
+          >
+            <path
+              d="M18 6L6 18M6 6L18 18"
+              stroke="#000"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        }
+        styles={{
+          body: {
+            padding: 0,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: "#000",
+            minHeight: "70vh",
+          },
+        }}
+      >
+        {modalContent && (
+          <div className="flex justify-center items-center w-full h-full">
+            {modalContent.type === "image" ? (
+              <img
+                src={getMediaUrl(modalContent.src)}
+                alt="Magnified"
+                style={{
+                  width: "100%",
+                  height: "70vh",
+                  objectFit: "contain",
+                }}
+              />
+            ) : (
+              <video
+                ref={videoRef}
+                src={getMediaUrl(modalContent.src)}
+                controls
+                autoPlay
+                style={{
+                  width: "100%",
+                  height: "70vh",
+                  objectFit: "contain",
+                }}
+              />
+            )}
+          </div>
+        )}
+      </Modal>
     </>
   );
 };

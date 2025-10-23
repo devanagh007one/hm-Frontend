@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { hrLicenseGet } from "../redux/actions/allLicensingGet.js";
 import { fetchAllUsers, createUser } from "../redux/actions/alluserGet";
-import { showNotification } from "../redux/actions/notificationActions"; // Import showNotification
-import "./popup.css"; // Import custom CSS
+import { showNotification } from "../redux/actions/notificationActions";
+import "./popup.css";
 import { Button, Select } from "antd";
 
 const ParentComponentHr = () => {
@@ -41,7 +41,7 @@ const ParentComponentHr = () => {
     goals: "",
     joinedAt: "",
     childCount: "",
-    relationshipStatus: "", // Changed from dateOfAniversary to relationshipStatus
+    relationshipStatus: "",
   });
 
   const dispatch = useDispatch();
@@ -80,6 +80,7 @@ const ParentComponentHr = () => {
       [name]: files ? files[0] : value,
     }));
   };
+
   const validatePassword = (password) => {
     const regex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     return regex.test(password);
@@ -121,15 +122,19 @@ const ParentComponentHr = () => {
     dispatch(createUser(formData))
       .then(() => {
         dispatch(showNotification("User created successfully", "success"));
+        // Refresh users list after creating user
+        dispatch(fetchAllUsers());
+
         localStorage.setItem("activeComponent", "Usersmanagement");
         setTimeout(() => {
           handleClosePopup();
-          window.location.reload();
+          // Remove window.location.reload() since we're now refreshing the users list properly
         }, 2000);
         setShowPopup(false);
       })
       .catch((error) => {
         console.error(error);
+        dispatch(showNotification("Failed to create user", "error"));
       });
   };
 
@@ -182,8 +187,8 @@ const ParentComponentHr = () => {
       const { numberOfLicence } = associatedLicense;
       const userCount = users.filter((user) => user.company === value).length;
 
-      setUserCount(userCount); // Update the user count
-      setTotalLicenses(numberOfLicence); // Update the total licenses
+      setUserCount(userCount);
+      setTotalLicenses(numberOfLicence);
 
       if (userCount >= numberOfLicence) {
         setIsSaveDisabled(true);
@@ -546,7 +551,6 @@ const ParentComponentHr = () => {
                 )}
 
                 <div className="flex flex-col w-full">
-                  {/* Save Button */}
                   <button
                     onClick={handleClosePopup}
                     className="bg-[#C7C7C7] px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#000]"

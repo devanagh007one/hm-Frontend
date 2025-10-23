@@ -634,7 +634,7 @@ const ParentComponent = () => {
                     scroll={{ x: "max-content", y: 400 }} // Add vertical scroll to table
                     rowClassName={`rounded-lg ${
                       darkMode
-                        ? "bg-[#333333] text-white"
+                        ? "bg-[#333333] text-black"
                         : "bg-white text-dark"
                     } `}
                     pagination={false}

@@ -502,7 +502,7 @@ const ParentComponent = () => {
                     scroll={{ x: "max-content" }}
                     rowClassName={`rounded-lg ${
                       darkMode ? "bg-[#333333]" : "bg-white"
-                    } text-white`}
+                    } text-black`}
                     pagination={false} // Disable pagination
                   />
 
