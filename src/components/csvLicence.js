@@ -231,12 +231,18 @@ const ParentComponent = () => {
               onBlur={save}
             />
           ) : (
-            <div onClick={toggleEdit} style={{ cursor: "pointer" }}>
+            <div
+              onClick={toggleEdit}
+              style={{ cursor: "pointer" }}
+              className={darkMode ? "text-white" : "text-black"}
+            >
               {children}
             </div>
           )
         ) : (
-          children
+          <div className={darkMode ? "text-white" : "text-black"}>
+            {children}
+          </div>
         )}
       </td>
     );
@@ -364,6 +370,11 @@ const ParentComponent = () => {
       handleClosePopup(); // Close popup only if all rows are valid
     }
   };
+
+  // Custom CSS classes for dark mode
+  const tableClassName = darkMode
+    ? "dark-table bg-[#333333] text-white"
+    : "light-table bg-white text-black";
 
   return (
     <>
@@ -496,13 +507,9 @@ const ParentComponent = () => {
                     columns={editableColumns}
                     dataSource={tableData}
                     rowKey={(record) => record.key}
-                    className={`rounded-lg the-uploardtable ${
-                      darkMode ? "bg-[#333333]" : "bg-white"
-                    } text-white`}
+                    className={`rounded-lg the-uploardtable ${tableClassName}`}
                     scroll={{ x: "max-content" }}
-                    rowClassName={`rounded-lg ${
-                      darkMode ? "bg-[#333333]" : "bg-white"
-                    } text-black`}
+                    rowClassName={() => tableClassName}
                     pagination={false} // Disable pagination
                   />
 

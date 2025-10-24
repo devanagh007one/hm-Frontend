@@ -291,12 +291,18 @@ const ParentComponent = () => {
               />
             )
           ) : (
-            <div onClick={toggleEdit} style={{ cursor: "pointer" }}>
+            <div
+              onClick={toggleEdit}
+              style={{ cursor: "pointer" }}
+              className={darkMode ? "text-white" : "text-black"}
+            >
               {children}
             </div>
           )
         ) : (
-          children
+          <div className={darkMode ? "text-white" : "text-black"}>
+            {children}
+          </div>
         )}
       </td>
     );
@@ -487,6 +493,12 @@ const ParentComponent = () => {
       handleClosePopup(); // Close popup only if all rows are valid
     }
   };
+
+  // Custom CSS classes for dark mode
+  const tableClassName = darkMode
+    ? "dark-table bg-[#333333] text-white"
+    : "light-table bg-white text-black";
+
   return (
     <>
       <Button
@@ -603,7 +615,7 @@ const ParentComponent = () => {
               </div>
               <button
                 onClick={handleUpload}
-                className="w-full bg-[#F48567] py-2 rounded-lg hover:bg-[#e57357] transition"
+                className="w-full bg-[#F48567] text-white py-2 rounded-lg hover:bg-[#e57357] transition"
               >
                 Upload
               </button>
@@ -628,15 +640,9 @@ const ParentComponent = () => {
                     columns={editableColumns}
                     dataSource={tableData}
                     rowKey={(record) => record.key}
-                    className={`rounded-lg the-uploardtable ${
-                      darkMode ? "bg-[#333333]" : "bg-white"
-                    } `}
+                    className={`rounded-lg the-uploardtable ${tableClassName}`}
                     scroll={{ x: "max-content", y: 400 }} // Add vertical scroll to table
-                    rowClassName={`rounded-lg ${
-                      darkMode
-                        ? "bg-[#333333] text-black"
-                        : "bg-white text-dark"
-                    } `}
+                    rowClassName={() => tableClassName}
                     pagination={false}
                   />
 
