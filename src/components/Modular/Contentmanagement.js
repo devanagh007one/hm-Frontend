@@ -605,8 +605,25 @@ const ContentManagement = () => {
       dataIndex: "moduleName",
       key: "moduleName || challengeName",
       render: (text, record) => {
-        const contentName =
-          record.moduleName || record.challengeName || record.title;
+        let contentName;
+
+        // For challenges, show the module name
+        if (record.challengeName) {
+          contentName =
+            record?.module?.moduleName ||
+            record?.moduleName ||
+            record.challengeName;
+        }
+        // For modules, show the module name
+        else if (record.moduleName) {
+          contentName = record.moduleName;
+        }
+        // For events, show the title
+        else if (record.title) {
+          contentName = record.title;
+        } else {
+          contentName = "N/A";
+        }
 
         return contentName.length > 15 ? (
           <Tooltip title={contentName}>
@@ -647,7 +664,10 @@ const ContentManagement = () => {
         if (record?.typeOfEvent) {
           return "Event";
         }
-        return record?.moduleType || "Challenge";
+        if (record?.moduleName) {
+          return "Learning Video"; // This replaces "Module"
+        }
+        return "Challenge"; // This remains "Challenge"
       },
     },
     {

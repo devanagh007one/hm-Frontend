@@ -61,19 +61,41 @@ const ParentComponent = () => {
   const [modulesLoading, setModulesLoading] = useState(false);
 
   const handleBack = () => {
-    if (isSection2Visible) {
-      setIsSection2Visible(false);
-      setIsSectionVisible(true);
-    } else if (isCreatedModuleVisible) {
-      setisCreatedModuleVisible(false);
-      setIsSection2Visible(true); // Go back to learning video form
-    } else if (isSection3Visible) {
-      setIsSection3Visible(false);
-      setIsSectionVisible(true);
-    } else if (isCreatedContentVisible) {
-      setisCreatedContentVisible(false);
-      setIsSection3Visible(true);
+    if (navigationHistory.length <= 1) return; // Don't go back from first section
+
+    const newHistory = [...navigationHistory];
+    newHistory.pop(); // Remove current section
+    const previousSection = newHistory[newHistory.length - 1];
+
+    // Reset all sections first
+    setIsSectionVisible(false);
+    setIsSection2Visible(false);
+    setIsSection3Visible(false);
+    setisCreatedModuleVisible(false);
+    setisCreatedContentVisible(false);
+
+    // Navigate to previous section
+    switch (previousSection) {
+      case "section1":
+        setIsSectionVisible(true);
+        break;
+      case "section2":
+        setIsSection2Visible(true);
+        break;
+      case "section3":
+        setIsSection3Visible(true);
+        break;
+      case "createdModule":
+        setisCreatedModuleVisible(true);
+        break;
+      case "createdContent":
+        setisCreatedContentVisible(true);
+        break;
+      default:
+        setIsSectionVisible(true);
     }
+
+    setNavigationHistory(newHistory);
   };
 
   useEffect(() => {
@@ -97,11 +119,13 @@ const ParentComponent = () => {
     isApproved: "pending",
     description: "",
     cover_Photo: "",
-    existingIntroVideos: [], // NEW: Store existing videos from database
-    existingDescVideos: [], // NEW: Store existing videos from database
-    videoFile_introduction: [], // NEW videos to be added
-    videoFile_description: [], // NEW videos to be added
+    existingIntroVideos: [],
+    existingDescVideos: [],
+    videoFile_introduction: [],
+    videoFile_description: [],
     learningVideoTitles: [],
+    learningVideoCovers: [],
+    description_videofile_text: [],
     content: "",
   };
   const initialChallangeData = {
@@ -272,11 +296,13 @@ const ParentComponent = () => {
   const handleOpenLearningVideo = () => {
     setIsSectionVisible(false);
     setIsSection2Visible(true);
+    setNavigationHistory((prev) => [...prev, "section2"]);
   };
 
   const handleOpenChallange = () => {
     setIsSectionVisible(false);
     setIsSection3Visible(true);
+    setNavigationHistory((prev) => [...prev, "section3"]);
   };
 
   // Function to remove specific video from array
@@ -348,8 +374,8 @@ const ParentComponent = () => {
   const handleViewPopup = () => setShowPopup(true);
   const handleClosePopup = () => {
     setShowPopup(false);
-    setChallengeData(initialChallangeData);
-    setFormData(initialModuleData);
+    // setChallengeData(initialChallangeData);
+    // setFormData(initialModuleData);
     settime({ duration: 0 });
     setIsSectionVisible(true);
     setIsSection2Visible(false);
@@ -361,8 +387,11 @@ const ParentComponent = () => {
     setIsChallengeSelected(false);
     setModules([]);
     setChallenges([]);
+    setNavigationHistory(["section1"]);
 
-    // Clear stored data when closing popup
+    // setLearningVideoSubmitted(false);
+    // setChallengeSubmitted(false);
+
     clearSelectedDataFromStorage();
   };
 
@@ -583,7 +612,7 @@ const ParentComponent = () => {
     if (editingIndex !== null) {
       const updatedModule = {
         ...modules[editingIndex],
-        moduleName: formData.moduleName, // Keep module name from dropdown
+        moduleName: formData.moduleName,
         description: formData.description,
         content: formData.content,
         tracks: storedData?.track || formData.tracks,
@@ -608,6 +637,16 @@ const ParentComponent = () => {
           ...(modules[editingIndex].learningVideoTitles || []),
           ...(formData.learningVideoTitles || []),
         ],
+        learningVideoCovers: [
+          // NEW: Add learning video covers
+          ...(modules[editingIndex].learningVideoCovers || []),
+          ...(formData.learningVideoCovers || []),
+        ],
+        description_videofile_text: [
+          // NEW: Add learning video descriptions
+          ...(modules[editingIndex].description_videofile_text || []),
+          ...(formData.description_videofile_text || []),
+        ],
         _id: formData._id,
         isExistingModule: formData.isExistingModule,
         entryNumber: formData.entryNumber || editingIndex + 1,
@@ -623,7 +662,7 @@ const ParentComponent = () => {
         tracks: storedData?.track || formData.tracks,
         uniqueUploadId: generateUniqueId(),
         _id: selectedModule?.id || formData._id,
-        moduleName: formData.moduleName, // From dropdown
+        moduleName: formData.moduleName,
         isExistingModule: true,
         cover_Photo: formData.cover_Photo,
         videoFile_introduction: Array.isArray(formData.videoFile_introduction)
@@ -633,6 +672,8 @@ const ParentComponent = () => {
           ? formData.videoFile_description.map((file) => file)
           : [],
         learningVideoTitles: formData.learningVideoTitles || [],
+        learningVideoCovers: formData.learningVideoCovers || [], // NEW
+        description_videofile_text: formData.description_videofile_text || [], // NEW
         entryNumber: modules.length + 1,
       };
 
@@ -643,15 +684,17 @@ const ParentComponent = () => {
     const resetFormData = {
       uniqueUploadId: generateUniqueId(),
       tracks: storedData?.track || formData.tracks,
-      moduleName: formData.moduleName, // Keep module name
+      moduleName: formData.moduleName,
       moduleType: "Module",
       fileSize: "",
       isApproved: "pending",
-      description: formData.description, // Keep or reset as needed
+      description: formData.description,
       cover_Photo: null,
       videoFile_introduction: [],
       videoFile_description: [],
-      learningVideoTitles: [], // Reset titles
+      learningVideoTitles: [],
+      learningVideoCovers: [], // NEW: Reset learning video covers
+      description_videofile_text: [], // NEW: Reset learning video descriptions
       content: "",
       module: formData.module,
       _id: selectedModule?.id || formData._id,
@@ -660,8 +703,8 @@ const ParentComponent = () => {
     setFormData(resetFormData);
     setIsSection2Visible(false);
     setisCreatedModuleVisible(true);
+    setNavigationHistory((prev) => [...prev, "createdModule"]);
   };
-
   // STEP 4: CRITICAL FIX - Update handleCreateContent to merge ALL videos
   const handleCreateContent = async () => {
     setShowSubmitConfirmation(false);
@@ -707,13 +750,18 @@ const ParentComponent = () => {
 
         // Collect ALL NEW videos - now only for description
         const allNewVideos = [];
+        const allNewCovers = []; // NEW: Collect learning video covers
         let latestEntry = entries[0];
         let coverPhoto = null;
         let description = "";
+        let allVideoTitles = [];
+        let allVideoDescriptions = []; // NEW: Collect learning video descriptions
 
         entries.forEach((entry, idx) => {
           console.log(`  Entry ${idx + 1}:`, {
             newVideos: entry.videoFile_description?.length || 0,
+            newCovers: entry.learningVideoCovers?.length || 0, // NEW
+            newDescriptions: entry.description_videofile_text?.length || 0, // NEW
           });
 
           // Collect NEW videos for description field only
@@ -723,6 +771,35 @@ const ParentComponent = () => {
                 allNewVideos.push(video);
               }
             });
+          }
+
+          // NEW: Collect learning video covers
+          if (Array.isArray(entry.learningVideoCovers)) {
+            entry.learningVideoCovers.forEach((cover) => {
+              if (cover instanceof File) {
+                allNewCovers.push(cover);
+              }
+            });
+          }
+
+          // NEW: Collect learning video descriptions
+          if (Array.isArray(entry.description_videofile_text)) {
+            allVideoDescriptions = [
+              ...allVideoDescriptions,
+              ...entry.description_videofile_text.filter(
+                (text) => text && text.trim()
+              ),
+            ];
+          }
+
+          // Collect learning video titles
+          if (Array.isArray(entry.learningVideoTitles)) {
+            allVideoTitles = [
+              ...allVideoTitles,
+              ...entry.learningVideoTitles.filter(
+                (title) => title && title.trim()
+              ),
+            ];
           }
 
           if (entry.cover_Photo instanceof File) {
@@ -735,7 +812,10 @@ const ParentComponent = () => {
 
         console.log("📊 Video Summary:", {
           newVideos: allNewVideos.length,
+          newCovers: allNewCovers.length, // NEW
+          newDescriptions: allVideoDescriptions.length, // NEW
           videoNames: allNewVideos.map((v) => v.name),
+          coverNames: allNewCovers.map((c) => c.name), // NEW
         });
 
         // Create FormData for multipart upload
@@ -766,14 +846,19 @@ const ParentComponent = () => {
           formDataToSend.append("cover_Photo", coverPhoto);
         }
 
-        const allTitles = entries
-          .flatMap((entry) => entry.learningVideoTitles || [])
-          .filter((title) => title && title.trim());
-
-        if (allTitles.length > 0) {
+        // Add learning video titles
+        if (allVideoTitles.length > 0) {
           formDataToSend.append(
             "learningVideoTitles",
-            JSON.stringify(allTitles)
+            JSON.stringify(allVideoTitles)
+          );
+        }
+
+        // NEW: Add learning video descriptions
+        if (allVideoDescriptions.length > 0) {
+          formDataToSend.append(
+            "description_videofile_text",
+            JSON.stringify(allVideoDescriptions)
           );
         }
 
@@ -783,11 +868,17 @@ const ParentComponent = () => {
           console.log(`  ➕ Adding video ${index + 1}: ${video.name}`);
         });
 
+        // NEW: Send learning video covers
+        allNewCovers.forEach((cover, index) => {
+          formDataToSend.append("learningVideoCovers", cover);
+          console.log(`  🖼️ Adding cover ${index + 1}: ${cover.name}`);
+        });
+
         if (latestEntry.content) {
           formDataToSend.append("content", latestEntry.content);
         }
 
-        console.log(`\n🚀 Sending to API with only videoFile_description`);
+        console.log(`\n🚀 Sending to API with all fields`);
 
         try {
           const authToken = localStorage.getItem("authToken");
@@ -815,6 +906,10 @@ const ParentComponent = () => {
             success: data?.success,
             finalVideoCount: data?.content?.videoFile_description?.length,
             hasDescription: !!data?.content?.description,
+            learningVideoTitles: data?.content?.learningVideoTitles,
+            description_videofile_text:
+              data?.content?.description_videofile_text, // NEW
+            learningVideoCovers: data?.content?.learningVideoCovers, // NEW
             message: data?.message,
           });
 
@@ -938,6 +1033,7 @@ const ParentComponent = () => {
   const handleAddModulefromavilablenew = () => {
     setIsSection2Visible(true);
     setisCreatedModuleVisible(false);
+    setNavigationHistory((prev) => [...prev, "section2"]);
   };
 
   const handleAddChallenge = () => {
@@ -1002,6 +1098,7 @@ const ParentComponent = () => {
     settime({ duration: "" }); // Reset duration
     setIsSection3Visible(false);
     setisCreatedContentVisible(true);
+    setNavigationHistory((prev) => [...prev, "createdContent"]);
   };
 
   // Handler for editing existing modules (name only)
@@ -1154,6 +1251,7 @@ const ParentComponent = () => {
   const handleAddChallengefromavilablenew = () => {
     setIsSection3Visible(true);
     setisCreatedContentVisible(false);
+    setNavigationHistory((prev) => [...prev, "section3"]);
   };
 
   const handleRemoveFile = (field) => {
@@ -2419,6 +2517,7 @@ const ParentComponent = () => {
                             : "cursor-pointer "
                         } ${darkMode ? "bg-[#333333]" : "bg-gray-200"}`}
                         onClick={handleOpenLearningVideo}
+                        disabled={learningVideoSubmitted}
                       >
                         <div className="flex justify-between items-center">
                           <span>
@@ -2464,6 +2563,7 @@ const ParentComponent = () => {
                             : "cursor-pointer "
                         } ${darkMode ? "bg-[#333333]" : "bg-gray-200"}`}
                         onClick={handleOpenChallange}
+                        // disabled={!learningVideoSubmitted}
                       >
                         <div className="flex justify-between items-center">
                           <span>
@@ -2509,17 +2609,21 @@ const ParentComponent = () => {
                       <section>
                         <div className="flex flex-col">
                           {/* <button
-                            type="button"
-                            className=" mb-3 px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#F48567] flex items-center justify-center"
-                            onClick={handleAddModulefromavilable}
-                          >
-                            Add Module
-                          </button> */}
+            type="button"
+            className=" mb-3 px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#F48567] flex items-center justify-center"
+            onClick={handleAddModulefromavilable}
+          >
+            Add Module
+          </button> */}
                         </div>
 
                         {/* Always show multiple title inputs */}
+
                         <div className="flex flex-col mt-3 space-y-2">
-                          <label className="mb-1">Learning Video Titles</label>
+                          <label className="mb-1">
+                            Learning Video {modules.length + 1}
+                          </label>
+                          <label className="mb-1">Learning Video Titles </label>
 
                           {Array.from({
                             length: Math.max(
@@ -2527,26 +2631,129 @@ const ParentComponent = () => {
                               formData.videoFile_introduction.length
                             ),
                           }).map((_, index) => (
-                            <input
+                            <div
                               key={index}
-                              type="text"
-                              placeholder={`Title for Video ${index + 1}`}
-                              className="p-2 rounded-xl border border-gray-600 focus:outline-none"
-                              value={formData.learningVideoTitles[index] || ""}
-                              onChange={(e) => {
-                                const newTitles = [
-                                  ...(formData.learningVideoTitles || []),
-                                ];
-                                newTitles[index] = e.target.value;
-                                setFormData({
-                                  ...formData,
-                                  learningVideoTitles: newTitles,
-                                });
-                              }}
-                            />
+                              className="space-y-3 border border-gray-600 p-3 rounded-xl"
+                            >
+                              {/* 1. Video Title */}
+                              <input
+                                type="text"
+                                placeholder={"Title for Video"}
+                                className="p-2 rounded-xl border border-gray-600 focus:outline-none w-full"
+                                value={
+                                  formData.learningVideoTitles[index] || ""
+                                }
+                                onChange={(e) => {
+                                  const newTitles = [
+                                    ...(formData.learningVideoTitles || []),
+                                  ];
+                                  newTitles[index] = e.target.value;
+                                  setFormData({
+                                    ...formData,
+                                    learningVideoTitles: newTitles,
+                                  });
+                                }}
+                              />
+
+                              {/* 2. Video Description */}
+                              <textarea
+                                placeholder={"Description for Video"}
+                                className="p-2 rounded-xl border border-gray-600 focus:outline-none w-full min-h-[80px]"
+                                value={
+                                  formData.description_videofile_text[index] ||
+                                  ""
+                                }
+                                onChange={(e) => {
+                                  const newDescriptions = [
+                                    ...(formData.description_videofile_text ||
+                                      []),
+                                  ];
+                                  newDescriptions[index] = e.target.value;
+                                  setFormData({
+                                    ...formData,
+                                    description_videofile_text: newDescriptions,
+                                  });
+                                }}
+                              />
+
+                              {/* 3. Video Cover Photo */}
+                              <div className="flex flex-col w-full">
+                                <label className="mb-1 text-sm">
+                                  Cover Photo for Video
+                                </label>
+                                <label className="p-2 pl-4 pr-4 rounded-xl border border-gray-600 focus:outline-none flex items-center justify-between cursor-pointer">
+                                  <div className="flex-1">
+                                    {formData.learningVideoCovers[index]
+                                      ?.name || "Upload Cover for Video"}
+                                  </div>
+                                  <div className="flex items-center">
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      className="hidden"
+                                      onChange={(e) => {
+                                        const file = e.target.files[0];
+                                        if (file) {
+                                          const newCovers = [
+                                            ...(formData.learningVideoCovers ||
+                                              []),
+                                          ];
+                                          newCovers[index] = file;
+                                          setFormData({
+                                            ...formData,
+                                            learningVideoCovers: newCovers,
+                                          });
+                                        }
+                                      }}
+                                    />
+                                    {formData.learningVideoCovers[index] ? (
+                                      <svg
+                                        width="18"
+                                        height="18"
+                                        viewBox="0 0 18 18"
+                                        fill="none"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          const newCovers = [
+                                            ...(formData.learningVideoCovers ||
+                                              []),
+                                          ];
+                                          newCovers[index] = null;
+                                          setFormData({
+                                            ...formData,
+                                            learningVideoCovers: newCovers,
+                                          });
+                                        }}
+                                        className="cursor-pointer ml-2"
+                                      >
+                                        <path
+                                          d="M9 0.25C4.125 0.25 0.25 4.125 0.25 9C0.25 13.875 4.125 17.75 9 17.75C13.875 17.75 17.75 13.875 17.75 9C17.75 4.125 13.875 0.25 9 0.25ZM12.375 13.375L9 10L5.625 13.375L4.625 12.375L8 9L4.625 5.625L5.625 4.625L9 8L12.375 4.625L13.375 5.625L10 9L13.375 12.375L12.375 13.375Z"
+                                          fill="#DD441B"
+                                        />
+                                      </svg>
+                                    ) : (
+                                      <svg
+                                        width="13"
+                                        height="13"
+                                        viewBox="0 0 13 13"
+                                        fill="none"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                      >
+                                        <path
+                                          d="M5.8501 9.59998V3.48748L3.9001 5.43748L2.8501 4.34998L6.6001 0.599976L10.3501 4.34998L9.3001 5.43748L7.3501 3.48748V9.59998H5.8501ZM2.1001 12.6C1.6876 12.6 1.3346 12.4532 1.0411 12.1597C0.747598 11.8662 0.600598 11.513 0.600098 11.1V8.84998H2.1001V11.1H11.1001V8.84998H12.6001V11.1C12.6001 11.5125 12.4533 11.8657 12.1598 12.1597C11.8663 12.4537 11.5131 12.6005 11.1001 12.6H2.1001Z"
+                                          fill="#C7C7C7"
+                                        />
+                                      </svg>
+                                    )}
+                                  </div>
+                                </label>
+                              </div>
+                            </div>
                           ))}
                         </div>
 
+                        {/* Module Description (Keep this outside the map - it's for the entire module) */}
                         <div className="flex flex-col mt-3">
                           <label className="mb-1">Description</label>
                           <textarea
@@ -2563,7 +2770,7 @@ const ParentComponent = () => {
                           />
                         </div>
 
-                        {/* Upload sections */}
+                        {/* Module Cover Photo (Keep this outside the map - it's for the entire module) */}
                         <div className="flex flex-col w-full  mt-3">
                           <label className=" mb-1">Upload Cover Photo</label>
                           <label className="p-2 pl-4 pr-4   rounded-xl border border-gray-600 focus:outline-none flex items-center justify-between cursor-pointer">
@@ -3524,37 +3731,43 @@ const ParentComponent = () => {
         isOpen={showSuccessModal}
         onClose={() => {
           setShowSuccessModal(false);
-          // Reset to first section and show "Submitted" text
           setIsSectionVisible(true);
           setIsSection2Visible(false);
           setisCreatedModuleVisible(false);
           setModules([]);
-          setFormData(initialModuleData);
 
-          // Set submitted state
+          // ✅ CORRECT: Only preserve dropdown data, clear file uploads
+          setFormData({
+            ...formData, // Keep track, module, partner selections
+            description: "",
+            cover_Photo: null,
+            videoFile_introduction: [],
+            videoFile_description: [],
+            learningVideoTitles: [],
+            content: "",
+          });
+
           setLearningVideoSubmitted(true);
-
-          // Reset after 2 seconds
-          setTimeout(() => {
-            setLearningVideoSubmitted(false);
-          }, 2000);
         }}
         onConfirm={() => {
           setShowSuccessModal(false);
-          // Reset to first section and show "Submitted" text
           setIsSectionVisible(true);
           setIsSection2Visible(false);
           setisCreatedModuleVisible(false);
           setModules([]);
-          setFormData(initialModuleData);
 
-          // Set submitted state
+          // ✅ CORRECT: Only preserve dropdown data, clear file uploads
+          setFormData({
+            ...formData, // Keep track, module, partner selections
+            description: "",
+            cover_Photo: null,
+            videoFile_introduction: [],
+            videoFile_description: [],
+            learningVideoTitles: [],
+            content: "",
+          });
+
           setLearningVideoSubmitted(true);
-
-          // Reset after 2 seconds
-          setTimeout(() => {
-            setLearningVideoSubmitted(false);
-          }, 2000);
         }}
         message="Your Learning Data Successfully Submitted."
         confirmText="OK"
@@ -3587,21 +3800,30 @@ const ParentComponent = () => {
         isOpen={showChallengeSuccess}
         onClose={() => {
           setShowChallengeSuccess(false);
-          // Reset to first section and show "Submitted" text
+
           setIsSectionVisible(true);
           setIsSection3Visible(false);
           setisCreatedContentVisible(false);
           setChallenges([]);
-          setChallengeData(initialChallangeData);
+          setChallengeData({
+            ...challengeData, // This preserves module reference
+            challengeName: "",
+            challenge_Description: "",
+            challenge_benefits: "",
+            duration: "0h 00 min",
+            difficulty_Level: "",
+            video_or_image: null,
+          });
+          // setChallengeData(initialChallangeData);
           settime({ duration: 0 });
 
           // Set submitted state
           setChallengeSubmitted(true);
 
           // Reset after 2 seconds
-          setTimeout(() => {
-            setChallengeSubmitted(false);
-          }, 2000);
+          // setTimeout(() => {
+          //   setChallengeSubmitted(false);
+          // }, 2000);
         }}
         onConfirm={() => {
           setShowChallengeSuccess(false);
@@ -3617,9 +3839,9 @@ const ParentComponent = () => {
           setChallengeSubmitted(true);
 
           // Reset after 2 seconds
-          setTimeout(() => {
-            setChallengeSubmitted(false);
-          }, 2000);
+          // setTimeout(() => {
+          //   setChallengeSubmitted(false);
+          // }, 2000);
         }}
         message="Your Challenge Data Successfully Submitted."
         confirmText="OK"
@@ -3840,37 +4062,43 @@ const ParentComponent = () => {
         isOpen={showUpdateSuccessModal}
         onClose={() => {
           setShowUpdateSuccessModal(false);
-          // Reset to first section and show "Submitted" text
           setIsSectionVisible(true);
           setIsSection2Visible(false);
           setisCreatedModuleVisible(false);
           setModules([]);
-          setFormData(initialModuleData);
 
-          // Set submitted state
+          // ✅ CORRECT: Only preserve dropdown data, clear file uploads
+          setFormData({
+            ...formData, // Keep track, module, partner selections
+            description: "",
+            cover_Photo: null,
+            videoFile_introduction: [],
+            videoFile_description: [],
+            learningVideoTitles: [],
+            content: "",
+          });
+
           setLearningVideoSubmitted(true);
-
-          // Reset after 2 seconds
-          setTimeout(() => {
-            setLearningVideoSubmitted(false);
-          }, 2000);
         }}
         onConfirm={() => {
           setShowUpdateSuccessModal(false);
-          // Reset to first section and show "Submitted" text
           setIsSectionVisible(true);
           setIsSection2Visible(false);
           setisCreatedModuleVisible(false);
           setModules([]);
-          setFormData(initialModuleData);
 
-          // Set submitted state
+          // ✅ CORRECT: Only preserve dropdown data, clear file uploads
+          setFormData({
+            ...formData, // Keep track, module, partner selections
+            description: "",
+            cover_Photo: null,
+            videoFile_introduction: [],
+            videoFile_description: [],
+            learningVideoTitles: [],
+            content: "",
+          });
+
           setLearningVideoSubmitted(true);
-
-          // Reset after 2 seconds
-          setTimeout(() => {
-            setLearningVideoSubmitted(false);
-          }, 2000);
         }}
         message="Your Learning Video Successfully Updated."
         confirmText="OK"
