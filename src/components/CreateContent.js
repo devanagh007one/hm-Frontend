@@ -197,16 +197,6 @@ const ParentComponent = () => {
     fetchModulesForTrack();
   }, [formData.tracks, dispatch]);
 
-  const saveSelectedDataToStorage = (track, module) => {
-    const selectedData = {
-      track: track,
-      module: module,
-      timestamp: Date.now(),
-    };
-    localStorage.setItem("selectedTrackModule", JSON.stringify(selectedData));
-    console.log("Saved to storage:", selectedData);
-  };
-
   // Update getSelectedDataFromStorage to be more defensive
   const getSelectedDataFromStorage = () => {
     try {
@@ -221,29 +211,13 @@ const ParentComponent = () => {
   // Only clear storage when explicitly needed (like when closing popup)
   const clearSelectedDataFromStorage = () => {
     localStorage.removeItem("selectedTrackModule");
-    console.log("Cleared storage");
-  };
-
-  // Update the handleSelectTracks function
-  const handleSelectTracks = async (trackName) => {
-    setFormData((prevData) => ({
-      ...prevData,
-      tracks: trackName,
-      module: "", // Reset module when track changes
-      moduleName: "", // Reset module name
+    // Also reset form data partner fields if needed
+    setFormData((prev) => ({
+      ...prev,
+      partner: "",
+      partnerId: "",
     }));
-
-    // Also reset challenge data module reference
-    setChallengeData((prevData) => ({
-      ...prevData,
-      module: "",
-    }));
-
-    // Save to localStorage
-    const currentSelected = getSelectedDataFromStorage();
-    saveSelectedDataToStorage(trackName, currentSelected?.module || "");
-
-    setIsOpenTrack(false);
+    console.log("Cleared storage including partner data");
   };
 
   const [tracks, setTracks] = useState([]);
@@ -262,13 +236,64 @@ const ParentComponent = () => {
     loadTracks();
   }, [dispatch]);
 
-  // In your handleSelectPartner function, update it to:
-  const handleSelectPartner = (partnerObj) => {
+  const saveSelectedDataToStorage = (track, module, partner, partnerId) => {
+    const selectedData = {
+      track: track,
+      module: module,
+      partner: partner,
+      partnerId: partnerId,
+      timestamp: Date.now(),
+    };
+    localStorage.setItem("selectedTrackModule", JSON.stringify(selectedData));
+    console.log("Saved to storage:", selectedData);
+  };
+
+  // Update handleSelectTracks to save partner data
+  const handleSelectTracks = async (trackName) => {
     setFormData((prevData) => ({
       ...prevData,
-      partner: partnerObj.firstName + " " + partnerObj.lastName, // Display name
-      partnerId: partnerObj._id || partnerObj.id, // Store the ID for uploaded_by
+      tracks: trackName,
+      module: "", // Reset module when track changes
+      moduleName: "", // Reset module name
     }));
+
+    // Also reset challenge data module reference
+    setChallengeData((prevData) => ({
+      ...prevData,
+      module: "",
+    }));
+
+    // Save to localStorage with partner data
+    const currentSelected = getSelectedDataFromStorage();
+    saveSelectedDataToStorage(
+      trackName,
+      currentSelected?.module || "",
+      currentSelected?.partner || formData.partner,
+      currentSelected?.partnerId || formData.partnerId
+    );
+
+    setIsOpenTrack(false);
+  };
+
+  // Update handleSelectPartner to save data
+  const handleSelectPartner = (partnerObj) => {
+    const partnerName = partnerObj.firstName + " " + partnerObj.lastName;
+    const partnerId = partnerObj._id || partnerObj.id;
+
+    setFormData((prevData) => ({
+      ...prevData,
+      partner: partnerName,
+      partnerId: partnerId,
+    }));
+
+    // Save to localStorage
+    const currentSelected = getSelectedDataFromStorage();
+    saveSelectedDataToStorage(
+      currentSelected?.track || formData.tracks,
+      currentSelected?.module || formData.module,
+      partnerName,
+      partnerId
+    );
 
     setIsOpenPartner(false);
   };
@@ -376,6 +401,15 @@ const ParentComponent = () => {
     setShowPopup(false);
     // setChallengeData(initialChallangeData);
     // setFormData(initialModuleData);
+    setFormData({
+      ...initialModuleData,
+      // ✅ PRESERVE DROPDOWN SELECTIONS
+      tracks: formData.tracks,
+      module: formData.module,
+      partner: formData.partner,
+      partnerId: formData.partnerId,
+    });
+
     settime({ duration: 0 });
     setIsSectionVisible(true);
     setIsSection2Visible(false);
@@ -392,7 +426,7 @@ const ParentComponent = () => {
     // setLearningVideoSubmitted(false);
     // setChallengeSubmitted(false);
 
-    clearSelectedDataFromStorage();
+    // clearSelectedDataFromStorage();
   };
 
   useEffect(() => {
@@ -403,6 +437,9 @@ const ParentComponent = () => {
           ...prev,
           tracks: storedData.track || prev.tracks,
           module: storedData.module || prev.module,
+          // ✅ ADD THESE LINES - Missing partner data
+          partner: storedData.partner || prev.partner,
+          partnerId: storedData.partnerId || prev.partnerId,
         }));
       }
     }
@@ -453,7 +490,6 @@ const ParentComponent = () => {
         )
       );
 
-      clearSelectedDataFromStorage();
       setLoadingLink(false);
 
       // Show appropriate success modal
@@ -463,7 +499,6 @@ const ParentComponent = () => {
         setShowSuccessModal(true);
       }
 
-      clearSelectedDataFromStorage();
       setLoadingLink(false);
       setShowSuccessModal(true);
     } catch (error) {
@@ -701,6 +736,7 @@ const ParentComponent = () => {
       module: formData.module,
       _id: selectedModule?.id || formData._id,
       // ✅ Keep partnerId in reset form data
+      partner: formData.partner, // Add this line
       partnerId: formData.partnerId,
     };
 
@@ -943,7 +979,6 @@ const ParentComponent = () => {
         )
       );
 
-      clearSelectedDataFromStorage();
       setLoadingLink(false);
       setShowUpdateSuccessModal(true);
     } catch (error) {
@@ -973,16 +1008,16 @@ const ParentComponent = () => {
         content: "",
       }));
     } else {
-      // Store the module data - videos will be fetched fresh from API during submit
+      // ✅ FIX: Populate existing module data including description and cover photo
       setFormData((prevData) => ({
         ...prevData,
         module: module._id,
         moduleName: module.moduleName || "",
-        description: "",
-        cover_Photo: null,
+        description: module.description || "", // ✅ Populate existing description
+        cover_Photo: module.cover_Photo || null, // ✅ Populate existing cover photo
         videoFile_introduction: [], // Empty for NEW videos
         videoFile_description: [], // Empty for NEW videos
-        content: "",
+        content: module.content || "",
         fileSize: module.fileSize || "",
         isApproved: module.isApproved || "pending",
         moduleType: module.moduleType || "Module",
@@ -999,7 +1034,9 @@ const ParentComponent = () => {
     const currentSelected = getSelectedDataFromStorage();
     saveSelectedDataToStorage(
       currentSelected?.track || formData.tracks,
-      module._id
+      module._id,
+      currentSelected?.partner || formData.partner,
+      currentSelected?.partnerId || formData.partnerId
     );
 
     const selectedModuleData = {
@@ -2779,18 +2816,23 @@ const ParentComponent = () => {
                             }
                           />
                         </div>
-                        {/* Module Cover Photo (Keep this outside the map - it's for the entire module) */}
-                        <div className="flex flex-col w-full  mt-3">
-                          <label className=" mb-1">Upload Cover Photo</label>
-                          <label className="p-2 pl-4 pr-4   rounded-xl border border-gray-600 focus:outline-none flex items-center justify-between cursor-pointer">
+
+                        <div className="flex flex-col w-full mt-3">
+                          <label className="mb-1">Upload Cover Photo</label>
+
+                          <label className="p-2 pl-4 pr-4 rounded-xl border border-gray-600 focus:outline-none flex items-center justify-between cursor-pointer">
                             <div>
-                              {formData.cover_Photo?.name ||
-                                "Upload Cover Photo"}
+                              {formData.cover_Photo instanceof File
+                                ? formData.cover_Photo.name
+                                : formData.cover_Photo
+                                ? "Change Cover Photo"
+                                : "Upload Cover Photo"}
                             </div>
                             <div className="flex items-center">
                               <input
                                 name="cover_Photo"
                                 type="file"
+                                accept="image/*"
                                 className="hidden"
                                 onChange={(e) =>
                                   handleFileChange(e, "cover_Photo")
@@ -2804,7 +2846,7 @@ const ParentComponent = () => {
                                   fill="none"
                                   xmlns="http://www.w3.org/2000/svg"
                                   onClick={(e) => {
-                                    e.stopPropagation(); // Prevent file input dialog from opening
+                                    e.stopPropagation();
                                     handleRemoveFile("cover_Photo");
                                   }}
                                   className="cursor-pointer ml-2"
@@ -2958,8 +3000,7 @@ const ParentComponent = () => {
 
                         {formData.partner && (
                           <div className="w-full mt-4 text-sm text-white flex justify-end">
-                            Partner: {formData.partner} (ID:{" "}
-                            {formData.partnerId})
+                            Partner: {formData.partner}
                           </div>
                         )}
                       </section>
@@ -3745,7 +3786,6 @@ const ParentComponent = () => {
           setisCreatedModuleVisible(false);
           setModules([]);
 
-          // ✅ CORRECT: Only preserve dropdown data, clear file uploads
           setFormData({
             ...formData, // Keep track, module, partner selections
             description: "",
@@ -3753,6 +3793,8 @@ const ParentComponent = () => {
             videoFile_introduction: [],
             videoFile_description: [],
             learningVideoTitles: [],
+            learningVideoCovers: [],
+            description_videofile_text: [],
             content: "",
           });
 
