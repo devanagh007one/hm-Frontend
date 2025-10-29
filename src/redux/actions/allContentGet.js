@@ -327,28 +327,32 @@ export const deleteChallenge = (challengeId) => async (dispatch) => {
 export const createContent = (contentData) => async (dispatch) => {
   try {
     const authToken = localStorage.getItem("authToken");
-    console.log(contentData);
-
-    const encryptedId = localStorage.getItem("userId");
-    if (!encryptedId) {
-      console.error("Encrypted user ID is missing.");
-      return null;
-    }
-
-    let userId = null;
-    try {
-      const bytes = CryptoJS.AES.decrypt(
-        encryptedId,
-        "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1"
-      );
-      userId = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
-    } catch (error) {
-      console.error("Error decrypting user ID:", error);
-      return null;
-    }
+    console.log("Content data received:", contentData);
 
     const formData = new FormData();
-    formData.append("uploaded_by", userId);
+
+    // ✅ ONLY append uploaded_by if it's NOT already in contentData
+    // Check if contentData has uploaded_by (partner ID from frontend)
+    if (!contentData.uploaded_by) {
+      const encryptedId = localStorage.getItem("userId");
+      if (!encryptedId) {
+        console.error("Encrypted user ID is missing.");
+        return null;
+      }
+
+      let userId = null;
+      try {
+        const bytes = CryptoJS.AES.decrypt(
+          encryptedId,
+          "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1"
+        );
+        userId = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+      } catch (error) {
+        console.error("Error decrypting user ID:", error);
+        return null;
+      }
+      formData.append("uploaded_by", userId);
+    }
 
     // Check and append other content data
     for (const key in contentData) {
@@ -370,6 +374,12 @@ export const createContent = (contentData) => async (dispatch) => {
       }
     }
 
+    // ✅ DEBUG: Log what we're actually sending
+    console.log("Final FormData being sent:");
+    for (let pair of formData.entries()) {
+      console.log(pair[0] + ": " + pair[1]);
+    }
+
     try {
       const response = await fetch(
         `${process.env.REACT_APP_STATIC_API_URL}/api/contant/create`,
@@ -383,14 +393,13 @@ export const createContent = (contentData) => async (dispatch) => {
       );
 
       if (!response.ok) {
-        const errorText = await response.text(); // Error text for debugging
+        const errorText = await response.text();
         console.error("Failed to create content. Server response:", errorText);
         throw new Error("Failed to create content");
       }
 
       let data;
       try {
-        // Directly parse the response as JSON
         data = await response.json();
         console.log("Parsed JSON:", data);
       } catch (error) {
@@ -414,7 +423,6 @@ export const createContent = (contentData) => async (dispatch) => {
     dispatch({ type: CREATE_CONTENT_FAILURE, payload: error.message });
   }
 };
-
 export const createchallenge = (formData) => async (dispatch) => {
   try {
     const authToken = localStorage.getItem("authToken");

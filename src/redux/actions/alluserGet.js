@@ -35,16 +35,29 @@ export const fetchAllUsers = () => async (dispatch) => {
     const data = await response.json();
     console.log("Fetched all users:", data);
 
-    // Filter users with "Partner" role only and extract firstName and lastName for localStorage
+    // Filter users with "Partner" role only and save ALL data including IDs
     const partnerUsers = data
       .filter((user) => user.roles && user.roles.includes("Partner"))
       .map((user) => ({
+        _id: user._id, // Save the ID
+        id: user.id, // Save alternative ID if available
         firstName: user.firstName || "",
         lastName: user.lastName || "",
+        email: user.email || "",
+        roles: user.roles || [],
+        // Include any other relevant fields you might need
       }));
 
-    // Store partner users in localStorage
+    console.log("Partner users with IDs:", partnerUsers);
+
+    // Store complete partner users data in localStorage
     localStorage.setItem("partnerUsers", JSON.stringify(partnerUsers));
+
+    // Also save just the partner IDs separately for easy access
+    const partnerIds = partnerUsers
+      .map((partner) => partner._id || partner.id)
+      .filter(Boolean);
+    localStorage.setItem("partnerIds", JSON.stringify(partnerIds));
 
     // Get company name from localStorage and count users for that company
     const storedCompanyName = localStorage.getItem("companyName") || "HappMe";

@@ -100,10 +100,7 @@ const ParentComponent = () => {
 
   useEffect(() => {
     const partnerUsers = JSON.parse(localStorage.getItem("partnerUsers")) || [];
-    const formattedPartners = partnerUsers.map(
-      (partner) => `${partner.firstName} ${partner.lastName}`
-    );
-    setPartners(formattedPartners);
+    setPartners(partnerUsers); // Store the full objects, not just names
   }, []);
 
   const generateUniqueId = () => {
@@ -127,6 +124,7 @@ const ParentComponent = () => {
     learningVideoCovers: [],
     description_videofile_text: [],
     content: "",
+    partnerId: "",
   };
   const initialChallangeData = {
     uniChallengeId: generateUniqueId(),
@@ -264,13 +262,15 @@ const ParentComponent = () => {
     loadTracks();
   }, [dispatch]);
 
-  const handleSelectPartner = (option) => {
+  // In your handleSelectPartner function, update it to:
+  const handleSelectPartner = (partnerObj) => {
     setFormData((prevData) => ({
       ...prevData,
-      partner: option,
+      partner: partnerObj.firstName + " " + partnerObj.lastName, // Display name
+      partnerId: partnerObj._id || partnerObj.id, // Store the ID for uploaded_by
     }));
 
-    setIsOpenPartner(false); // Close dropdown after selection
+    setIsOpenPartner(false);
   };
 
   const partner = [
@@ -616,6 +616,8 @@ const ParentComponent = () => {
         description: formData.description,
         content: formData.content,
         tracks: storedData?.track || formData.tracks,
+        // ✅ ADD THIS LINE
+        uploaded_by: formData.partnerId || modules[editingIndex].uploaded_by,
         cover_Photo: formData.cover_Photo || modules[editingIndex].cover_Photo,
         videoFile_introduction: [
           ...(modules[editingIndex].videoFile_introduction || []),
@@ -638,12 +640,10 @@ const ParentComponent = () => {
           ...(formData.learningVideoTitles || []),
         ],
         learningVideoCovers: [
-          // NEW: Add learning video covers
           ...(modules[editingIndex].learningVideoCovers || []),
           ...(formData.learningVideoCovers || []),
         ],
         description_videofile_text: [
-          // NEW: Add learning video descriptions
           ...(modules[editingIndex].description_videofile_text || []),
           ...(formData.description_videofile_text || []),
         ],
@@ -664,6 +664,8 @@ const ParentComponent = () => {
         _id: selectedModule?.id || formData._id,
         moduleName: formData.moduleName,
         isExistingModule: true,
+        // ✅ ADD THIS LINE
+        uploaded_by: formData.partnerId || selectedModule?.uploadedById,
         cover_Photo: formData.cover_Photo,
         videoFile_introduction: Array.isArray(formData.videoFile_introduction)
           ? formData.videoFile_introduction.map((file) => file)
@@ -672,8 +674,8 @@ const ParentComponent = () => {
           ? formData.videoFile_description.map((file) => file)
           : [],
         learningVideoTitles: formData.learningVideoTitles || [],
-        learningVideoCovers: formData.learningVideoCovers || [], // NEW
-        description_videofile_text: formData.description_videofile_text || [], // NEW
+        learningVideoCovers: formData.learningVideoCovers || [],
+        description_videofile_text: formData.description_videofile_text || [],
         entryNumber: modules.length + 1,
       };
 
@@ -693,11 +695,13 @@ const ParentComponent = () => {
       videoFile_introduction: [],
       videoFile_description: [],
       learningVideoTitles: [],
-      learningVideoCovers: [], // NEW: Reset learning video covers
-      description_videofile_text: [], // NEW: Reset learning video descriptions
+      learningVideoCovers: [],
+      description_videofile_text: [],
       content: "",
       module: formData.module,
       _id: selectedModule?.id || formData._id,
+      // ✅ Keep partnerId in reset form data
+      partnerId: formData.partnerId,
     };
 
     setFormData(resetFormData);
@@ -833,7 +837,7 @@ const ParentComponent = () => {
           "isApproved",
           latestEntry.isApproved || "pending"
         );
-
+        formDataToSend.append("uploaded_by", formData.partnerId || "");
         // CRITICAL: Set append flag for description videos only
         formDataToSend.append("append_desc", "true");
 
@@ -1153,22 +1157,19 @@ const ParentComponent = () => {
       return;
     }
 
-    try {
-      const userData = JSON.parse(localStorage.getItem("userData"));
-      const userId = userData?.id || localStorage.getItem("userId");
-      const storedData = getSelectedDataFromStorage();
+    if (!formData.partnerId) {
+      dispatch(showNotification("Please select a partner first", "error"));
+      return;
+    }
 
-      if (!userId) {
-        dispatch(
-          showNotification("User not found. Please login again.", "error")
-        );
-        return;
-      }
+    try {
+      const storedData = getSelectedDataFromStorage();
 
       const selectedModuleData = {
         id: editModule._id,
         moduleName: editModule.moduleName,
-        uploadedById: userId,
+        // ✅ Use partner ID instead of user ID
+        uploadedById: formData.partnerId || "", // Use partner ID only
       };
 
       localStorage.setItem(
@@ -1179,7 +1180,7 @@ const ParentComponent = () => {
       // Use stored track data
       const newModule = {
         uniqueUploadId: generateUniqueId(),
-        tracks: storedData?.track || formData.tracks, // Use stored track
+        tracks: storedData?.track || formData.tracks,
         moduleName: editModule.moduleName,
         moduleType: "Module",
         fileSize: "",
@@ -1189,9 +1190,14 @@ const ParentComponent = () => {
         videoFile_introduction: null,
         videoFile_description: null,
         content: "",
+        // ✅ SEND ONLY PARTNER ID - remove user ID fallback
+        uploaded_by: formData.partnerId, // Only partner ID, no fallback
       };
 
-      console.log("Creating new module with track:", newModule.tracks);
+      console.log(
+        "Creating new module with uploaded_by (partner only):",
+        newModule.uploaded_by
+      );
 
       const response = await dispatch(createContent(newModule));
 
@@ -1205,7 +1211,8 @@ const ParentComponent = () => {
         const updatedSelectedModule = {
           id: response._id,
           moduleName: editModule.moduleName,
-          uploadedById: userId,
+          // ✅ Keep using partner ID
+          uploadedById: formData.partnerId || "",
         };
         localStorage.setItem(
           "selectedModule",
@@ -1221,7 +1228,9 @@ const ParentComponent = () => {
                   _id: response._id,
                   uniqueUploadId: response._id,
                   moduleName: editModule.moduleName,
-                  tracks: storedData?.track || module.tracks, // Preserve track
+                  tracks: storedData?.track || module.tracks,
+                  // ✅ Use partner ID only
+                  uploaded_by: formData.partnerId,
                 }
               : module
           )
@@ -1231,7 +1240,7 @@ const ParentComponent = () => {
           ...prev,
           module: response._id,
           moduleName: editModule.moduleName,
-          tracks: storedData?.track || prev.tracks, // Preserve track
+          tracks: storedData?.track || prev.tracks,
         }));
 
         setChallengeData((prev) => ({
@@ -1344,7 +1353,10 @@ const ParentComponent = () => {
           "challenge_Description",
           challenge.challenge_Description || ""
         );
-        formData.append("uploaded_by", selectedModule.uploadedById);
+        formData.append(
+          "uploaded_by",
+          formData.partnerId || selectedModule.uploadedById
+        );
         formData.append("duration", challenge.duration || "0h 00 min");
         formData.append(
           "challenge_benefits",
@@ -1886,26 +1898,27 @@ const ParentComponent = () => {
                                 >
                                   {partners.map((partner, index) => (
                                     <div
-                                      key={index}
-                                      className="dropdown-item flex items-start w-full p-2  cursor-pointer"
+                                      key={partner._id || partner.id}
+                                      className="dropdown-item flex items-start w-full p-2 cursor-pointer"
                                       onClick={() =>
                                         handleSelectPartner(partner)
-                                      }
+                                      } // Pass full partner object
                                     >
                                       <div className="flex items-center gap-2">
                                         <span className="w-4 h-4 rounded-full border-2 border-[#F48567] flex items-center justify-center">
-                                          {formData.partner === partner && (
+                                          {formData.partner ===
+                                            `${partner.firstName} ${partner.lastName}` && (
                                             <span className="w-2 h-2 rounded-full bg-[#F48567]" />
                                           )}
                                         </span>
                                         <span
-                                          className={`text-sm text-white${
+                                          className={`text-sm ${
                                             darkMode
-                                              ? "text-white "
+                                              ? "text-white"
                                               : "text-black"
                                           }`}
                                         >
-                                          {partner}
+                                          {partner.firstName} {partner.lastName}
                                         </span>
                                       </div>
                                     </div>
@@ -2616,9 +2629,7 @@ const ParentComponent = () => {
             Add Module
           </button> */}
                         </div>
-
                         {/* Always show multiple title inputs */}
-
                         <div className="flex flex-col mt-3 space-y-2">
                           <label className="mb-1">
                             Learning Video {modules.length + 1}
@@ -2752,7 +2763,6 @@ const ParentComponent = () => {
                             </div>
                           ))}
                         </div>
-
                         {/* Module Description (Keep this outside the map - it's for the entire module) */}
                         <div className="flex flex-col mt-3">
                           <label className="mb-1">Description</label>
@@ -2769,7 +2779,6 @@ const ParentComponent = () => {
                             }
                           />
                         </div>
-
                         {/* Module Cover Photo (Keep this outside the map - it's for the entire module) */}
                         <div className="flex flex-col w-full  mt-3">
                           <label className=" mb-1">Upload Cover Photo</label>
@@ -2822,7 +2831,6 @@ const ParentComponent = () => {
                             </div>
                           </label>
                         </div>
-
                         {/* Learning Videos Upload Section - This will handle BOTH introduction and description */}
                         <div className="flex flex-col w-full mt-3">
                           <label className="mb-1">
@@ -2926,7 +2934,6 @@ const ParentComponent = () => {
                             select multiple videos.
                           </p>
                         </div>
-
                         <div className="flex gap-4 mt-4 w-full">
                           <div className="flex flex-col w-full">
                             <button
@@ -2948,9 +2955,11 @@ const ParentComponent = () => {
                             </button>
                           </div>
                         </div>
+
                         {formData.partner && (
                           <div className="w-full mt-4 text-sm text-white flex justify-end">
-                            Partner: {formData.partner}
+                            Partner: {formData.partner} (ID:{" "}
+                            {formData.partnerId})
                           </div>
                         )}
                       </section>
