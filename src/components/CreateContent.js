@@ -1147,107 +1147,6 @@ const ParentComponent = () => {
     }
   };
 
-  const handleCreateNewModule = async () => {
-    if (!editModule?.moduleName) {
-      dispatch(showNotification("Module name is required", "error"));
-      return;
-    }
-
-    try {
-      const userData = JSON.parse(localStorage.getItem("userData"));
-      const userId = userData?.id || localStorage.getItem("userId");
-      const storedData = getSelectedDataFromStorage();
-
-      if (!userId) {
-        dispatch(
-          showNotification("User not found. Please login again.", "error")
-        );
-        return;
-      }
-
-      const selectedModuleData = {
-        id: editModule._id,
-        moduleName: editModule.moduleName,
-        uploadedById: userId,
-      };
-
-      localStorage.setItem(
-        "selectedModule",
-        JSON.stringify(selectedModuleData)
-      );
-
-      // Use stored track data
-      const newModule = {
-        uniqueUploadId: generateUniqueId(),
-        tracks: storedData?.track || formData.tracks, // Use stored track
-        moduleName: editModule.moduleName,
-        moduleType: "Module",
-        fileSize: "",
-        isApproved: "pending",
-        description: "",
-        cover_Photo: editModule.cover_Photo,
-        videoFile_introduction: null,
-        videoFile_description: null,
-        content: "",
-      };
-
-      console.log("Creating new module with track:", newModule.tracks);
-
-      const response = await dispatch(createContent(newModule));
-
-      if (response?._id) {
-        const modulesData = await dispatch(
-          fetchModulesByTrack(formData.tracks)
-        );
-        setModulesFromStorage(modulesData?.items || []);
-        setEditModule(null);
-
-        const updatedSelectedModule = {
-          id: response._id,
-          moduleName: editModule.moduleName,
-          uploadedById: userId,
-        };
-        localStorage.setItem(
-          "selectedModule",
-          JSON.stringify(updatedSelectedModule)
-        );
-
-        // Update the modules array with stored track
-        setModules((prevModules) =>
-          prevModules.map((module) =>
-            module.uniqueUploadId === editModule._id
-              ? {
-                  ...module,
-                  _id: response._id,
-                  uniqueUploadId: response._id,
-                  moduleName: editModule.moduleName,
-                  tracks: storedData?.track || module.tracks, // Preserve track
-                }
-              : module
-          )
-        );
-
-        setFormData((prev) => ({
-          ...prev,
-          module: response._id,
-          moduleName: editModule.moduleName,
-          tracks: storedData?.track || prev.tracks, // Preserve track
-        }));
-
-        setChallengeData((prev) => ({
-          ...prev,
-          module: response._id,
-        }));
-
-        dispatch(showNotification("Module created successfully!", "success"));
-        setIsOpenModule(false);
-      }
-    } catch (error) {
-      console.error("Module creation error:", error);
-      dispatch(showNotification("Failed to create module", "error"));
-    }
-  };
-
   const handleAddChallengefromavilablenew = () => {
     setIsSection3Visible(true);
     setisCreatedContentVisible(false);
@@ -1319,11 +1218,150 @@ const ParentComponent = () => {
     setShowSubmitConfirmation(true);
   };
 
+  // Add these with your other utility functions
+  const isValidObjectId = (id) => {
+    return /^[0-9a-fA-F]{24}$/.test(id);
+  };
+
+  // Add these with your other utility functions
+  const getValidatedUserId = () => {
+    const userData = JSON.parse(localStorage.getItem("userData"));
+    const userId = userData?.id || localStorage.getItem("userId");
+
+    if (!userId) {
+      console.error("No user ID found in localStorage");
+      return null;
+    }
+
+    // If it's a valid ObjectId, use it directly
+    if (/^[0-9a-fA-F]{24}$/.test(userId)) {
+      return userId;
+    }
+
+    // If it's an encrypted string or other format, we need to handle it
+    console.log("User ID format:", typeof userId, userId);
+
+    // Try to extract or use the ID as is (your backend might handle the decryption)
+    return userId;
+  };
+
+  const handleCreateNewModule = async () => {
+    if (!editModule?.moduleName) {
+      dispatch(showNotification("Module name is required", "error"));
+      return;
+    }
+
+    try {
+      const userData = JSON.parse(localStorage.getItem("userData"));
+      const userId = userData?.id || localStorage.getItem("userId");
+
+      if (!userId) {
+        dispatch(
+          showNotification("User not found. Please login again.", "error")
+        );
+        return;
+      }
+
+      const storedData = getSelectedDataFromStorage();
+
+      const selectedModuleData = {
+        id: editModule._id,
+        moduleName: editModule.moduleName,
+        uploadedById: userId, // Use whatever ID is in localStorage
+      };
+
+      localStorage.setItem(
+        "selectedModule",
+        JSON.stringify(selectedModuleData)
+      );
+
+      // Rest of your existing code remains the same...
+      const newModule = {
+        uniqueUploadId: generateUniqueId(),
+        tracks: storedData?.track || formData.tracks,
+        moduleName: editModule.moduleName,
+        moduleType: "Module",
+        fileSize: "",
+        isApproved: "pending",
+        description: "",
+        cover_Photo: editModule.cover_Photo,
+        videoFile_introduction: null,
+        videoFile_description: null,
+        content: "",
+      };
+
+      console.log("Creating new module with track:", newModule.tracks);
+
+      const response = await dispatch(createContent(newModule));
+
+      if (response?._id) {
+        const modulesData = await dispatch(
+          fetchModulesByTrack(formData.tracks)
+        );
+        setModulesFromStorage(modulesData?.items || []);
+        setEditModule(null);
+
+        const updatedSelectedModule = {
+          id: response._id,
+          moduleName: editModule.moduleName,
+          uploadedById: userId,
+        };
+        localStorage.setItem(
+          "selectedModule",
+          JSON.stringify(updatedSelectedModule)
+        );
+
+        setModules((prevModules) =>
+          prevModules.map((module) =>
+            module.uniqueUploadId === editModule._id
+              ? {
+                  ...module,
+                  _id: response._id,
+                  uniqueUploadId: response._id,
+                  moduleName: editModule.moduleName,
+                  tracks: storedData?.track || module.tracks,
+                }
+              : module
+          )
+        );
+
+        setFormData((prev) => ({
+          ...prev,
+          module: response._id,
+          moduleName: editModule.moduleName,
+          tracks: storedData?.track || prev.tracks,
+        }));
+
+        setChallengeData((prev) => ({
+          ...prev,
+          module: response._id,
+        }));
+
+        dispatch(showNotification("Module created successfully!", "success"));
+        setIsOpenModule(false);
+      }
+    } catch (error) {
+      console.error("Module creation error:", error);
+      dispatch(showNotification("Failed to create module", "error"));
+    }
+  };
+
   const handleSave = async () => {
     const selectedModule = JSON.parse(localStorage.getItem("selectedModule"));
 
     if (!selectedModule?.id) {
       dispatch(showNotification("No module selected", "error"));
+      return;
+    }
+
+    // Get user ID from localStorage without strict validation
+    const userData = JSON.parse(localStorage.getItem("userData"));
+    const userId = userData?.id || localStorage.getItem("userId");
+
+    if (!userId) {
+      dispatch(
+        showNotification("User not found. Please login again.", "error")
+      );
       return;
     }
 
@@ -1344,7 +1382,7 @@ const ParentComponent = () => {
           "challenge_Description",
           challenge.challenge_Description || ""
         );
-        formData.append("uploaded_by", selectedModule.uploadedById);
+        formData.append("uploaded_by", userId); // Use the ID from localStorage
         formData.append("duration", challenge.duration || "0h 00 min");
         formData.append(
           "challenge_benefits",
@@ -1379,7 +1417,6 @@ const ParentComponent = () => {
       setLoadingLink(false);
     }
   };
-
   const handleChallengeCancelConfirmation = () => {
     if (challenges.length > 0) {
       setShowChallengeCancelConfirmation(true);
@@ -3796,7 +3833,7 @@ const ParentComponent = () => {
         darkMode={darkMode}
       />
 
-      <ConfirmationModal
+      {/* <ConfirmationModal
         isOpen={showChallengeSuccess}
         onClose={() => {
           setShowChallengeSuccess(false);
@@ -3842,6 +3879,22 @@ const ParentComponent = () => {
           // setTimeout(() => {
           //   setChallengeSubmitted(false);
           // }, 2000);
+        }}
+        message="Your Challenge Data Successfully Submitted."
+        confirmText="OK"
+        showCancel={false}
+        darkMode={darkMode}
+      /> */}
+
+      <ConfirmationModal
+        isOpen={showChallengeSuccess}
+        onClose={() => {
+          setShowChallengeSuccess(false);
+          handleClosePopup(); // Close modal on close too
+        }}
+        onConfirm={() => {
+          setShowChallengeSuccess(false);
+          handleClosePopup(); // Close modal on OK click
         }}
         message="Your Challenge Data Successfully Submitted."
         confirmText="OK"
