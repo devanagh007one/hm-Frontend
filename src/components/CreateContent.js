@@ -113,7 +113,7 @@ const ParentComponent = () => {
     moduleName: "",
     moduleType: "Module",
     fileSize: "",
-    isApproved: "pending",
+    isApproved: "approved",
     description: "",
     cover_Photo: "",
     existingIntroVideos: [],
@@ -125,6 +125,11 @@ const ParentComponent = () => {
     description_videofile_text: [],
     content: "",
     partnerId: "",
+    partner: "", // Make sure this is included
+    module: "", // Make sure this is included
+    _id: null, // Reset ID
+    isExistingModule: false, // Reset existing module flag
+    entryNumber: null, // Reset entry number
   };
   const initialChallangeData = {
     uniChallengeId: generateUniqueId(),
@@ -298,16 +303,6 @@ const ParentComponent = () => {
     setIsOpenPartner(false);
   };
 
-  const partner = [
-    "partner 1",
-    "partner 2",
-    "partner 3",
-    "partner 4",
-    "partner 5",
-    "partner 6",
-    "partner 7",
-  ];
-
   const module = [
     "module 1",
     "module 2",
@@ -319,6 +314,17 @@ const ParentComponent = () => {
   ];
 
   const handleOpenLearningVideo = () => {
+    setFormData((prevData) => ({
+      ...prevData,
+
+      videoFile_introduction: [],
+      videoFile_description: [],
+      learningVideoTitles: [],
+      learningVideoCovers: [],
+      description_videofile_text: [],
+      content: "",
+    }));
+
     setIsSectionVisible(false);
     setIsSection2Visible(true);
     setNavigationHistory((prev) => [...prev, "section2"]);
@@ -399,34 +405,62 @@ const ParentComponent = () => {
   const handleViewPopup = () => setShowPopup(true);
   const handleClosePopup = () => {
     setShowPopup(false);
-    // setChallengeData(initialChallangeData);
-    // setFormData(initialModuleData);
+
+    // Reset all form data while preserving essential selections
     setFormData({
       ...initialModuleData,
-      // ✅ PRESERVE DROPDOWN SELECTIONS
+      // ✅ PRESERVE DROPDOWN SELECTIONS for next session
       tracks: formData.tracks,
       module: formData.module,
       partner: formData.partner,
       partnerId: formData.partnerId,
     });
 
+    // Reset all time and UI states
     settime({ duration: 0 });
     setIsSectionVisible(true);
     setIsSection2Visible(false);
     setIsSection3Visible(false);
     setisCreatedModuleVisible(false);
+    setisCreatedContentVisible(false);
     setIsOpenTrack(false);
+    setIsOpenPartner(false);
+    setIsOpenModule(false);
     setFileProfile("Upload Cover Photo");
     setSelectedContent(null);
     setIsChallengeSelected(false);
+
+    // ✅ CRITICAL: Clear the modules and challenges arrays
     setModules([]);
     setChallenges([]);
+
+    // Reset navigation
     setNavigationHistory(["section1"]);
 
-    // setLearningVideoSubmitted(false);
-    // setChallengeSubmitted(false);
+    // ✅ Reset editing states
+    setEditingIndex(null);
+    setEditingChallengeIndex(null);
+    setExpandedIndex(null);
 
-    // clearSelectedDataFromStorage();
+    // ✅ Reset challenge data
+    setChallengeData({
+      ...initialChallangeData,
+      uniChallengeId: generateUniqueId(),
+    });
+
+    // ✅ Reset submission states
+    setLearningVideoSubmitted(false);
+    setChallengeSubmitted(false);
+
+    // ✅ Reset progress
+    setProgress(0);
+
+    // ✅ Reset loading states
+    setLoadingLink(false);
+    setLoading(false);
+
+    // Don't clear localStorage if you want to preserve selections for next time
+    // clearSelectedDataFromStorage(); // Comment this out if you want to keep selections
   };
 
   useEffect(() => {
@@ -712,32 +746,46 @@ const ParentComponent = () => {
         learningVideoCovers: formData.learningVideoCovers || [],
         description_videofile_text: formData.description_videofile_text || [],
         entryNumber: modules.length + 1,
+        isApproved: "approved",
       };
 
       setModules((prevModules) => [...prevModules, newLearningVideoEntry]);
     }
 
     // Reset form
+    // const resetFormData = {
+    //   uniqueUploadId: generateUniqueId(),
+    //   tracks: storedData?.track || formData.tracks,
+    //   moduleName: formData.moduleName,
+    //   moduleType: "Module",
+    //   fileSize: "",
+    //   isApproved: "pending",
+    //   description: formData.description,
+    //   // cover_Photo: null,
+    //   videoFile_introduction: [],
+    //   videoFile_description: [],
+    //   learningVideoTitles: [],
+    //   learningVideoCovers: [],
+    //   description_videofile_text: [],
+    //   content: "",
+    //   module: formData.module,
+    //   _id: selectedModule?.id || formData._id,
+
+    //   partner: formData.partner,
+    //   partnerId: formData.partnerId,
+    // };
+
     const resetFormData = {
+      ...formData, // Keep ALL existing data first
+      // Then reset only the fields that should be fresh for next learning video
       uniqueUploadId: generateUniqueId(),
-      tracks: storedData?.track || formData.tracks,
-      moduleName: formData.moduleName,
-      moduleType: "Module",
-      fileSize: "",
-      isApproved: "pending",
-      description: formData.description,
-      cover_Photo: null,
       videoFile_introduction: [],
       videoFile_description: [],
       learningVideoTitles: [],
       learningVideoCovers: [],
       description_videofile_text: [],
       content: "",
-      module: formData.module,
-      _id: selectedModule?.id || formData._id,
-      // ✅ Keep partnerId in reset form data
-      partner: formData.partner, // Add this line
-      partnerId: formData.partnerId,
+      isApproved: "approved",
     };
 
     setFormData(resetFormData);
@@ -768,7 +816,6 @@ const ParentComponent = () => {
     };
 
     try {
-      // Group all learning video entries by module ID
       const moduleGroups = modules.reduce((acc, entry) => {
         const moduleId = entry._id;
         if (!acc[moduleId]) {
@@ -782,29 +829,26 @@ const ParentComponent = () => {
 
       console.log("📦 Starting bulk update for", totalSteps, "modules");
 
-      // Process each module
       for (const [moduleId, entries] of Object.entries(moduleGroups)) {
         console.log(
           `\n🔄 Processing module ${moduleId} with ${entries.length} entries`
         );
 
-        // Collect ALL NEW videos - now only for description
         const allNewVideos = [];
-        const allNewCovers = []; // NEW: Collect learning video covers
+        const allNewCovers = [];
         let latestEntry = entries[0];
         let coverPhoto = null;
         let description = "";
         let allVideoTitles = [];
-        let allVideoDescriptions = []; // NEW: Collect learning video descriptions
+        let allVideoDescriptions = [];
 
         entries.forEach((entry, idx) => {
           console.log(`  Entry ${idx + 1}:`, {
             newVideos: entry.videoFile_description?.length || 0,
-            newCovers: entry.learningVideoCovers?.length || 0, // NEW
-            newDescriptions: entry.description_videofile_text?.length || 0, // NEW
+            newCovers: entry.learningVideoCovers?.length || 0,
+            newDescriptions: entry.description_videofile_text?.length || 0,
           });
 
-          // Collect NEW videos for description field only
           if (Array.isArray(entry.videoFile_description)) {
             entry.videoFile_description.forEach((video) => {
               if (video instanceof File) {
@@ -813,7 +857,6 @@ const ParentComponent = () => {
             });
           }
 
-          // NEW: Collect learning video covers
           if (Array.isArray(entry.learningVideoCovers)) {
             entry.learningVideoCovers.forEach((cover) => {
               if (cover instanceof File) {
@@ -822,7 +865,6 @@ const ParentComponent = () => {
             });
           }
 
-          // NEW: Collect learning video descriptions
           if (Array.isArray(entry.description_videofile_text)) {
             allVideoDescriptions = [
               ...allVideoDescriptions,
@@ -832,7 +874,6 @@ const ParentComponent = () => {
             ];
           }
 
-          // Collect learning video titles
           if (Array.isArray(entry.learningVideoTitles)) {
             allVideoTitles = [
               ...allVideoTitles,
@@ -850,15 +891,6 @@ const ParentComponent = () => {
           }
         });
 
-        console.log("📊 Video Summary:", {
-          newVideos: allNewVideos.length,
-          newCovers: allNewCovers.length, // NEW
-          newDescriptions: allVideoDescriptions.length, // NEW
-          videoNames: allNewVideos.map((v) => v.name),
-          coverNames: allNewCovers.map((c) => c.name), // NEW
-        });
-
-        // Create FormData for multipart upload
         const formDataToSend = new FormData();
 
         formDataToSend.append("uniqueUploadId", latestEntry.uniqueUploadId);
@@ -869,15 +901,11 @@ const ParentComponent = () => {
         );
         formDataToSend.append("moduleType", latestEntry.moduleType || "Module");
         formDataToSend.append("fileSize", latestEntry.fileSize || "");
-        formDataToSend.append(
-          "isApproved",
-          latestEntry.isApproved || "pending"
-        );
+        formDataToSend.append("isApproved", "approved"); // ✅ MODULE STAYS APPROVED
         formDataToSend.append("uploaded_by", formData.partnerId || "");
-        // CRITICAL: Set append flag for description videos only
         formDataToSend.append("append_desc", "true");
 
-        // Add description field - THIS WAS MISSING
+        // Add description field
         if (description) {
           formDataToSend.append("description", description);
         }
@@ -894,7 +922,7 @@ const ParentComponent = () => {
           );
         }
 
-        // NEW: Add learning video descriptions
+        // Add learning video descriptions
         if (allVideoDescriptions.length > 0) {
           formDataToSend.append(
             "description_videofile_text",
@@ -902,13 +930,13 @@ const ParentComponent = () => {
           );
         }
 
-        // FIX: Send videos ONLY to description field (removed introduction)
+        // Send videos ONLY to description field
         allNewVideos.forEach((video, index) => {
           formDataToSend.append("videoFile_description", video);
           console.log(`  ➕ Adding video ${index + 1}: ${video.name}`);
         });
 
-        // NEW: Send learning video covers
+        // Send learning video covers
         allNewCovers.forEach((cover, index) => {
           formDataToSend.append("learningVideoCovers", cover);
           console.log(`  🖼️ Adding cover ${index + 1}: ${cover.name}`);
@@ -918,7 +946,7 @@ const ParentComponent = () => {
           formDataToSend.append("content", latestEntry.content);
         }
 
-        console.log(`\n🚀 Sending to API with all fields`);
+        console.log(`\n🚀 Sending to API with module status: approved`);
 
         try {
           const authToken = localStorage.getItem("authToken");
@@ -944,12 +972,12 @@ const ParentComponent = () => {
 
           console.log("✅ Update response:", {
             success: data?.success,
+            moduleStatus: data?.content?.isApproved, // ✅ CHECK MODULE STATUS
             finalVideoCount: data?.content?.videoFile_description?.length,
-            hasDescription: !!data?.content?.description,
             learningVideoTitles: data?.content?.learningVideoTitles,
             description_videofile_text:
-              data?.content?.description_videofile_text, // NEW
-            learningVideoCovers: data?.content?.learningVideoCovers, // NEW
+              data?.content?.description_videofile_text,
+            learningVideoCovers: data?.content?.learningVideoCovers,
             message: data?.message,
           });
 
@@ -1072,6 +1100,18 @@ const ParentComponent = () => {
   };
 
   const handleAddModulefromavilablenew = () => {
+    // Preserve the existing module data including cover photo
+    setFormData((prevData) => ({
+      ...prevData, // Keep all existing data including cover_Photo
+      // Only reset the fields that should be fresh for new learning video
+      videoFile_introduction: [],
+      videoFile_description: [],
+      learningVideoTitles: [],
+      learningVideoCovers: [],
+      description_videofile_text: [],
+      content: "",
+    }));
+
     setIsSection2Visible(true);
     setisCreatedModuleVisible(false);
     setNavigationHistory((prev) => [...prev, "section2"]);
@@ -1221,7 +1261,7 @@ const ParentComponent = () => {
         moduleName: editModule.moduleName,
         moduleType: "Module",
         fileSize: "",
-        isApproved: "pending",
+        isApproved: "approved",
         description: "",
         cover_Photo: editModule.cover_Photo,
         videoFile_introduction: null,
@@ -2800,9 +2840,9 @@ const ParentComponent = () => {
                             </div>
                           ))}
                         </div>
-                        {/* Module Description (Keep this outside the map - it's for the entire module) */}
+                        {/* Module Description (Keep this outside the map - it's for the entire module) 
                         <div className="flex flex-col mt-3">
-                          <label className="mb-1">Description</label>
+                          <label className="mb-1">Module Description</label>
                           <textarea
                             name="description"
                             placeholder="Provide a brief description"
@@ -2816,17 +2856,23 @@ const ParentComponent = () => {
                             }
                           />
                         </div>
-
                         <div className="flex flex-col w-full mt-3">
-                          <label className="mb-1">Upload Cover Photo</label>
+                          <label className="mb-1">Module Cover Photo</label>
 
                           <label className="p-2 pl-4 pr-4 rounded-xl border border-gray-600 focus:outline-none flex items-center justify-between cursor-pointer">
-                            <div>
-                              {formData.cover_Photo instanceof File
-                                ? formData.cover_Photo.name
-                                : formData.cover_Photo
-                                ? "Change Cover Photo"
-                                : "Upload Cover Photo"}
+                            <div className="flex flex-col flex-1">
+                              <span className="text-sm">
+                                {formData.cover_Photo
+                                  ? "Change Cover Photo"
+                                  : "Upload Cover Photo"}
+                              </span>
+                              {formData.cover_Photo && (
+                                <span className="text-xs text-[#F48567] mt-1 truncate">
+                                  {formData.cover_Photo instanceof File
+                                    ? formData.cover_Photo.name
+                                    : "Existing cover photo"}
+                                </span>
+                              )}
                             </div>
                             <div className="flex items-center">
                               <input
@@ -2872,7 +2918,13 @@ const ParentComponent = () => {
                               )}
                             </div>
                           </label>
-                        </div>
+
+                          <p className="text-xs text-[#C7C7C7] mt-1">
+                            {formData.cover_Photo
+                              ? "This cover photo will be used for the entire module"
+                              : "Upload a cover photo for this module"}
+                          </p>
+                        </div>*/}
                         {/* Learning Videos Upload Section - This will handle BOTH introduction and description */}
                         <div className="flex flex-col w-full mt-3">
                           <label className="mb-1">

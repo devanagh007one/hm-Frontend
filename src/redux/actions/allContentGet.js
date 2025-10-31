@@ -27,6 +27,15 @@ export const FETCH_MODULES_BY_TRACK_FAILURE = "FETCH_MODULES_BY_TRACK_FAILURE";
 export const UPDATE_LEARNING_VIDEO_SUCCESS = "UPDATE_LEARNING_VIDEO_SUCCESS";
 export const UPDATE_LEARNING_VIDEO_FAILURE = "UPDATE_LEARNING_VIDEO_FAILURE";
 
+export const UPDATE_LEARNING_VIDEO_INDEX_SUCCESS =
+  "UPDATE_LEARNING_VIDEO_INDEX_SUCCESS";
+export const UPDATE_LEARNING_VIDEO_INDEX_FAILURE =
+  "UPDATE_LEARNING_VIDEO_INDEX_FAILURE";
+export const DELETE_LEARNING_VIDEO_INDEX_SUCCESS =
+  "DELETE_LEARNING_VIDEO_INDEX_SUCCESS";
+export const DELETE_LEARNING_VIDEO_INDEX_FAILURE =
+  "DELETE_LEARNING_VIDEO_INDEX_FAILURE";
+
 // Action for fetching all content
 export const fetchAllContent = () => async (dispatch) => {
   try {
@@ -718,6 +727,280 @@ export const updateLearningVideos =
     } catch (error) {
       console.error("Error in updateLearningVideos:", error);
       dispatch({ type: UPDATE_LEARNING_VIDEO_FAILURE, payload: error.message });
+      throw error;
+    }
+  };
+
+export const setLearningVideoApproval =
+  (contentId, videoIndex, approvalData) => async (dispatch) => {
+    try {
+      const authToken = localStorage.getItem("authToken");
+
+      console.log("Setting learning video approval:", {
+        contentId,
+        videoIndex,
+        approvalData,
+      });
+
+      const url = `${process.env.REACT_APP_STATIC_API_URL}/api/contant/contants/${contentId}/learning-videos/${videoIndex}/approval`;
+
+      const response = await fetch(url, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify(approvalData),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          errorText || "Failed to update learning video approval"
+        );
+      }
+
+      const data = await response.json();
+      console.log("Learning video approval updated successfully:", data);
+
+      // FIX: Return the updated data instead of just refreshing
+      dispatch({
+        type: UPDATE_LEARNING_VIDEO_SUCCESS,
+        payload: {
+          contentId,
+          videoIndex,
+          approvalData: data,
+          updatedStatus: approvalData.approvalStatus,
+        },
+      });
+
+      return data; // Make sure to return the data
+    } catch (error) {
+      console.error("Error in setLearningVideoApproval:", error);
+      dispatch({
+        type: UPDATE_LEARNING_VIDEO_FAILURE,
+        payload: error.message,
+      });
+      throw error;
+    }
+  };
+
+export const editLearningVideoAtIndex =
+  (contentId, index, updateData) => async (dispatch) => {
+    try {
+      const authToken = localStorage.getItem("authToken");
+      const formData = new FormData();
+
+      console.log("Editing learning video at index:", {
+        contentId,
+        index,
+        updateData,
+      });
+
+      // Append files if provided
+      if (updateData.videoFile_description instanceof File) {
+        formData.append(
+          "videoFile_description",
+          updateData.videoFile_description
+        );
+      }
+      if (updateData.learningVideoCovers instanceof File) {
+        formData.append("learningVideoCovers", updateData.learningVideoCovers);
+      }
+
+      // Append text fields using any of the supported formats
+      if (updateData.title !== undefined) {
+        formData.append("title", updateData.title);
+      }
+      if (updateData.learningVideoTitle !== undefined) {
+        formData.append("learningVideoTitle", updateData.learningVideoTitle);
+      }
+
+      if (updateData.desc !== undefined) {
+        formData.append("desc", updateData.desc);
+      }
+      if (updateData.descriptionText !== undefined) {
+        formData.append("descriptionText", updateData.descriptionText);
+      }
+
+      if (updateData.instruction !== undefined) {
+        formData.append("instruction", updateData.instruction);
+      }
+      if (updateData.instructionText !== undefined) {
+        formData.append("instructionText", updateData.instructionText);
+      }
+
+      // Handle permissions - multiple formats supported
+      if (updateData.learningVideoPermission) {
+        // If it's an object, stringify it
+        if (typeof updateData.learningVideoPermission === "object") {
+          formData.append(
+            "learningVideoPermission",
+            JSON.stringify(updateData.learningVideoPermission)
+          );
+        } else {
+          formData.append(
+            "learningVideoPermission",
+            updateData.learningVideoPermission
+          );
+        }
+      }
+
+      // Alternative: discrete permission fields
+      if (updateData.approvalStatus !== undefined) {
+        formData.append("approvalStatus", updateData.approvalStatus);
+      }
+      if (updateData.visibility !== undefined) {
+        formData.append("visibility", updateData.visibility);
+      }
+      if (updateData.allowedRoles !== undefined) {
+        // Handle both array and string formats
+        if (Array.isArray(updateData.allowedRoles)) {
+          formData.append(
+            "allowedRoles",
+            JSON.stringify(updateData.allowedRoles)
+          );
+        } else {
+          formData.append("allowedRoles", updateData.allowedRoles);
+        }
+      }
+      if (updateData.allowedUserIds !== undefined) {
+        // Handle both array and string formats
+        if (Array.isArray(updateData.allowedUserIds)) {
+          formData.append(
+            "allowedUserIds",
+            JSON.stringify(updateData.allowedUserIds)
+          );
+        } else {
+          formData.append("allowedUserIds", updateData.allowedUserIds);
+        }
+      }
+      if (updateData.notes !== undefined) {
+        formData.append("notes", updateData.notes);
+      }
+
+      // Debug: Log FormData contents
+      console.log("FormData contents for PATCH:");
+      for (let [key, value] of formData.entries()) {
+        console.log(key, value);
+      }
+
+      const response = await fetch(
+        `${process.env.REACT_APP_STATIC_API_URL}/api/contant/contants/${contentId}/learning-videos/${index}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+            // Note: Don't set Content-Type for FormData, let browser set it with boundary
+          },
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(
+          "Failed to update learning video. Server response:",
+          errorText
+        );
+
+        // Handle specific error cases
+        if (response.status === 400) {
+          throw new Error("Invalid content id or index out of range");
+        } else if (response.status === 415) {
+          throw new Error("Invalid file type when uploading");
+        } else if (response.status === 404) {
+          throw new Error("Content not found");
+        } else {
+          throw new Error(errorText || "Failed to update learning video");
+        }
+      }
+
+      const data = await response.json();
+      console.log("Learning video updated successfully:", data);
+
+      dispatch({
+        type: UPDATE_LEARNING_VIDEO_INDEX_SUCCESS,
+        payload: {
+          contentId,
+          index,
+          updatedContent: data.content,
+        },
+      });
+
+      return data; // Return full response including success message and content
+    } catch (error) {
+      console.error("Error in editLearningVideoAtIndex:", error);
+      dispatch({
+        type: UPDATE_LEARNING_VIDEO_INDEX_FAILURE,
+        payload: {
+          contentId,
+          index,
+          error: error.message,
+        },
+      });
+      throw error;
+    }
+  };
+
+export const deleteLearningVideoAtIndex =
+  (contentId, index) => async (dispatch) => {
+    try {
+      const authToken = localStorage.getItem("authToken");
+
+      console.log("Deleting learning video at index:", { contentId, index });
+
+      const response = await fetch(
+        `${process.env.REACT_APP_STATIC_API_URL}/api/contant/contants/${contentId}/learning-videos/${index}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(
+          "Failed to delete learning video. Server response:",
+          errorText
+        );
+
+        // Handle specific error cases
+        if (response.status === 400) {
+          throw new Error("Invalid content id or index out of range");
+        } else if (response.status === 404) {
+          throw new Error("Content not found");
+        } else {
+          throw new Error(errorText || "Failed to delete learning video");
+        }
+      }
+
+      const data = await response.json();
+      console.log("Learning video deleted successfully:", data);
+
+      dispatch({
+        type: DELETE_LEARNING_VIDEO_INDEX_SUCCESS,
+        payload: {
+          contentId,
+          index,
+          updatedContent: data.content,
+        },
+      });
+
+      return data; // Return full response including success message and content
+    } catch (error) {
+      console.error("Error in deleteLearningVideoAtIndex:", error);
+      dispatch({
+        type: DELETE_LEARNING_VIDEO_INDEX_FAILURE,
+        payload: {
+          contentId,
+          index,
+          error: error.message,
+        },
+      });
       throw error;
     }
   };

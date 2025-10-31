@@ -11,16 +11,19 @@ import {
   patchTheChallenge,
   deleteChallenge,
   deleteContent,
+  setLearningVideoApproval,
+  deleteLearningVideoAtIndex,
 } from "../../redux/actions/allContentGet.js";
 import { useDispatch, useSelector } from "react-redux";
 import { Tooltip, Badge, Space, Pagination, Select, Spin, Card } from "antd";
 import CreateContent from "../CreateContent.js";
-import { showNotification } from "../../redux/actions/notificationActions"; // Import showNotification
+import { showNotification } from "../../redux/actions/notificationActions";
 import ChallangeMannage from "./ContentMannage.js";
 import ContentMannage from "./Modulechange.js";
 import EventMannage from "./EventMannage.js";
 import { IconSearch } from "@tabler/icons-react";
-import EditContent from "../EditContent.js"; // Import the EditContent component
+import EditContent from "../EditContent.js";
+import ConfirmationModal from "../ConfirmationModal.js";
 
 const SvgIcon = ({ onClick }) => (
   <svg
@@ -29,10 +32,10 @@ const SvgIcon = ({ onClick }) => (
     viewBox="0 0 13 12"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
-    onClick={onClick} // Add the onClick handler here
-    style={{ cursor: "pointer" }} // Optional: Makes it clear it's clickable
+    onClick={onClick}
+    style={{ cursor: "pointer" }}
   >
-    <g clip-path="url(#clip0_3004_430)">
+    <g clipPath="url(#clip0_3004_430)">
       <path
         d="M6.35996 4.18999C6.29675 4.25232 6.26089 4.3372 6.26026 4.42597C6.25964 4.51474 6.2943 4.60012 6.35663 4.66333C6.41895 4.72654 6.50384 4.7624 6.5926 4.76302C6.68137 4.76365 6.76675 4.72899 6.82996 4.66666L8.08329 3.42666V9.38999C8.08329 9.4784 8.11841 9.56318 8.18092 9.6257C8.24344 9.68821 8.32822 9.72333 8.41663 9.72333C8.50503 9.72333 8.58982 9.68821 8.65233 9.6257C8.71484 9.56318 8.74996 9.4784 8.74996 9.38999V3.42666L9.98329 4.66666C10.0144 4.69752 10.0512 4.72196 10.0917 4.73858C10.1323 4.75519 10.1757 4.76367 10.2195 4.76351C10.2633 4.76336 10.3066 4.75458 10.347 4.73767C10.3874 4.72077 10.4241 4.69607 10.455 4.66499C10.4858 4.63391 10.5103 4.59706 10.5269 4.55654C10.5435 4.51601 10.552 4.47261 10.5518 4.42882C10.5517 4.38502 10.5429 4.34168 10.526 4.30127C10.5091 4.26087 10.4844 4.22419 10.4533 4.19333L8.41663 2.15666L6.35996 4.18999Z"
         fill="#F48567"
@@ -67,6 +70,16 @@ const ContentManagement = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [filter, setFilter] = useState("all");
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: null,
+    showCancel: true,
+    confirmText: "Confirm",
+    record: null,
+    actionType: "",
+  });
 
   // Fetch users on mount
   useEffect(() => {
@@ -75,18 +88,177 @@ const ContentManagement = () => {
 
   console.log(contents);
 
-  const handleApprovalAction = (record, status) => {
-    const { _id, challengeName, moduleName, currentStatus, typeOfEvent } =
-      record;
+  const showConfirmationModal = (config) => {
+    setConfirmationModal({
+      isOpen: true,
+      ...config,
+    });
+  };
 
-    // Convert status to Title Case for display
+  // Function to close confirmation modal
+  const closeConfirmationModal = () => {
+    setConfirmationModal({
+      isOpen: false,
+      title: "",
+      message: "",
+      onConfirm: null,
+      showCancel: true,
+      confirmText: "Confirm",
+      record: null,
+      actionType: "",
+    });
+  };
+
+  // Function to handle confirmation
+  const handleConfirmAction = () => {
+    if (confirmationModal.onConfirm) {
+      confirmationModal.onConfirm();
+    }
+    closeConfirmationModal();
+  };
+
+  const handleVideoApprovalAction = async (record, videoIndex, status) => {
+    try {
+      setLoadingRecordId(record._id);
+
+      console.log("=== VIDEO APPROVAL START ===");
+      console.log("Record:", record);
+      console.log("Video Index:", videoIndex);
+      console.log("Status:", status);
+
+      // For learning video entries
+      if (record.entryType === "learningVideo" || record.individualVideoTitle) {
+        const actualVideoIndex =
+          record.videoIndex !== undefined ? record.videoIndex : videoIndex;
+
+        console.log(
+          "Processing learning video - Actual Index:",
+          actualVideoIndex
+        );
+
+        // FIX: Wait for the response and handle it
+        const result = await dispatch(
+          setLearningVideoApproval(record._id, actualVideoIndex, {
+            approvalStatus: status,
+          })
+        );
+
+        console.log("Dispatch result:", result);
+
+        if (result) {
+          // Update local state immediately for better UX
+          dispatch(
+            showNotification(
+              `Successfully ${status} video: ${record.individualVideoTitle}`,
+              "success"
+            )
+          );
+
+          // Refresh content to get updated data from server
+          setTimeout(() => {
+            dispatch(fetchAllContent());
+          }, 500);
+        }
+      }
+      // For modules with multiple videos
+      else if (record.moduleName && record.videoFile_description?.length > 0) {
+        console.log("Processing module video - Index:", videoIndex);
+
+        const result = await dispatch(
+          setLearningVideoApproval(record._id, videoIndex, {
+            approvalStatus: status,
+          })
+        );
+
+        console.log("Dispatch result:", result);
+
+        if (result) {
+          dispatch(
+            showNotification(
+              `Successfully ${status} video in ${record.moduleName}`,
+              "success"
+            )
+          );
+
+          setTimeout(() => {
+            dispatch(fetchAllContent());
+          }, 500);
+        }
+      } else {
+        dispatch(
+          showNotification(
+            "This content type doesn't support per-video approval",
+            "warning"
+          )
+        );
+      }
+
+      console.log("=== VIDEO APPROVAL END ===");
+    } catch (error) {
+      console.error("=== VIDEO APPROVAL ERROR ===", error);
+      dispatch(
+        showNotification(
+          `Failed to update video approval: ${error.message}`,
+          "error"
+        )
+      );
+    } finally {
+      setLoadingRecordId(null);
+    }
+  };
+
+  const handleDeleteVideoAction = async (record) => {
+    try {
+      setLoadingRecordId(record._id);
+
+      const videoIndex = record.videoIndex || 0;
+      const contentId = record._id;
+
+      console.log("Deleting video:", { contentId, videoIndex });
+
+      const result = await dispatch(
+        deleteLearningVideoAtIndex(contentId, videoIndex)
+      );
+
+      if (result) {
+        dispatch(
+          showNotification(
+            `Successfully deleted video: ${record.individualVideoTitle}`,
+            "success"
+          )
+        );
+
+        // Refresh content to get updated data from server
+        setTimeout(() => {
+          dispatch(fetchAllContent());
+        }, 500);
+      }
+    } catch (error) {
+      console.error("Error deleting video:", error);
+      dispatch(
+        showNotification(`Failed to delete video: ${error.message}`, "error")
+      );
+    } finally {
+      setLoadingRecordId(null);
+    }
+  };
+
+  const handleApprovalAction = async (record, status) => {
+    const {
+      _id,
+      challengeName,
+      moduleName,
+      currentStatus,
+      typeOfEvent,
+      videoFile_description,
+    } = record;
+
+    // Convert status for display
     const formattedStatus =
       status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
-
-    // Convert status to lowercase for API requests
     const lowerCaseStatus = status.toLowerCase();
 
-    // Check if the current status is already the one you're trying to update to
+    // Check if already in the target status
     if (currentStatus === formattedStatus) {
       dispatch(
         showNotification(
@@ -99,68 +271,52 @@ const ContentManagement = () => {
       return;
     }
 
-    if (typeof typeOfEvent === "string" && typeOfEvent.trim() !== "") {
-      dispatch(updateEventStatus(_id, formattedStatus)) // Keep title case for event updates
-        .then(() => {
-          dispatch(
-            showNotification(
-              `Successfully updated event status to ${formattedStatus}`,
-              "success"
-            )
-          );
-          dispatch(fetchAllContent());
-        })
-        .catch(() => {
-          dispatch(
-            showNotification(
-              `Failed to update event status to ${formattedStatus}`,
-              "error"
-            )
-          );
-        });
-    } else if (
-      typeof challengeName === "string" &&
-      challengeName.trim() !== ""
-    ) {
-      dispatch(patchTheChallenge(_id, lowerCaseStatus)) // Use lowercase for API
-        .then(() => {
-          dispatch(
-            showNotification(
-              `Successfully updated challenge status to ${formattedStatus}`,
-              "success"
-            )
-          );
-          dispatch(fetchAllContent());
-        })
-        .catch(() => {
-          dispatch(
-            showNotification(
-              `Failed to update challenge status to ${formattedStatus}`,
-              "error"
-            )
-          );
-        });
-    } else if (typeof moduleName === "string" && moduleName.trim() !== "") {
-      dispatch(patchTheContent(_id, lowerCaseStatus)) // Use lowercase for API
-        .then(() => {
-          dispatch(
-            showNotification(
-              `Successfully updated content status to ${formattedStatus}`,
-              "success"
-            )
-          );
-          dispatch(fetchAllContent());
-        })
-        .catch(() => {
-          dispatch(
-            showNotification(
-              `Failed to update content status to ${formattedStatus}`,
-              "error"
-            )
-          );
-        });
-    } else {
-      dispatch(showNotification("Invalid record type", "error"));
+    try {
+      setLoadingRecordId(record._id);
+
+      // For MODULES - only approve the module itself, NOT the videos
+      if (typeof moduleName === "string" && moduleName.trim() !== "") {
+        await dispatch(patchTheContent(_id, lowerCaseStatus));
+
+        dispatch(
+          showNotification(
+            `Successfully ${status} module. Videos require separate approval.`,
+            "success"
+          )
+        );
+      }
+      // For other content types (challenges, events) - normal flow
+      else if (typeof typeOfEvent === "string" && typeOfEvent.trim() !== "") {
+        await dispatch(updateEventStatus(_id, formattedStatus));
+        dispatch(
+          showNotification(
+            `Successfully updated event status to ${formattedStatus}`,
+            "success"
+          )
+        );
+      } else if (
+        typeof challengeName === "string" &&
+        challengeName.trim() !== ""
+      ) {
+        await dispatch(patchTheChallenge(_id, lowerCaseStatus));
+        dispatch(
+          showNotification(
+            `Successfully updated challenge status to ${formattedStatus}`,
+            "success"
+          )
+        );
+      } else {
+        dispatch(showNotification("Invalid record type", "error"));
+      }
+
+      // Refresh data
+      dispatch(fetchAllContent());
+    } catch (error) {
+      dispatch(
+        showNotification(`Failed to update status: ${error.message}`, "error")
+      );
+    } finally {
+      setLoadingRecordId(null);
     }
   };
 
@@ -218,52 +374,123 @@ const ContentManagement = () => {
   };
 
   const filteredData = useMemo(() => {
-    const { challenges = [], modules = [], events = [] } = contents.data || {}; // Default to empty arrays
+    const { challenges = [], modules = [], events = [] } = contents.data || {};
 
     let combinedData = [];
     let unmatchedChallenges = [];
-    let unmatchedModules = [];
+
+    // Process modules - create separate entries for module AND individual videos
+    const moduleEntries = modules.flatMap((module) => {
+      const moduleEntries = [];
+
+      // 1. Add the MODULE itself as a separate entry
+      moduleEntries.push({
+        ...module,
+        entryType: "module", // Mark as module entry
+        totalVideos: module.videoFile_description?.length || 0,
+        // Clear video arrays for module entry to avoid duplication
+        videoFile_description: [],
+        videoFile_introduction: [],
+        learningVideoTitles: [],
+        description_videofile_text: [],
+        learningVideoCovers: [],
+        learningVideoPermissions: [],
+      });
+
+      // 2. Add individual learning videos ONLY if module has videos
+      if (
+        module.videoFile_description &&
+        module.videoFile_description.length > 0
+      ) {
+        const videoEntries = module.videoFile_description.map(
+          (video, index) => ({
+            ...module,
+            // Override these fields for individual video display
+            uniqueUploadId: `${
+              module.uniqueUploadId || module._id
+            }-video-${index}`,
+            videoIndex: index,
+            totalVideos: module.videoFile_description.length,
+            entryType: "learningVideo", // Mark as learning video entry
+            // Store individual video data
+            individualVideo: video,
+            individualVideoTitle:
+              module.learningVideoTitles?.[index] || `Video ${index + 1}`,
+            individualVideoDescription:
+              module.description_videofile_text?.[index] || "",
+            individualVideoCover: module.learningVideoCovers?.[index] || null,
+            // Keep only this specific video data
+            videoFile_description: [video],
+            videoFile_introduction: module.videoFile_introduction?.[index]
+              ? [module.videoFile_introduction[index]]
+              : [],
+            learningVideoTitles: [
+              module.learningVideoTitles?.[index] || `Video ${index + 1}`,
+            ],
+            description_videofile_text: [
+              module.description_videofile_text?.[index] || "",
+            ],
+            learningVideoCovers: module.learningVideoCovers?.[index]
+              ? [module.learningVideoCovers[index]]
+              : [],
+            learningVideoPermissions: module.learningVideoPermissions?.[index]
+              ? [module.learningVideoPermissions[index]]
+              : [],
+          })
+        );
+        moduleEntries.push(...videoEntries);
+      }
+
+      return moduleEntries;
+    });
 
     // Combine challenges and modules in pairs
     challenges.forEach((challenge, index) => {
       const matchingModule = modules[index];
 
       if (matchingModule) {
-        combinedData.push({ ...challenge });
-        combinedData.push({ ...matchingModule });
+        combinedData.push({
+          ...challenge,
+          entryType: "challenge",
+        });
       } else {
-        unmatchedChallenges.push({ ...challenge });
+        unmatchedChallenges.push({
+          ...challenge,
+          entryType: "challenge",
+        });
       }
     });
 
     // Add remaining modules that don't have matching challenges
-    modules.slice(challenges.length).forEach((module) => {
-      unmatchedModules.push({ ...module });
-    });
+    const remainingModules = modules.slice(challenges.length);
 
     // Add events to the combined data
-    const formattedEvents = events.map((event) => ({ ...event }));
+    const formattedEvents = events.map((event) => ({
+      ...event,
+      entryType: "event",
+    }));
 
     combinedData = [
       ...combinedData,
       ...unmatchedChallenges,
-      ...unmatchedModules,
+      ...moduleEntries, // This now includes both modules and their videos
       ...formattedEvents,
     ];
 
-    // Filtering based on approval status
+    // Apply filters
     let filteredCombinedData = combinedData;
+
     if (filter === "active") {
       filteredCombinedData = filteredCombinedData.filter(
-        (data) => data.isApproved === "approved"
+        (data) => data.isApproved === "approved" || data.status === "Approved"
       );
     } else if (filter === "inactive") {
       filteredCombinedData = filteredCombinedData.filter(
-        (data) => data.isApproved === "pending"
+        (data) => data.isApproved === "pending" || data.status === "Pending"
       );
     } else if (filter === "rejected") {
       filteredCombinedData = filteredCombinedData.filter(
-        (data) => data.isApproved === "rejected"
+        (data) => data.isApproved === "rejected" || data.status === "Rejected"
       );
     }
 
@@ -274,49 +501,72 @@ const ContentManagement = () => {
       filteredCombinedData = filteredCombinedData.filter((item) => {
         const valuesToCheck = [
           item?.uniChallengeId,
+          item?.uniqueUploadId,
           item?.challengeName?.uploaded_by?.firstName,
           item?.challengeName?.uploaded_by?.lastName,
           item?.moduleName,
+          item?.individualVideoTitle, // Include individual video titles in search
           item?.uploaded_by?.firstName,
           item?.uploaded_by?.lastName,
-        ].filter(Boolean); // Remove undefined/null values
+          item?.title, // For events
+        ].filter(Boolean);
 
-        // Check in values
         if (
           valuesToCheck.some((val) =>
-            val.toLowerCase().includes(lowerCaseQuery)
+            val.toString().toLowerCase().includes(lowerCaseQuery)
           )
         ) {
           return true;
         }
 
-        // Check in roles if available
         return (item?.roles || []).some((role) =>
           role.toLowerCase().includes(lowerCaseQuery)
         );
       });
     }
 
-    // Sorting
+    // Apply sorting
     switch (filter) {
       case "newestFirst":
         filteredCombinedData.sort(
-          (b, a) => new Date(b.createdAt) - new Date(a.createdAt)
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
         );
         break;
 
       case "1234":
         filteredCombinedData.sort((a, b) => {
-          const idA = a.uniChallengeId ?? a.uniqueUploadId ?? Number.MAX_VALUE;
-          const idB = b.uniChallengeId ?? b.uniqueUploadId ?? Number.MAX_VALUE;
+          const getNumericId = (item) => {
+            if (item.uniChallengeId)
+              return parseInt(item.uniChallengeId) || Number.MAX_VALUE;
+            if (item.uniqueUploadId) {
+              // Handle video IDs like "4720021-video-0"
+              const baseId = item.uniqueUploadId.split("-")[0];
+              return parseInt(baseId) || Number.MAX_VALUE;
+            }
+            return Number.MAX_VALUE;
+          };
+
+          const idA = getNumericId(a);
+          const idB = getNumericId(b);
           return idA - idB;
         });
         break;
 
       case "ABCD":
         filteredCombinedData.sort((a, b) => {
-          const nameA = a.challengeName || a.moduleName || "";
-          const nameB = b.challengeName || b.moduleName || "";
+          const getName = (item) => {
+            if (item.entryType === "module")
+              return `${item.moduleName} (Module)`;
+            if (item.entryType === "learningVideo")
+              return `${item.moduleName} - ${item.individualVideoTitle}`;
+            if (item.challengeName) return item.challengeName;
+            if (item.moduleName) return item.moduleName;
+            if (item.title) return item.title;
+            return "";
+          };
+
+          const nameA = getName(a);
+          const nameB = getName(b);
           return nameA.localeCompare(nameB);
         });
         break;
@@ -324,67 +574,67 @@ const ContentManagement = () => {
       case "endDate":
         filteredCombinedData.sort((a, b) => {
           const getLastEditDate = (logs) => {
-            if (!Array.isArray(logs) || logs.length === 0) return new Date(0); // Default to oldest date
-            return new Date(logs[logs.length - 1].date); // Use the last element's date
+            if (!Array.isArray(logs) || logs.length === 0) return new Date(0);
+            return new Date(logs[logs.length - 1].date);
           };
 
-          return getLastEditDate(a.editLogs) - getLastEditDate(b.editLogs);
+          return getLastEditDate(b.editLogs) - getLastEditDate(a.editLogs);
         });
         break;
 
       case "startDate":
         filteredCombinedData.sort(
-          (a, b) => new Date(a.joinedAt) - new Date(b.joinedAt)
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
         );
         break;
 
       case "type":
         filteredCombinedData.sort((a, b) => {
-          const typeA = a.challengeName
-            ? "challenge"
-            : a.moduleName
-            ? "module"
-            : "";
-          const typeB = b.challengeName
-            ? "challenge"
-            : b.moduleName
-            ? "module"
-            : "";
+          const getType = (item) => {
+            if (item.entryType === "module") return "module";
+            if (item.entryType === "learningVideo") return "learningVideo";
+            if (item.challengeName) return "challenge";
+            if (item.typeOfEvent) return "event";
+            return "other";
+          };
 
-          return typeA.localeCompare(typeB); // Sort "challenge" before "module"
+          const typeA = getType(a);
+          const typeB = getType(b);
+          return typeA.localeCompare(typeB);
         });
         break;
 
       case "track":
         filteredCombinedData.sort((a, b) => {
-          const trackA = a.tracks || a.module?.tracks || ""; // Use `module.tracks` if `tracks` is missing
+          const trackA = a.tracks || a.module?.tracks || "";
           const trackB = b.tracks || b.module?.tracks || "";
-
-          return trackA.localeCompare(trackB); // Sort alphabetically
+          return trackA.localeCompare(trackB);
         });
         break;
 
       case "inactiveFirst":
-        if (
-          filteredCombinedData.every((item) => item.isApproved === "approved")
-        ) {
-          // If currently sorted by "approved", sort by "pending"
-          filteredCombinedData.sort((a, b) =>
-            a.isApproved === "pending" ? -1 : 1
-          );
-        } else if (
-          filteredCombinedData.every((item) => item.isApproved === "pending")
-        ) {
-          // If currently sorted by "pending", sort by "rejected"
-          filteredCombinedData.sort((a, b) =>
-            a.isApproved === "rejected" ? -1 : 1
-          );
-        } else {
-          // Default sorting: Approved first
-          filteredCombinedData.sort((a, b) =>
-            a.isApproved === "approved" ? -1 : 1
-          );
-        }
+        filteredCombinedData.sort((a, b) => {
+          // For video entries, use video-level status
+          const getStatus = (item) => {
+            if (item.entryType === "learningVideo") {
+              const videoIndex = item.videoIndex || 0;
+              const videoPermissions =
+                item.learningVideoPermissions?.[videoIndex];
+              return videoPermissions?.approvalStatus || "pending";
+            }
+            return (
+              item.isApproved?.toLowerCase() ||
+              item.status?.toLowerCase() ||
+              "pending"
+            );
+          };
+
+          const statusA = getStatus(a);
+          const statusB = getStatus(b);
+
+          const statusOrder = { pending: 0, rejected: 1, approved: 2 };
+          return (statusOrder[statusA] || 3) - (statusOrder[statusB] || 3);
+        });
         break;
 
       default:
@@ -395,98 +645,51 @@ const ContentManagement = () => {
   }, [filter, contents, specificSearchQuery]);
 
   const contentSlice = Array.isArray(filteredData)
-    ? filteredData.slice(0, 50) // Slice the first 50 items of the filteredData
+    ? filteredData.slice(0, 50)
     : [];
-
-  // console.log(contentSlice)
 
   // Function to determine the background color for the status
   const getStatusBgColor = (status) => {
     switch (status) {
       case "Approved":
-        return "#00FF0033"; // Light green
+        return "#00FF0033";
       case "Pending":
-        return "#FFA50033"; // Light orange for pending
+        return "#FFA50033";
       case "Rejected":
-        return "#DD441B33"; // Light red
+        return "#DD441B33";
       default:
-        return "#A6970C33"; // Light yellow for inactive
+        return "#A6970C33";
     }
   };
 
   const cardData = [
     {
       title: "Total Content",
-      value:
-        (Array.isArray(contents?.data?.challenges)
-          ? contents.data.challenges.length
-          : 0) +
-        (Array.isArray(contents?.data?.modules)
-          ? contents.data.modules.length
-          : 0) +
-        (Array.isArray(contents?.data?.events)
-          ? contents.data.events.length
-          : 0),
+      value: filteredData.length,
       filter: "all",
     },
     {
       title: "Approved Content",
-      value:
-        (Array.isArray(contents?.data?.challenges)
-          ? contents.data.challenges.filter(
-              (content) => content.isApproved === "approved"
-            ).length
-          : 0) +
-        (Array.isArray(contents?.data?.modules)
-          ? contents.data.modules.filter(
-              (content) => content.isApproved === "approved"
-            ).length
-          : 0) +
-        (Array.isArray(contents?.data?.events)
-          ? contents.data.events.filter(
-              (content) => content.status === "Approved"
-            ).length
-          : 0),
+      value: filteredData.filter(
+        (content) =>
+          content.isApproved === "approved" || content.status === "Approved"
+      ).length,
       filter: "active",
     },
     {
       title: "Pending Content",
-      value:
-        (Array.isArray(contents?.data?.challenges)
-          ? contents.data.challenges.filter(
-              (content) => content.isApproved === "pending"
-            ).length
-          : 0) +
-        (Array.isArray(contents?.data?.modules)
-          ? contents.data.modules.filter(
-              (content) => content.isApproved === "pending"
-            ).length
-          : 0) +
-        (Array.isArray(contents?.data?.events)
-          ? contents.data.events.filter(
-              (content) => content.status === "Pending"
-            ).length
-          : 0),
+      value: filteredData.filter(
+        (content) =>
+          content.isApproved === "pending" || content.status === "Pending"
+      ).length,
       filter: "inactive",
     },
     {
       title: "Rejected Content",
-      value:
-        (Array.isArray(contents?.data?.challenges)
-          ? contents.data.challenges.filter(
-              (content) => content.isApproved === "rejected"
-            ).length
-          : 0) +
-        (Array.isArray(contents?.data?.modules)
-          ? contents.data.modules.filter(
-              (content) => content.isApproved === "rejected"
-            ).length
-          : 0) +
-        (Array.isArray(contents?.data?.events)
-          ? contents.data.events.filter(
-              (content) => content.status === "Rejected"
-            ).length
-          : 0),
+      value: filteredData.filter(
+        (content) =>
+          content.isApproved === "rejected" || content.status === "Rejected"
+      ).length,
       filter: "rejected",
     },
   ];
@@ -499,19 +702,18 @@ const ContentManagement = () => {
 
   // Handle row selection
   const handleSelection = (index) => {
-    const absoluteIndex = (currentPage - 1) * pageSize + index; // Convert paginated index to absolute index
-    setSelectedIndices(
-      (prev) =>
-        prev.includes(absoluteIndex)
-          ? prev.filter((i) => i !== absoluteIndex) // Remove if already selected
-          : [...prev, absoluteIndex] // Add if not selected
+    const absoluteIndex = (currentPage - 1) * pageSize + index;
+    setSelectedIndices((prev) =>
+      prev.includes(absoluteIndex)
+        ? prev.filter((i) => i !== absoluteIndex)
+        : [...prev, absoluteIndex]
     );
   };
 
   const handleSelectAll = () => {
     setSelectedIndices((prev) => {
-      const allSelected = prev.length === filteredData.length; // Check if all items are selected
-      return allSelected ? [] : filteredData.map((_, i) => i); // Select all or deselect all
+      const allSelected = prev.length === filteredData.length;
+      return allSelected ? [] : filteredData.map((_, i) => i);
     });
   };
 
@@ -535,7 +737,6 @@ const ContentManagement = () => {
 
   // Function to handle edit for both modules and challenges
   const handleEditContent = (record) => {
-    // Store the record data for editing
     localStorage.setItem("editContentData", JSON.stringify(record));
     console.log("Editing content:", record);
   };
@@ -568,7 +769,6 @@ const ContentManagement = () => {
       dataIndex: "record",
       key: "record",
       render: (text, record) => {
-        // Try to get uploadedBy first, then fallback to createdBy
         const uploadedBy =
           typeof record?.uploaded_by === "object" &&
           record?.uploaded_by !== null
@@ -582,7 +782,7 @@ const ContentManagement = () => {
             : record?.module?.createdBy);
 
         if (!user) {
-          return "N/A"; // Fallback text
+          return "N/A";
         }
 
         const firstName = user?.firstName ?? "N/A";
@@ -603,31 +803,51 @@ const ContentManagement = () => {
         </div>
       ),
       dataIndex: "moduleName",
-      key: "moduleName || challengeName",
+      key: "moduleName || challengeName || individualVideoTitle",
       render: (text, record) => {
         let contentName;
 
-        // For challenges, show the module name
-        if (record.challengeName) {
+        // For MODULE entry (the module itself)
+        if (record.entryType === "module") {
+          contentName = `${record.moduleName} (Module)`;
+          if (record.totalVideos > 0) {
+            contentName += ` - ${record.totalVideos} videos`;
+          }
+        }
+        // For individual learning videos
+        else if (
+          record.individualVideoTitle ||
+          record.entryType === "learningVideo"
+        ) {
+          contentName = `${record.moduleName} - ${record.individualVideoTitle}`;
+          if (record.totalVideos > 1) {
+            contentName += ` (${record.videoIndex + 1}/${record.totalVideos})`;
+          }
+        }
+        // For challenges
+        else if (record.challengeName) {
           contentName =
             record?.module?.moduleName ||
             record?.moduleName ||
             record.challengeName;
         }
-        // For modules, show the module name
+        // For modules without entryType (backward compatibility)
         else if (record.moduleName) {
           contentName = record.moduleName;
+          if (record.videoFile_description?.length > 0) {
+            contentName += ` (${record.videoFile_description.length} videos)`;
+          }
         }
-        // For events, show the title
+        // For events
         else if (record.title) {
           contentName = record.title;
         } else {
           contentName = "N/A";
         }
 
-        return contentName.length > 15 ? (
+        return contentName.length > 20 ? (
           <Tooltip title={contentName}>
-            <span>{contentName.substring(0, 15)}...</span>
+            <span>{contentName.substring(0, 20)}...</span>
           </Tooltip>
         ) : (
           <span>{contentName}</span>
@@ -649,7 +869,6 @@ const ContentManagement = () => {
       render: (text, record) =>
         record.tracks || record.module?.tracks || record.typeOfEvent,
     },
-
     {
       title: (
         <div className="flex items-center">
@@ -664,10 +883,19 @@ const ContentManagement = () => {
         if (record?.typeOfEvent) {
           return "Event";
         }
-        if (record?.moduleName) {
-          return "Learning Video"; // This replaces "Module"
+        if (record?.entryType === "module") {
+          return "Module";
         }
-        return "Challenge"; // This remains "Challenge"
+        if (
+          record?.individualVideoTitle ||
+          record?.entryType === "learningVideo"
+        ) {
+          return "Learning Video";
+        }
+        if (record?.challengeName) {
+          return "Challenge";
+        }
+        return "Content";
       },
     },
     {
@@ -686,14 +914,12 @@ const ContentManagement = () => {
       dataIndex: "createdAt",
       key: "createdAt",
       render: (createdAt) => {
-        if (!createdAt) return "N/A"; // Handle missing or invalid data
-
+        if (!createdAt) return "N/A";
         const formattedDate = new Date(createdAt).toLocaleDateString("en-US", {
           year: "numeric",
           month: "short",
           day: "numeric",
         });
-
         return formattedDate;
       },
     },
@@ -710,13 +936,10 @@ const ContentManagement = () => {
       ),
       key: "fileSize",
       render: (text, record) => {
-        // Get fileSize if present, otherwise show "N/A"
         const size = record?.fileSize;
-
         return size && size !== "" ? size : "N/A";
       },
     },
-
     {
       title: (
         <div className="flex items-center">
@@ -733,15 +956,53 @@ const ContentManagement = () => {
       dataIndex: "isApproved",
       key: "isApproved",
       render: (isApproved, record) => {
-        const statusMap = {
-          approved: "Approved",
-          pending: "Pending",
-          rejected: "Rejected",
-        };
+        let status;
+        let isLoading = loadingRecordId === record._id;
 
-        const status =
-          statusMap[(isApproved || record.status)?.toLowerCase()] || "Inactive";
-        const isLoading = loadingRecordId === record._id;
+        // Improved status extraction for learning videos
+        if (
+          record.entryType === "learningVideo" ||
+          record.individualVideoTitle
+        ) {
+          const videoIndex = record.videoIndex || 0;
+          const videoApprovalArray = record.learningVideoApproval;
+
+          console.log("Video Status Debug:", {
+            recordId: record._id,
+            videoIndex,
+            videoApprovalArray,
+            finalStatus: videoApprovalArray?.[videoIndex] || "pending",
+          });
+
+          const videoStatus = videoApprovalArray?.[videoIndex] || "pending";
+
+          const statusMap = {
+            approved: "Approved",
+            pending: "Pending",
+            rejected: "Rejected",
+          };
+          status = statusMap[videoStatus] || "Pending";
+        }
+        // For module entries (the module itself)
+        else if (record.entryType === "module") {
+          const statusMap = {
+            approved: "Approved",
+            pending: "Pending",
+            rejected: "Rejected",
+          };
+          status = statusMap[isApproved?.toLowerCase()] || "Pending";
+        }
+        // For challenges and events
+        else {
+          const statusMap = {
+            approved: "Approved",
+            pending: "Pending",
+            rejected: "Rejected",
+          };
+          status =
+            statusMap[(isApproved || record.status)?.toLowerCase()] ||
+            "Pending";
+        }
 
         return (
           <Badge
@@ -752,13 +1013,7 @@ const ContentManagement = () => {
                 ? "orange"
                 : "red"
             }
-            text={
-              isLoading ? (
-                <Spin size="small" /> // Ant Design spinner
-              ) : (
-                status
-              )
-            }
+            text={isLoading ? <Spin size="small" /> : status}
             style={{
               backgroundColor: getStatusBgColor(status),
               borderRadius: "10px",
@@ -768,13 +1023,12 @@ const ContentManagement = () => {
               padding: "7px",
               color: darkMode ? "white" : "black",
               cursor: isLoading ? "not-allowed" : "pointer",
-              width: "90px", // Disable click while loading
+              width: "90px",
             }}
           />
         );
       },
     },
-
     {
       title: (
         <div className="flex items-center">
@@ -784,80 +1038,313 @@ const ContentManagement = () => {
       ),
       key: "actions",
       render: (_, record) => {
-        // Define colors based on status
         const statusColors = {
-          approved: "#00FF00", // Green
-          pending: "#FFA500", // Orange
-          rejected: "#DD441B", // Red
+          approved: "#00FF00",
+          pending: "#FFA500",
+          rejected: "#DD441B",
         };
 
-        const status = record.isApproved?.toLowerCase(); // Convert to lowercase for consistency
-        const svgColor = statusColors[status] || "#A6970C"; // Default to yellow if undefined
+        // Determine status based on entry type
+        let status;
+        if (
+          record.entryType === "learningVideo" ||
+          record.individualVideoTitle
+        ) {
+          const videoIndex = record.videoIndex || 0;
+          status = record.learningVideoApproval?.[videoIndex] || "pending";
+        } else if (record.entryType === "module") {
+          status = record.isApproved?.toLowerCase();
+        } else {
+          status =
+            record.isApproved?.toLowerCase() || record.status?.toLowerCase();
+        }
+
+        const svgColor = statusColors[status] || "#A6970C";
 
         return (
           <div>
             <Space>
               {record.typeOfEvent ? (
                 <EventMannage data={record} />
-              ) : record.moduleName ? (
-                <ContentMannage data={record} />
+              ) : record.entryType === "module" || record.moduleName ? (
+                <ContentMannage
+                  data={record}
+                  onVideoApproval={(videoIndex, newStatus) =>
+                    handleVideoApprovalAction(record, videoIndex, newStatus)
+                  }
+                />
               ) : record.challengeName ? (
                 <ChallangeMannage data={record} />
               ) : null}
-              {/* Edit Button for both Modules and Challenges */}
-              {/* {(record.moduleName || record.challengeName) && (
-                <EditContent contentData={record} />
-              )} */}
-              <div
-                className="cursor-pointer"
-                onClick={() => handleApprovalAction(record, "rejected")}
-              >
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 18 18"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M9 0.25C4.125 0.25 0.25 4.125 0.25 9C0.25 13.875 4.125 17.75 9 17.75C13.875 17.75 17.75 13.875 17.75 9C17.75 4.125 13.875 0.25 9 0.25ZM12.375 13.375L9 10L5.625 13.375L4.625 12.375L8 9L4.625 5.625L5.625 4.625L9 8L12.375 4.625L13.375 5.625L10 9L13.375 12.375L12.375 13.375Z"
-                    fill="#DD441B"
-                  />
-                </svg>
-              </div>
+              <EditContent contentData={record} />
 
-              {/* Approve Button */}
-              <div
-                className="cursor-pointer"
-                onClick={() => handleApprovalAction(record, "approved")}
-              >
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 20 20"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <g clipPath="url(#clip0_4249_2052)">
-                    <path
-                      fillRule="evenodd"
-                      clipRule="evenodd"
-                      d="M9.66933 0.087785C9.77004 0.030258 9.88402 0 10 0C10.116 0 10.23 0.030258 10.3307 0.087785L19.664 5.42112C19.766 5.4794 19.8509 5.56362 19.9099 5.66524C19.9689 5.76686 20 5.88228 20 5.99979V6.95978C20 9.90108 19.0418 12.7623 17.2704 15.1104C15.4991 17.4584 13.0109 19.1655 10.1827 19.9731C10.0633 20.0071 9.93674 20.0071 9.81733 19.9731C6.98931 19.1651 4.50142 17.458 2.73009 15.11C0.958768 12.762 0.00040046 9.90097 0 6.95978L0 5.99979C3.79027e-05 5.88228 0.031135 5.76686 0.0901407 5.66524C0.149146 5.56362 0.233964 5.4794 0.336 5.42112L9.66933 0.087785ZM9.42933 14.2811L15.1867 7.08245L14.1467 6.25045L9.23733 12.3851L5.76 9.48779L4.90667 10.5118L9.42933 14.2811Z"
-                      fill={svgColor}
-                    />
-                  </g>
-                  <defs>
-                    <clipPath id="clip0_4249_2052">
-                      <rect width="20" height="20" fill="white" />
-                    </clipPath>
-                  </defs>
-                </svg>
-              </div>
-              {/* Deleate Button */}
-              {!userRoles.includes("Admin") && (
+              {/* MODULE LEVEL APPROVAL/REJECTION */}
+              {record.entryType === "module" && (
+                <>
+                  {/* Reject Module Button */}
+                  <div
+                    className="cursor-pointer"
+                    onClick={() =>
+                      showConfirmationModal({
+                        title: "Reject Module",
+                        message: `Are you sure you want to reject the module "${record.moduleName}"?`,
+                        onConfirm: () =>
+                          handleApprovalAction(record, "rejected"),
+                        record: record,
+                        actionType: "reject",
+                      })
+                    }
+                  >
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 18 18"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M9 0.25C4.125 0.25 0.25 4.125 0.25 9C0.25 13.875 4.125 17.75 9 17.75C13.875 17.75 17.75 13.875 17.75 9C17.75 4.125 13.875 0.25 9 0.25ZM12.375 13.375L9 10L5.625 13.375L4.625 12.375L8 9L4.625 5.625L5.625 4.625L9 8L12.375 4.625L13.375 5.625L10 9L13.375 12.375L12.375 13.375Z"
+                        fill="#DD441B"
+                      />
+                    </svg>
+                  </div>
+
+                  {/* Approve Module Button */}
+                  <div
+                    className="cursor-pointer"
+                    onClick={() =>
+                      showConfirmationModal({
+                        title: "Approve Module",
+                        message: `Are you sure you want to approve the module "${record.moduleName}"?`,
+                        onConfirm: () =>
+                          handleApprovalAction(record, "approved"),
+                        record: record,
+                        actionType: "approve",
+                      })
+                    }
+                  >
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <g clipPath="url(#clip0_4249_2052)">
+                        <path
+                          fillRule="evenodd"
+                          clipRule="evenodd"
+                          d="M9.66933 0.087785C9.77004 0.030258 9.88402 0 10 0C10.116 0 10.23 0.030258 10.3307 0.087785L19.664 5.42112C19.766 5.4794 19.8509 5.56362 19.9099 5.66524C19.9689 5.76686 20 5.88228 20 5.99979V6.95978C20 9.90108 19.0418 12.7623 17.2704 15.1104C15.4991 17.4584 13.0109 19.1655 10.1827 19.9731C10.0633 20.0071 9.93674 20.0071 9.81733 19.9731C6.98931 19.1651 4.50142 17.458 2.73009 15.11C0.958768 12.762 0.00040046 9.90097 0 6.95978L0 5.99979C3.79027e-05 5.88228 0.031135 5.76686 0.0901407 5.66524C0.149146 5.56362 0.233964 5.4794 0.336 5.42112L9.66933 0.087785ZM9.42933 14.2811L15.1867 7.08245L14.1467 6.25045L9.23733 12.3851L5.76 9.48779L4.90667 10.5118L9.42933 14.2811Z"
+                          fill={svgColor}
+                        />
+                      </g>
+                      <defs>
+                        <clipPath id="clip0_4249_2052">
+                          <rect width="20" height="20" fill="white" />
+                        </clipPath>
+                      </defs>
+                    </svg>
+                  </div>
+                </>
+              )}
+
+              {/* LEARNING VIDEO LEVEL APPROVAL/REJECTION */}
+              {(record.entryType === "learningVideo" ||
+                record.individualVideoTitle) && (
+                <>
+                  {/* Reject Video Button */}
+                  <div
+                    className="cursor-pointer"
+                    onClick={() =>
+                      showConfirmationModal({
+                        title: "Reject Video",
+                        message: `Are you sure you want to reject the video "${record.individualVideoTitle}"?`,
+                        onConfirm: () =>
+                          handleVideoApprovalAction(
+                            record,
+                            record.videoIndex || 0,
+                            "rejected"
+                          ),
+                        record: record,
+                        actionType: "reject",
+                      })
+                    }
+                  >
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 18 18"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M9 0.25C4.125 0.25 0.25 4.125 0.25 9C0.25 13.875 4.125 17.75 9 17.75C13.875 17.75 17.75 13.875 17.75 9C17.75 4.125 13.875 0.25 9 0.25ZM12.375 13.375L9 10L5.625 13.375L4.625 12.375L8 9L4.625 5.625L5.625 4.625L9 8L12.375 4.625L13.375 5.625L10 9L13.375 12.375L12.375 13.375Z"
+                        fill="#DD441B"
+                      />
+                    </svg>
+                  </div>
+
+                  {/* Approve Video Button */}
+                  <div
+                    className="cursor-pointer"
+                    onClick={() =>
+                      showConfirmationModal({
+                        title: "Approve Video",
+                        message: `Are you sure you want to approve the video "${record.individualVideoTitle}"?`,
+                        onConfirm: () =>
+                          handleVideoApprovalAction(
+                            record,
+                            record.videoIndex || 0,
+                            "approved"
+                          ),
+                        record: record,
+                        actionType: "approve",
+                      })
+                    }
+                  >
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <g clipPath="url(#clip0_4249_2052)">
+                        <path
+                          fillRule="evenodd"
+                          clipRule="evenodd"
+                          d="M9.66933 0.087785C9.77004 0.030258 9.88402 0 10 0C10.116 0 10.23 0.030258 10.3307 0.087785L19.664 5.42112C19.766 5.4794 19.8509 5.56362 19.9099 5.66524C19.9689 5.76686 20 5.88228 20 5.99979V6.95978C20 9.90108 19.0418 12.7623 17.2704 15.1104C15.4991 17.4584 13.0109 19.1655 10.1827 19.9731C10.0633 20.0071 9.93674 20.0071 9.81733 19.9731C6.98931 19.1651 4.50142 17.458 2.73009 15.11C0.958768 12.762 0.00040046 9.90097 0 6.95978L0 5.99979C3.79027e-05 5.88228 0.031135 5.76686 0.0901407 5.66524C0.149146 5.56362 0.233964 5.4794 0.336 5.42112L9.66933 0.087785ZM9.42933 14.2811L15.1867 7.08245L14.1467 6.25045L9.23733 12.3851L5.76 9.48779L4.90667 10.5118L9.42933 14.2811Z"
+                          fill={svgColor}
+                        />
+                      </g>
+                      <defs>
+                        <clipPath id="clip0_4249_2052">
+                          <rect width="20" height="20" fill="white" />
+                        </clipPath>
+                      </defs>
+                    </svg>
+                  </div>
+
+                  {/* Delete Video Button */}
+                  <div
+                    className="cursor-pointer"
+                    onClick={() =>
+                      showConfirmationModal({
+                        title: "Delete Video",
+                        message: `Are you sure you want to delete the video "${record.individualVideoTitle}"? This action cannot be undone.`,
+                        onConfirm: () => handleDeleteVideoAction(record),
+                        record: record,
+                        actionType: "deleteVideo",
+                        confirmText: "Delete",
+                      })
+                    }
+                  >
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 18 18"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M7.4375 3.0625V3.375H10.5625V3.0625C10.5625 2.6481 10.3979 2.25067 10.1049 1.95765C9.81183 1.66462 9.4144 1.5 9 1.5C8.5856 1.5 8.18817 1.66462 7.89515 1.95765C7.60212 2.25067 7.4375 2.6481 7.4375 3.0625ZM6.1875 3.375V3.0625C6.1875 2.31658 6.48382 1.60121 7.01126 1.07376C7.53871 0.546316 8.25408 0.25 9 0.25C9.74592 0.25 10.4613 0.546316 10.9887 1.07376C11.5162 1.60121 11.8125 2.31658 11.8125 3.0625V3.375H16.5C16.6658 3.375 16.8247 3.44085 16.9419 3.55806C17.0592 3.67527 17.125 3.83424 17.125 4C17.125 4.16576 17.0592 4.32473 16.9419 4.44194C16.8247 4.55915 16.6658 4.625 16.5 4.625H15.5575L14.375 14.98C14.2878 15.7426 13.923 16.4465 13.3501 16.9573C12.7772 17.4682 12.0363 17.7504 11.2687 17.75H6.73125C5.96366 17.7504 5.22279 17.4682 4.64991 16.9573C4.07702 16.4465 3.7122 15.7426 3.625 14.98L2.4425 4.625H1.5C1.33424 4.625 1.17527 4.55915 1.05806 4.44194C0.940848 4.32473 0.875 4.16576 0.875 4C0.875 3.83424 0.940848 3.67527 1.05806 3.55806C1.17527 3.44085 1.33424 3.375 1.5 3.375H6.1875ZM7.75 7.4375C7.75 7.27174 7.68415 7.11277 7.56694 6.99556C7.44973 6.87835 7.29076 6.8125 7.125 6.8125C6.95924 6.8125 6.80027 6.87835 6.68306 6.99556C6.56585 7.11277 6.5 7.27174 6.5 7.4375V13.6875C6.5 13.8533 6.56585 14.0122 6.68306 14.1294C6.80027 14.2467 6.95924 14.3125 7.125 14.3125C7.29076 14.3125 7.44973 14.2467 7.56694 14.1294C7.68415 14.0122 7.75 13.8533 7.75 13.6875V7.4375ZM10.875 6.8125C10.7092 6.8125 10.5503 6.87835 10.4331 6.99556C10.3158 7.11277 10.25 7.27174 10.25 7.4375V13.6875C10.25 13.8533 10.3158 14.0122 10.4331 14.1294C10.5503 14.2467 10.7092 14.3125 10.875 14.3125C11.0408 14.3125 11.1997 14.2467 11.3169 14.1294C11.4342 14.0122 11.5 13.8533 11.5 13.6875V7.4375C11.5 7.27174 11.4342 7.11277 11.3169 6.99556C11.1997 6.87835 11.0408 6.8125 10.875 6.8125Z"
+                        fill="#DD441B"
+                      />
+                    </svg>
+                  </div>
+                </>
+              )}
+
+              {/* CHALLENGE/EVENT APPROVAL/REJECTION */}
+              {(record.entryType === "challenge" || record.typeOfEvent) && (
+                <>
+                  <div
+                    className="cursor-pointer"
+                    onClick={() =>
+                      showConfirmationModal({
+                        title: "Reject Content",
+                        message: `Are you sure you want to reject this ${
+                          record.entryType === "challenge"
+                            ? "challenge"
+                            : "event"
+                        }?`,
+                        onConfirm: () =>
+                          handleApprovalAction(record, "rejected"),
+                        record: record,
+                        actionType: "reject",
+                      })
+                    }
+                  >
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 18 18"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M9 0.25C4.125 0.25 0.25 4.125 0.25 9C0.25 13.875 4.125 17.75 9 17.75C13.875 17.75 17.75 13.875 17.75 9C17.75 4.125 13.875 0.25 9 0.25ZM12.375 13.375L9 10L5.625 13.375L4.625 12.375L8 9L4.625 5.625L5.625 4.625L9 8L12.375 4.625L13.375 5.625L10 9L13.375 12.375L12.375 13.375Z"
+                        fill="#DD441B"
+                      />
+                    </svg>
+                  </div>
+
+                  <div
+                    className="cursor-pointer"
+                    onClick={() =>
+                      showConfirmationModal({
+                        title: "Approve Content",
+                        message: `Are you sure you want to approve this ${
+                          record.entryType === "challenge"
+                            ? "challenge"
+                            : "event"
+                        }?`,
+                        onConfirm: () =>
+                          handleApprovalAction(record, "approved"),
+                        record: record,
+                        actionType: "approve",
+                      })
+                    }
+                  >
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <g clipPath="url(#clip0_4249_2052)">
+                        <path
+                          fillRule="evenodd"
+                          clipRule="evenodd"
+                          d="M9.66933 0.087785C9.77004 0.030258 9.88402 0 10 0C10.116 0 10.23 0.030258 10.3307 0.087785L19.664 5.42112C19.766 5.4794 19.8509 5.56362 19.9099 5.66524C19.9689 5.76686 20 5.88228 20 5.99979V6.95978C20 9.90108 19.0418 12.7623 17.2704 15.1104C15.4991 17.4584 13.0109 19.1655 10.1827 19.9731C10.0633 20.0071 9.93674 20.0071 9.81733 19.9731C6.98931 19.1651 4.50142 17.458 2.73009 15.11C0.958768 12.762 0.00040046 9.90097 0 6.95978L0 5.99979C3.79027e-05 5.88228 0.031135 5.76686 0.0901407 5.66524C0.149146 5.56362 0.233964 5.4794 0.336 5.42112L9.66933 0.087785ZM9.42933 14.2811L15.1867 7.08245L14.1467 6.25045L9.23733 12.3851L5.76 9.48779L4.90667 10.5118L9.42933 14.2811Z"
+                          fill={svgColor}
+                        />
+                      </g>
+                      <defs>
+                        <clipPath id="clip0_4249_2052">
+                          <rect width="20" height="20" fill="white" />
+                        </clipPath>
+                      </defs>
+                    </svg>
+                  </div>
+                </>
+              )}
+
+              {/* Delete Button (only for non-Admin users) - For non-video content */}
+              {!userRoles.includes("Admin") && !record.individualVideoTitle && (
                 <div
                   className="cursor-pointer"
-                  onClick={() => handleDeleteAction(record)}
+                  onClick={() =>
+                    showConfirmationModal({
+                      title: "Delete Content",
+                      message: `Are you sure you want to delete this content? This action cannot be undone.`,
+                      onConfirm: () => handleDeleteAction(record),
+                      record: record,
+                      actionType: "deleteContent",
+                      confirmText: "Delete",
+                    })
+                  }
                 >
                   <svg
                     width="18"
@@ -922,14 +1409,14 @@ const ContentManagement = () => {
                   ? "bg-[#1E1E1E] text-[#C7C7C7]"
                   : "bg-gray-100 text-black"
               } shadow-lg rounded-lg transition-all duration-300 ease-in-out rounded-[10px]
-                                   ${
-                                     selectedCard === index
-                                       ? "bg-[#FFC9BB33] bg-opacity-30 border-[#F48567]"
-                                       : "hover:bg-[#f486673a]"
-                                   }`}
+                                    ${
+                                      selectedCard === index
+                                        ? "bg-[#FFC9BB33] bg-opacity-30 border-[#F48567]"
+                                        : "hover:bg-[#f486673a]"
+                                    }`}
               bordered={true}
               onClick={() => {
-                setSelectedCard(selectedCard === index ? null : index); // Toggle the selected card
+                setSelectedCard(selectedCard === index ? null : index);
                 setFilter(card.filter);
               }}
             >
@@ -961,7 +1448,7 @@ const ContentManagement = () => {
                       (currentPage - 1) * pageSize + index
                     )
                   )
-                } // Check if all on the page are selected
+                }
                 onChange={handleSelectAll}
               />
             </div>
@@ -1020,33 +1507,38 @@ const ContentManagement = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedData.map((row, rowIndex) => (
-                    <tr
-                      key={row.key || rowIndex}
-                      className={`table-text rounded-lg ${
-                        darkMode ? "bg-[#333333] text-white" : "bg-[#f1f5f9]"
-                      }  ${
-                        selectedIndices.includes(rowIndex)
-                          ? "bg-[#f486673a]"
-                          : ""
-                      } headoptions`}
-                      style={{ cursor: "pointer" }}
-                    >
-                      {columns.map((column, colIndex) => (
-                        <td
-                          key={colIndex}
-                          style={{
-                            padding: "10px 10px",
-                            border: "none",
-                          }}
-                        >
-                          {column.render
-                            ? column.render(row[column.dataIndex], row)
-                            : row[column.dataIndex] || "N/A"}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
+                  {paginatedData.map((row, rowIndex) => {
+                    const absoluteIndex =
+                      (currentPage - 1) * pageSize + rowIndex;
+
+                    return (
+                      <tr
+                        key={row.key || absoluteIndex}
+                        className={`table-text rounded-lg ${
+                          darkMode ? "bg-[#333333] text-white" : "bg-[#f1f5f9]"
+                        }  ${
+                          selectedIndices.includes(absoluteIndex)
+                            ? "bg-[#f486673a]"
+                            : ""
+                        } headoptions`}
+                        style={{ cursor: "pointer" }}
+                      >
+                        {columns.map((column, colIndex) => (
+                          <td
+                            key={colIndex}
+                            style={{
+                              padding: "10px 10px",
+                              border: "none",
+                            }}
+                          >
+                            {column.render
+                              ? column.render(row[column.dataIndex], row)
+                              : row[column.dataIndex] || "N/A"}
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -1054,7 +1546,7 @@ const ContentManagement = () => {
             {/* Pagination */}
             <div className="absolute left-[-20px] bottom-0 flex flex-col items-center justify h-full pt-[45px]">
               {paginatedData.map((_, index) => {
-                const absoluteIndex = (currentPage - 1) * pageSize + index; // Convert paginated index to absolute
+                const absoluteIndex = (currentPage - 1) * pageSize + index;
                 return (
                   <span
                     key={absoluteIndex}
@@ -1078,7 +1570,7 @@ const ContentManagement = () => {
           <Pagination
             current={currentPage}
             pageSize={pageSize}
-            total={filteredData.length} // Total number of items in your data
+            total={filteredData.length}
             onChange={handleChangePage}
             onShowSizeChange={(_, size) => handlePageSizeChange(size)}
             itemRender={(page, type, originalElement) => {
@@ -1137,6 +1629,17 @@ const ContentManagement = () => {
           </div>
         </div>
       </div>
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={closeConfirmationModal}
+        onConfirm={handleConfirmAction}
+        title={confirmationModal.title}
+        message={confirmationModal.message}
+        confirmText={confirmationModal.confirmText}
+        cancelText="Cancel"
+        showCancel={confirmationModal.showCancel}
+        darkMode={darkMode}
+      />
     </>
   );
 };
