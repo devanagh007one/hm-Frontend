@@ -640,6 +640,9 @@ const ContentManagement = () => {
       default:
         break;
     }
+    filteredCombinedData = filteredCombinedData.filter(
+      (item) => item.entryType !== "module"
+    );
 
     return filteredCombinedData;
   }, [filter, contents, specificSearchQuery]);
