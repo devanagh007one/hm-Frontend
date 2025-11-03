@@ -114,7 +114,11 @@ const ContentManagement = ({ data }) => {
   const videoRef = useRef(null);
 
   const handleOpenModal = (content, index = 0) => {
-    if (Array.isArray(content?.src)) {
+    if (content.type === "image" || content.type === "learning_cover") {
+      // For images and learning covers, show as image
+      setModalContent(content);
+      setIsModalOpen(true);
+    } else if (Array.isArray(content?.src)) {
       // If it's an array, use the first video or a specific index
       if (content.src.length > 0) {
         setModalContent({ ...content, src: content.src[index] });
@@ -153,7 +157,34 @@ const ContentManagement = ({ data }) => {
       : data?.videoFile_introduction
       ? [{ type: "video", src: data.videoFile_introduction }]
       : []),
+    // Add learning video covers
+    ...(Array.isArray(data?.learningVideoCovers)
+      ? data.learningVideoCovers.map((cover, index) => ({
+          type: "learning_cover",
+          src: cover,
+          index: index,
+          title: data?.learningVideoTitles?.[index] || `Video ${index + 1}`,
+        }))
+      : data?.learningVideoCovers
+      ? [
+          {
+            type: "learning_cover",
+            src: data.learningVideoCovers,
+            index: 0,
+            title: data?.learningVideoTitles?.[0] || "Learning Video",
+          },
+        ]
+      : []),
   ].filter((item) => item.src); // Ensure only valid items are processed
+
+  // Helper function to get full URL
+  const getMediaUrl = (src) => {
+    if (!src) return "/fallback-image.jpg";
+    return `${process.env.REACT_APP_STATIC_API_URL}/${src.replace(
+      /^\/root\/happme_adminuser_management\//,
+      ""
+    )}`;
+  };
 
   const handleUpdateStatus = (id, status) => {
     dispatch(patchTheContent(id, status))
@@ -175,15 +206,6 @@ const ContentManagement = ({ data }) => {
           )
         );
       });
-  };
-
-  // Helper function to get full URL
-  const getMediaUrl = (src) => {
-    if (!src) return "/fallback-image.jpg";
-    return `${process.env.REACT_APP_STATIC_API_URL}/${src.replace(
-      /^\/root\/happme_adminuser_management\//,
-      ""
-    )}`;
   };
 
   return (
@@ -249,52 +271,95 @@ const ContentManagement = ({ data }) => {
                 ))}
               </div>
               <div className="space-y-3 mt-3">
-                <div className="flex justify-start items-center p-1">
-                  {mediaItems.length === 3 ? (
-                    <span className="font-medium capitalize w-[550px]">
-                      Cover Photo&nbsp;&nbsp;&nbsp; Module Video&nbsp;&nbsp;
-                      Explanatory Video
-                    </span>
-                  ) : mediaItems.length === 2 ? (
-                    <span className="font-medium capitalize w-[550px]">
-                      Cover Photo &nbsp;&nbsp; Module Video
-                    </span>
-                  ) : (
-                    <span className="font-medium capitalize w-[550px]">
-                      Cover Photo
-                    </span>
-                  )}
-                </div>
-                <div className="flex justify-start items-center p-1 gap-3">
-                  {mediaItems.map((item, index) => (
-                    <div key={index}>
-                      {item.type === "image" ? (
-                        <img
-                          src={getMediaUrl(item.src)}
-                          alt="Cover"
-                          className="w-24 h-24 object-cover cursor-pointer"
-                          onClick={() => handleOpenModal(item)}
-                        />
-                      ) : Array.isArray(item.src) ? (
-                        item.src
-                          .slice(0, 1)
-                          .map((video, videoIndex) => (
+                <div className="flex justify-start items-start p-1">
+                  <span className="font-medium capitalize w-[150px]">
+                    Media:
+                  </span>
+                  <div className="flex flex-row -space-x-14">
+                    {/* Module Video Section */}
+                    {(data?.videoFile_description ||
+                      data?.videoFile_introduction) && (
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium mb-2">
+                          Module Video
+                        </span>
+                        <div className="flex gap-3">
+                          {data?.videoFile_description && (
                             <video
-                              key={videoIndex}
-                              src={getMediaUrl(video)}
+                              src={getMediaUrl(
+                                Array.isArray(data.videoFile_description)
+                                  ? data.videoFile_description[0]
+                                  : data.videoFile_description
+                              )}
                               className="w-24 h-24 object-cover cursor-pointer"
-                              onClick={() => handleOpenModal(item, videoIndex)}
+                              onClick={() =>
+                                handleOpenModal({
+                                  type: "video",
+                                  src: Array.isArray(data.videoFile_description)
+                                    ? data.videoFile_description[0]
+                                    : data.videoFile_description,
+                                })
+                              }
                             />
-                          ))
-                      ) : (
-                        <video
-                          src={getMediaUrl(item.src)}
-                          className="w-24 h-24 object-cover cursor-pointer"
-                          onClick={() => handleOpenModal(item)}
-                        />
+                          )}
+                          {data?.videoFile_introduction && (
+                            <video
+                              src={getMediaUrl(
+                                Array.isArray(data.videoFile_introduction)
+                                  ? data.videoFile_introduction[0]
+                                  : data.videoFile_introduction
+                              )}
+                              className="w-24 h-24 object-cover cursor-pointer"
+                              onClick={() =>
+                                handleOpenModal({
+                                  type: "video",
+                                  src: Array.isArray(
+                                    data.videoFile_introduction
+                                  )
+                                    ? data.videoFile_introduction[0]
+                                    : data.videoFile_introduction,
+                                })
+                              }
+                            />
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Learning Video Covers Section */}
+                    {data?.learningVideoCovers &&
+                      data.learningVideoCovers.length > 0 && (
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium mb-2">
+                            Learning Video Covers
+                          </span>
+                          <div className="flex gap-3">
+                            {data.learningVideoCovers.map((cover, index) => (
+                              <div key={index} className="relative">
+                                <img
+                                  src={getMediaUrl(cover)}
+                                  alt={`Learning Video Cover ${index + 1}`}
+                                  className="w-24 h-24 object-cover cursor-pointer"
+                                  onClick={() =>
+                                    handleOpenModal({
+                                      type: "image",
+                                      src: cover,
+                                      title:
+                                        data?.learningVideoTitles?.[index] ||
+                                        `Video ${index + 1}`,
+                                    })
+                                  }
+                                />
+                                <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white text-xs p-1 text-center truncate">
+                                  {data?.learningVideoTitles?.[index] ||
+                                    `Video ${index + 1}`}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       )}
-                    </div>
-                  ))}
+                  </div>
                 </div>
               </div>
 

@@ -1418,39 +1418,40 @@ const ParentComponent = () => {
 
     try {
       for (const challenge of challenges) {
-        const formData = new FormData();
+        const formDataToSend = new FormData(); // ✅ Renamed to avoid conflict
 
-        formData.append(
+        formDataToSend.append(
           "uniChallengeId",
           challenge.uniChallengeId || generateUniqueId()
         );
-        formData.append("challengeName", challenge.challengeName || "");
-        formData.append("module", selectedModule.id);
-        formData.append(
+        formDataToSend.append("challengeName", challenge.challengeName || "");
+        formDataToSend.append("module", selectedModule.id);
+        formDataToSend.append(
           "challenge_Description",
           challenge.challenge_Description || ""
         );
-        formData.append(
+        formDataToSend.append(
           "uploaded_by",
           formData.partnerId || selectedModule.uploadedById
         );
-        formData.append("duration", challenge.duration || "0h 00 min");
-        formData.append(
+        formDataToSend.append("duration", challenge.duration || "0h 00 min");
+        formDataToSend.append(
           "challenge_benefits",
           challenge.challenge_benefits || ""
         );
-        formData.append(
+        formDataToSend.append(
           "difficulty_Level",
           challenge.difficulty_Level || "Medium"
         );
 
         if (challenge.video_or_image) {
-          formData.append("video_or_image", challenge.video_or_image);
+          formDataToSend.append("video_or_image", challenge.video_or_image);
         }
 
-        const response = await dispatch(createchallenge(formData));
+        const response = await dispatch(createchallenge(formDataToSend));
 
-        if (!response?.success) {
+        // ✅ FIX: Check for successful response more reliably
+        if (!response || (!response.success && !response._id && !response.id)) {
           console.error("API Error Response:", response);
           throw new Error(response?.message || "Challenge submission failed");
         }
