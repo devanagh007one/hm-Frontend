@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import {useLocation, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { loginUser } from "../../redux/actions/authActions";
 import { showNotification } from "../../redux/actions/notificationActions";
@@ -9,9 +9,11 @@ import Forgetpassword from "../Forgetpassword";
 import backgroundImage from "../../Images/background.svg";
 
 const Login = () => {
+  const location = useLocation(); 
+  const isForgotFromURL = new URLSearchParams(location.search).get("open")?.toLowerCase() === "forgot";
   const [emailOrMobile, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [forgetPasswordVisible, setForgetPasswordVisible] = useState(false); // State to control Forget Password visibility
+  const [forgetPasswordVisible, setForgetPasswordVisible] = useState(isForgotFromURL); // State to control Forget Password visibility
   const dispatch = useDispatch();
   const navigate = useNavigate(); // Added navigate for redirection
 
