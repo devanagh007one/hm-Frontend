@@ -314,16 +314,18 @@ const ParentComponent = () => {
   ];
 
   const handleOpenLearningVideo = () => {
-    setFormData((prevData) => ({
-      ...prevData,
-
-      videoFile_introduction: [],
-      videoFile_description: [],
-      learningVideoTitles: [],
-      learningVideoCovers: [],
-      description_videofile_text: [],
-      content: "",
-    }));
+    // Only reset video arrays when creating new learning video, not when editing
+    if (editingIndex === null) {
+      setFormData((prevData) => ({
+        ...prevData,
+        videoFile_introduction: [],
+        videoFile_description: [],
+        learningVideoTitles: [],
+        learningVideoCovers: [],
+        description_videofile_text: [],
+        content: "",
+      }));
+    }
 
     setIsSectionVisible(false);
     setIsSection2Visible(true);
@@ -685,11 +687,13 @@ const ParentComponent = () => {
         description: formData.description,
         content: formData.content,
         tracks: storedData?.track || formData.tracks,
-        // ✅ ADD THIS LINE
         uploaded_by: formData.partnerId || modules[editingIndex].uploaded_by,
         cover_Photo: formData.cover_Photo || modules[editingIndex].cover_Photo,
+        // REPLACE arrays instead of appending
         videoFile_introduction: [
-          ...(modules[editingIndex].videoFile_introduction || []),
+          ...(modules[editingIndex].videoFile_introduction || []).filter(
+            (file) => !(file instanceof File)
+          ),
           ...(Array.isArray(formData.videoFile_introduction)
             ? formData.videoFile_introduction.filter(
                 (file) => file instanceof File
@@ -697,28 +701,22 @@ const ParentComponent = () => {
             : []),
         ],
         videoFile_description: [
-          ...(modules[editingIndex].videoFile_description || []),
+          ...(modules[editingIndex].videoFile_description || []).filter(
+            (file) => !(file instanceof File)
+          ),
           ...(Array.isArray(formData.videoFile_description)
             ? formData.videoFile_description.filter(
                 (file) => file instanceof File
               )
             : []),
         ],
-        learningVideoTitles: [
-          ...(modules[editingIndex].learningVideoTitles || []),
-          ...(formData.learningVideoTitles || []),
-        ],
-        learningVideoCovers: [
-          ...(modules[editingIndex].learningVideoCovers || []),
-          ...(formData.learningVideoCovers || []),
-        ],
-        description_videofile_text: [
-          ...(modules[editingIndex].description_videofile_text || []),
-          ...(formData.description_videofile_text || []),
-        ],
+        // For arrays that should be replaced completely during edit
+        learningVideoTitles: formData.learningVideoTitles || [],
+        learningVideoCovers: formData.learningVideoCovers || [],
+        description_videofile_text: formData.description_videofile_text || [],
         _id: formData._id,
         isExistingModule: formData.isExistingModule,
-        entryNumber: formData.entryNumber || editingIndex + 1,
+        entryNumber: editingIndex + 1, // Keep the same entry number when editing
       };
 
       const updatedModules = [...modules];
@@ -786,6 +784,7 @@ const ParentComponent = () => {
       description_videofile_text: [],
       content: "",
       isApproved: "approved",
+      _id: editingIndex !== null ? null : formData._id, // Reset _id when not editing
     };
 
     setFormData(resetFormData);
@@ -1098,11 +1097,10 @@ const ParentComponent = () => {
       setShowDeleteModal(false);
     }
   };
-
   const handleAddModulefromavilablenew = () => {
-    // Preserve the existing module data including cover photo
+    // Preserve the existing module data including videos when adding new learning video
     setFormData((prevData) => ({
-      ...prevData, // Keep all existing data including cover_Photo
+      ...prevData, // Keep all existing data
       // Only reset the fields that should be fresh for new learning video
       videoFile_introduction: [],
       videoFile_description: [],
@@ -1154,29 +1152,30 @@ const ParentComponent = () => {
       setisCreatedContentVisible(true);
       return;
     }
+
     const newChallenge = {
       ...challengeData,
       uniChallengeId: generateUniqueId(),
     };
 
     if (editingChallengeIndex !== null) {
+      // Replace the existing challenge when editing
       const updatedChallenges = [...challenges];
       updatedChallenges[editingChallengeIndex] = newChallenge;
       setChallenges(updatedChallenges);
       setEditingChallengeIndex(null);
-      settime({
-        duration: 0,
-      });
     } else {
+      // Add new challenge when creating
       setChallenges([...challenges, newChallenge]);
     }
 
-    // Reset both challengeData and time
+    // Reset challenge data
     setChallengeData({
       ...initialChallangeData,
       uniChallengeId: generateUniqueId(),
     });
-    settime({ duration: "" }); // Reset duration
+    settime({ duration: "" });
+
     setIsSection3Visible(false);
     setisCreatedContentVisible(true);
     setNavigationHistory((prev) => [...prev, "createdContent"]);
@@ -1629,7 +1628,6 @@ const ParentComponent = () => {
                   {isSectionVisible && (
                     <span className="text-white text-xl"></span>
                   )}
-
                   {isSection2Visible && (
                     <div className="flex justify-start items-start">
                       <span className="text-md text-[#F48567] mt-2">
@@ -1637,23 +1635,25 @@ const ParentComponent = () => {
                       </span>
                       <span className="mx-2 text-xl mt-1">/</span>
                       <span className="text-sm text-[#F48567] mt-2">
-                        Learning Video
+                        {editingIndex !== null
+                          ? `Learning Video ${editingIndex + 1}`
+                          : `Learning Video ${modules.length + 1}`}
                       </span>
                     </div>
                   )}
 
                   {isSection3Visible && (
-                    <>
-                      <span className="text-white text-xl">
+                    <div className="flex justify-start items-start">
+                      <span className="text-md text-[#F48567] mt-2">
                         {formData.moduleName || "Module"}
                       </span>
-                      <span className="mx-2">/</span>
-                      <span className="text-white text-sm">Learning Video</span>
-                      <span className="mx-2 text-lg">/</span>
-                      <span className="text-sm text-[#F48567]  mt-1">
-                        Challenge
+                      <span className="mx-2 text-xl mt-1">/</span>
+                      <span className="text-sm text-[#F48567] mt-2">
+                        {editingChallengeIndex !== null
+                          ? `Edit Challenge ${editingChallengeIndex + 1}`
+                          : `Challenge ${challenges.length + 1}`}
                       </span>
-                    </>
+                    </div>
                   )}
                 </div>
               </div>
@@ -2708,230 +2708,147 @@ const ParentComponent = () => {
           </button> */}
                         </div>
                         {/* Always show multiple title inputs */}
+                        {/* Learning Video Form */}
                         <div className="flex flex-col mt-3 space-y-2">
                           <label className="mb-1">
-                            Learning Video {modules.length + 1}
+                            {editingIndex !== null
+                              ? `Edit Learning Video ${editingIndex + 1}`
+                              : `Learning Video ${modules.length + 1}`}
                           </label>
-                          <label className="mb-1">Learning Video Titles </label>
 
-                          {Array.from({
-                            length: Math.max(
-                              1,
-                              formData.videoFile_introduction.length
-                            ),
-                          }).map((_, index) => (
-                            <div
-                              key={index}
-                              className="space-y-3 border border-gray-600 p-3 rounded-xl"
-                            >
-                              {/* 1. Video Title */}
+                          {/* Single Learning Video Entry - Show existing data when editing */}
+                          <div className="space-y-3 border border-gray-600 p-3 rounded-xl">
+                            {/* Video Title */}
+                            <div className="flex flex-col">
+                              <label className="mb-1">
+                                Learning Video Title
+                              </label>
                               <input
                                 type="text"
-                                placeholder={"Title for Video"}
+                                placeholder="Title for Video"
                                 className="p-2 rounded-xl border border-gray-600 focus:outline-none w-full"
-                                value={
-                                  formData.learningVideoTitles[index] || ""
-                                }
+                                value={formData.learningVideoTitles[0] || ""}
                                 onChange={(e) => {
                                   const newTitles = [
                                     ...(formData.learningVideoTitles || []),
                                   ];
-                                  newTitles[index] = e.target.value;
+                                  newTitles[0] = e.target.value;
                                   setFormData({
                                     ...formData,
                                     learningVideoTitles: newTitles,
                                   });
                                 }}
                               />
+                            </div>
 
-                              {/* 2. Video Description */}
+                            {/* Video Description */}
+                            <div className="flex flex-col">
+                              <label className="mb-1">
+                                Learning Video Description
+                              </label>
                               <textarea
-                                placeholder={"Description for Video"}
+                                placeholder="Description for Video"
                                 className="p-2 rounded-xl border border-gray-600 focus:outline-none w-full min-h-[80px]"
                                 value={
-                                  formData.description_videofile_text[index] ||
-                                  ""
+                                  formData.description_videofile_text[0] || ""
                                 }
                                 onChange={(e) => {
                                   const newDescriptions = [
                                     ...(formData.description_videofile_text ||
                                       []),
                                   ];
-                                  newDescriptions[index] = e.target.value;
+                                  newDescriptions[0] = e.target.value;
                                   setFormData({
                                     ...formData,
                                     description_videofile_text: newDescriptions,
                                   });
                                 }}
                               />
+                            </div>
 
-                              {/* 3. Video Cover Photo */}
-                              <div className="flex flex-col w-full">
-                                <label className="mb-1 text-sm">
-                                  Cover Photo for Video
-                                </label>
-                                <label className="p-2 pl-4 pr-4 rounded-xl border border-gray-600 focus:outline-none flex items-center justify-between cursor-pointer">
-                                  <div className="flex-1">
-                                    {formData.learningVideoCovers[index]
-                                      ?.name || "Upload Cover for Video"}
-                                  </div>
-                                  <div className="flex items-center">
-                                    <input
-                                      type="file"
-                                      accept="image/*"
-                                      className="hidden"
-                                      onChange={(e) => {
-                                        const file = e.target.files[0];
-                                        if (file) {
-                                          const newCovers = [
-                                            ...(formData.learningVideoCovers ||
-                                              []),
-                                          ];
-                                          newCovers[index] = file;
-                                          setFormData({
-                                            ...formData,
-                                            learningVideoCovers: newCovers,
-                                          });
-                                        }
+                            {/* Video Cover Photo */}
+                            <div className="flex flex-col w-full">
+                              <label className="mb-1">
+                                Cover Photo for Video
+                              </label>
+                              <label className="p-2 pl-4 pr-4 rounded-xl border border-gray-600 focus:outline-none flex items-center justify-between cursor-pointer">
+                                <div className="flex-1">
+                                  {formData.learningVideoCovers[0]?.name ||
+                                    "Upload Cover for Video"}
+                                </div>
+                                <div className="flex items-center">
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                      const file = e.target.files[0];
+                                      if (file) {
+                                        const newCovers = [
+                                          ...(formData.learningVideoCovers ||
+                                            []),
+                                        ];
+                                        newCovers[0] = file;
+                                        setFormData({
+                                          ...formData,
+                                          learningVideoCovers: newCovers,
+                                        });
+                                      }
+                                    }}
+                                  />
+                                  {formData.learningVideoCovers[0] ? (
+                                    <svg
+                                      width="18"
+                                      height="18"
+                                      viewBox="0 0 18 18"
+                                      fill="none"
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        const newCovers = [
+                                          ...(formData.learningVideoCovers ||
+                                            []),
+                                        ];
+                                        newCovers[0] = null;
+                                        setFormData({
+                                          ...formData,
+                                          learningVideoCovers: newCovers,
+                                        });
                                       }}
-                                    />
-                                    {formData.learningVideoCovers[index] ? (
-                                      <svg
-                                        width="18"
-                                        height="18"
-                                        viewBox="0 0 18 18"
-                                        fill="none"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          const newCovers = [
-                                            ...(formData.learningVideoCovers ||
-                                              []),
-                                          ];
-                                          newCovers[index] = null;
-                                          setFormData({
-                                            ...formData,
-                                            learningVideoCovers: newCovers,
-                                          });
-                                        }}
-                                        className="cursor-pointer ml-2"
-                                      >
-                                        <path
-                                          d="M9 0.25C4.125 0.25 0.25 4.125 0.25 9C0.25 13.875 4.125 17.75 9 17.75C13.875 17.75 17.75 13.875 17.75 9C17.75 4.125 13.875 0.25 9 0.25ZM12.375 13.375L9 10L5.625 13.375L4.625 12.375L8 9L4.625 5.625L5.625 4.625L9 8L12.375 4.625L13.375 5.625L10 9L13.375 12.375L12.375 13.375Z"
-                                          fill="#DD441B"
-                                        />
-                                      </svg>
-                                    ) : (
-                                      <svg
-                                        width="13"
-                                        height="13"
-                                        viewBox="0 0 13 13"
-                                        fill="none"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                      >
-                                        <path
-                                          d="M5.8501 9.59998V3.48748L3.9001 5.43748L2.8501 4.34998L6.6001 0.599976L10.3501 4.34998L9.3001 5.43748L7.3501 3.48748V9.59998H5.8501ZM2.1001 12.6C1.6876 12.6 1.3346 12.4532 1.0411 12.1597C0.747598 11.8662 0.600598 11.513 0.600098 11.1V8.84998H2.1001V11.1H11.1001V8.84998H12.6001V11.1C12.6001 11.5125 12.4533 11.8657 12.1598 12.1597C11.8663 12.4537 11.5131 12.6005 11.1001 12.6H2.1001Z"
-                                          fill="#C7C7C7"
-                                        />
-                                      </svg>
-                                    )}
-                                  </div>
-                                </label>
-                              </div>
+                                      className="cursor-pointer ml-2"
+                                    >
+                                      <path
+                                        d="M9 0.25C4.125 0.25 0.25 4.125 0.25 9C0.25 13.875 4.125 17.75 9 17.75C13.875 17.75 17.75 13.875 17.75 9C17.75 4.125 13.875 0.25 9 0.25ZM12.375 13.375L9 10L5.625 13.375L4.625 12.375L8 9L4.625 5.625L5.625 4.625L9 8L12.375 4.625L13.375 5.625L10 9L13.375 12.375L12.375 13.375Z"
+                                        fill="#DD441B"
+                                      />
+                                    </svg>
+                                  ) : (
+                                    <svg
+                                      width="13"
+                                      height="13"
+                                      viewBox="0 0 13 13"
+                                      fill="none"
+                                      xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                      <path
+                                        d="M5.8501 9.59998V3.48748L3.9001 5.43748L2.8501 4.34998L6.6001 0.599976L10.3501 4.34998L9.3001 5.43748L7.3501 3.48748V9.59998H5.8501ZM2.1001 12.6C1.6876 12.6 1.3346 12.4532 1.0411 12.1597C0.747598 11.8662 0.600598 11.513 0.600098 11.1V8.84998H2.1001V11.1H11.1001V8.84998H12.6001V11.1C12.6001 11.5125 12.4533 11.8657 12.1598 12.1597C11.8663 12.4537 11.5131 12.6005 11.1001 12.6H2.1001Z"
+                                        fill="#C7C7C7"
+                                      />
+                                    </svg>
+                                  )}
+                                </div>
+                              </label>
                             </div>
-                          ))}
+                          </div>
                         </div>
-                        {/* Module Description (Keep this outside the map - it's for the entire module) 
-                        <div className="flex flex-col mt-3">
-                          <label className="mb-1">Module Description</label>
-                          <textarea
-                            name="description"
-                            placeholder="Provide a brief description"
-                            className="p-2 rounded-xl border border-gray-600 focus:outline-none min-h-[100px]"
-                            value={formData.description}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                description: e.target.value,
-                              })
-                            }
-                          />
-                        </div>
-                        <div className="flex flex-col w-full mt-3">
-                          <label className="mb-1">Module Cover Photo</label>
 
-                          <label className="p-2 pl-4 pr-4 rounded-xl border border-gray-600 focus:outline-none flex items-center justify-between cursor-pointer">
-                            <div className="flex flex-col flex-1">
-                              <span className="text-sm">
-                                {formData.cover_Photo
-                                  ? "Change Cover Photo"
-                                  : "Upload Cover Photo"}
-                              </span>
-                              {formData.cover_Photo && (
-                                <span className="text-xs text-[#F48567] mt-1 truncate">
-                                  {formData.cover_Photo instanceof File
-                                    ? formData.cover_Photo.name
-                                    : "Existing cover photo"}
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center">
-                              <input
-                                name="cover_Photo"
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={(e) =>
-                                  handleFileChange(e, "cover_Photo")
-                                }
-                              />
-                              {formData.cover_Photo ? (
-                                <svg
-                                  width="18"
-                                  height="18"
-                                  viewBox="0 0 18 18"
-                                  fill="none"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleRemoveFile("cover_Photo");
-                                  }}
-                                  className="cursor-pointer ml-2"
-                                >
-                                  <path
-                                    d="M9 0.25C4.125 0.25 0.25 4.125 0.25 9C0.25 13.875 4.125 17.75 9 17.75C13.875 17.75 17.75 13.875 17.75 9C17.75 4.125 13.875 0.25 9 0.25ZM12.375 13.375L9 10L5.625 13.375L4.625 12.375L8 9L4.625 5.625L5.625 4.625L9 8L12.375 4.625L13.375 5.625L10 9L13.375 12.375L12.375 13.375Z"
-                                    fill="#DD441B"
-                                  />
-                                </svg>
-                              ) : (
-                                <svg
-                                  width="13"
-                                  height="13"
-                                  viewBox="0 0 13 13"
-                                  fill="none"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                >
-                                  <path
-                                    d="M5.8501 9.59998V3.48748L3.9001 5.43748L2.8501 4.34998L6.6001 0.599976L10.3501 4.34998L9.3001 5.43748L7.3501 3.48748V9.59998H5.8501ZM2.1001 12.6C1.6876 12.6 1.3346 12.4532 1.0411 12.1597C0.747598 11.8662 0.600598 11.513 0.600098 11.1V8.84998H2.1001V11.1H11.1001V8.84998H12.6001V11.1C12.6001 11.5125 12.4533 11.8657 12.1598 12.1597C11.8663 12.4537 11.5131 12.6005 11.1001 12.6H2.1001Z"
-                                    fill="#C7C7C7"
-                                  />
-                                </svg>
-                              )}
-                            </div>
-                          </label>
-
-                          <p className="text-xs text-[#C7C7C7] mt-1">
-                            {formData.cover_Photo
-                              ? "This cover photo will be used for the entire module"
-                              : "Upload a cover photo for this module"}
-                          </p>
-                        </div>*/}
                         {/* Learning Videos Upload Section - This will handle BOTH introduction and description */}
                         <div className="flex flex-col w-full mt-3">
                           <label className="mb-1">
                             Upload Learning Video(s)
                           </label>
 
+                          {/* Show existing learning videos */}
                           {/* Show existing learning videos */}
                           {Array.isArray(formData.videoFile_introduction) &&
                             formData.videoFile_introduction.length > 0 && (
@@ -2945,7 +2862,9 @@ const ParentComponent = () => {
                                       <span className="text-sm truncate flex-1">
                                         {video instanceof File
                                           ? video.name
-                                          : video.split("/").pop()}
+                                          : typeof video === "string"
+                                          ? video.split("/").pop()
+                                          : "Video file"}
                                       </span>
                                       <svg
                                         width="18"
@@ -2976,7 +2895,13 @@ const ParentComponent = () => {
                           <label className="p-2 pl-4 pr-4 rounded-xl border border-gray-600 focus:outline-none flex items-center justify-between cursor-pointer">
                             <div>
                               {formData.videoFile_introduction?.length > 0
-                                ? `${formData.videoFile_introduction.length} video(s) selected - Add more`
+                                ? `${
+                                    formData.videoFile_introduction.length
+                                  } video(s) selected - ${
+                                    editingIndex !== null
+                                      ? "Replace or add more"
+                                      : "Add more"
+                                  }`
                                 : "Upload Learning Video(s)"}
                             </div>
                             <div className="flex items-center">
@@ -3037,7 +2962,13 @@ const ParentComponent = () => {
                               onClick={handleAddModule} // This should call handleAddModule
                               disabled={loading}
                             >
-                              {loading ? <Spin size="small" /> : "Save"}
+                              {loading ? (
+                                <Spin size="small" />
+                              ) : editingIndex !== null ? (
+                                "Update"
+                              ) : (
+                                "Save"
+                              )}
                             </button>
                           </div>
 
@@ -3093,11 +3024,17 @@ const ParentComponent = () => {
                             }
                           }
 
-                          if (
-                            typeof fileData === "string" &&
-                            fileData.startsWith("http")
-                          ) {
-                            return fileData;
+                          if (typeof fileData === "string") {
+                            // If it's already a URL string (from server), return it directly
+                            if (
+                              fileData.startsWith("http") ||
+                              fileData.startsWith("blob:")
+                            ) {
+                              return fileData;
+                            }
+                            // If it's a file path, you might want to construct the full URL
+                            // Adjust this based on your server setup
+                            return `${process.env.REACT_APP_STATIC_API_URL}${fileData}`;
                           }
 
                           return null;
@@ -3180,10 +3117,32 @@ const ParentComponent = () => {
                                       </span>
                                       <svg
                                         onClick={() => {
-                                          setFormData(module);
+                                          // Set form data with the specific learning video being edited
+                                          setFormData({
+                                            ...module,
+                                            // Keep ALL existing learning video data for editing including videos
+                                            learningVideoTitles:
+                                              module.learningVideoTitles || [],
+                                            learningVideoCovers:
+                                              module.learningVideoCovers || [],
+                                            description_videofile_text:
+                                              module.description_videofile_text ||
+                                              [],
+                                            // Keep existing video files for editing
+                                            videoFile_introduction:
+                                              module.videoFile_introduction ||
+                                              [],
+                                            videoFile_description:
+                                              module.videoFile_description ||
+                                              [],
+                                          });
                                           setEditingIndex(index);
                                           setIsSection2Visible(true);
                                           setisCreatedModuleVisible(false);
+                                          setNavigationHistory((prev) => [
+                                            ...prev,
+                                            "section2",
+                                          ]);
                                         }}
                                         className="cursor-pointer"
                                         width="21"
@@ -3211,7 +3170,7 @@ const ParentComponent = () => {
                                     {module.learningVideoTitles?.length > 0 && (
                                       <div className="mt-4">
                                         <p className="text-sm font-medium">
-                                          Learning Video Titles:
+                                          Learning Video Title:
                                         </p>
                                         <div className="mt-2 space-y-1">
                                           {module.learningVideoTitles.map(
@@ -3230,30 +3189,33 @@ const ParentComponent = () => {
                                     )}
 
                                     {/* Description */}
-                                    <div className="mt-4">
-                                      <p className="text-sm">Description</p>
-                                      <p className="text-sm mt-2">
-                                        {module.description}
-                                      </p>
-                                    </div>
+                                    {/* Learning Video Descriptions */}
+                                    {module.description_videofile_text?.length >
+                                      0 && (
+                                      <div className="mt-4">
+                                        <p className="text-sm font-medium">
+                                          Learning Video Descriptions:
+                                        </p>
+                                        <div className="mt-2 space-y-2">
+                                          {module.description_videofile_text.map(
+                                            (desc, idx) => (
+                                              <div key={idx} className="pl-2">
+                                                <p className="text-sm text-gray-300 mt-1">
+                                                  {desc ||
+                                                    `No description for video ${
+                                                      idx + 1
+                                                    }`}
+                                                </p>
+                                              </div>
+                                            )
+                                          )}
+                                        </div>
+                                      </div>
+                                    )}
 
                                     {/* Media Section */}
                                     <section className="mt-4">
                                       <div className="grid grid-cols-1 gap-4">
-                                        {/* Cover Photo */}
-                                        <div>
-                                          <p className="text-sm mb-2">
-                                            Cover Photo
-                                          </p>
-                                          {coverPhotoURL && (
-                                            <img
-                                              src={coverPhotoURL}
-                                              alt="Cover"
-                                              className="w-full h-32 object-cover rounded-xl border border-gray-600"
-                                            />
-                                          )}
-                                        </div>
-
                                         {/* Introduction Videos */}
                                         {videoIntroURLs.length > 0 && (
                                           <div>
@@ -3293,23 +3255,51 @@ const ParentComponent = () => {
                                           </div>
                                         )}
 
-                                        {/* Description Videos */}
-                                        {videoDescURLs.length > 0 && (
+                                        {/* Learning Video Cover Photos */}
+                                        {module.learningVideoCovers?.length >
+                                          0 && (
                                           <div>
                                             <p className="text-sm mb-2">
-                                              Explanatory Videos (
-                                              {videoDescURLs.length})
+                                              Learning Video Covers (
+                                              {
+                                                module.learningVideoCovers
+                                                  .length
+                                              }
+                                              )
                                             </p>
                                             <div className="grid grid-cols-2 gap-2">
-                                              {videoDescURLs.map(
-                                                (url, vidIndex) => (
-                                                  <video
-                                                    key={vidIndex}
-                                                    src={url}
-                                                    controls
-                                                    className="w-full h-32 object-cover rounded-xl border border-gray-600"
-                                                  />
-                                                )
+                                              {module.learningVideoCovers.map(
+                                                (cover, coverIndex) => {
+                                                  const coverURL =
+                                                    createSafeURL(cover);
+                                                  return coverURL ? (
+                                                    <div
+                                                      key={coverIndex}
+                                                      className="relative"
+                                                    >
+                                                      <img
+                                                        src={coverURL}
+                                                        alt={`Cover for video ${
+                                                          coverIndex + 1
+                                                        }`}
+                                                        className="w-full h-32 object-cover rounded-xl border border-gray-600"
+                                                      />
+                                                      {module
+                                                        .learningVideoTitles?.[
+                                                        coverIndex
+                                                      ] && (
+                                                        <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white text-xs p-1 rounded-b-xl truncate">
+                                                          {
+                                                            module
+                                                              .learningVideoTitles[
+                                                              coverIndex
+                                                            ]
+                                                          }
+                                                        </div>
+                                                      )}
+                                                    </div>
+                                                  ) : null;
+                                                }
                                               )}
                                             </div>
                                           </div>
@@ -3377,7 +3367,9 @@ const ParentComponent = () => {
                     </div>
 
                     <label className="mb-5">
-                      Challenge {challenges.length + 1}
+                      {editingChallengeIndex !== null
+                        ? `Challenge ${editingChallengeIndex + 1}`
+                        : `Challenge ${challenges.length + 1}`}
                     </label>
 
                     <div className="flex mt-3 flex-col">
@@ -3566,7 +3558,7 @@ const ParentComponent = () => {
                           className="bg-[#F48567] px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#000] flex items-center justify-center"
                           onClick={handleAddChallengeWithout}
                         >
-                          Save
+                          {editingChallengeIndex !== null ? "Update" : "Save"}
                         </button>
                       </div>
 
@@ -3658,10 +3650,18 @@ const ParentComponent = () => {
                                     </span>
                                     <svg
                                       onClick={() => {
-                                        setFormData(module);
-                                        // handleEditChallenge(index);
-                                        setIsSection3Visible(true); // Show edit section
-                                        setisCreatedModuleVisible(false); // Hide available modules
+                                        // Set the challenge data for editing
+                                        setChallengeData({
+                                          ...challenge,
+                                          module: formData.module,
+                                        });
+                                        setEditingChallengeIndex(index);
+                                        setIsSection3Visible(true);
+                                        setisCreatedContentVisible(false);
+                                        setNavigationHistory((prev) => [
+                                          ...prev,
+                                          "section3",
+                                        ]);
                                       }}
                                       className="cursor-pointer"
                                       width="21"

@@ -106,6 +106,28 @@ const ContentManagement = ({ data }) => {
       label: "Upload ID",
       value: selectedModule?.uniqueUploadId || data?.uniqueUploadId,
     },
+    {
+      label: "Learning Video Titles",
+      value: Array.isArray(
+        selectedModule?.learningVideoTitles || data?.learningVideoTitles
+      )
+        ? (
+            selectedModule?.learningVideoTitles || data?.learningVideoTitles
+          ).join(", ")
+        : "No titles available",
+    },
+    {
+      label: "Learning Video Descriptions",
+      value: Array.isArray(
+        selectedModule?.description_videofile_text ||
+          data?.description_videofile_text
+      )
+        ? (
+            selectedModule?.description_videofile_text ||
+            data?.description_videofile_text
+          ).join(", ")
+        : "No descriptions available",
+    },
     { label: "Approve", value: selectedModule?.isApproved || data?.isApproved },
   ];
 
