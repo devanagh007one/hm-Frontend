@@ -12,7 +12,7 @@ const ParentComponent = () => {
 
   const [showPopup, setShowPopup] = useState(false);
   const { licensing, error: licensingError } = useSelector(
-    (state) => state.licensing
+    (state) => state.licensing,
   );
   const { users, error } = useSelector((state) => state.user);
   const [isSaveDisabled, setIsSaveDisabled] = useState(false);
@@ -31,7 +31,7 @@ const ParentComponent = () => {
     company: "",
     department: "",
     email: "",
-    password: "HAPPME@123",
+    password: "",
     image: null,
     employeeCount: "",
     numberOfLicenses: "",
@@ -98,7 +98,7 @@ const ParentComponent = () => {
       const safePrevState =
         prevState && typeof prevState === "object"
           ? prevState
-          : { roles: "", password: "HAPPME@123" };
+          : { roles: "", password: "" };
 
       return {
         ...safePrevState,
@@ -114,8 +114,8 @@ const ParentComponent = () => {
       dispatch(
         showNotification(
           "Cannot create user. License limit has been reached for this organization.",
-          "error"
-        )
+          "error",
+        ),
       );
       return;
     }
@@ -164,7 +164,7 @@ const ParentComponent = () => {
       .catch((error) => {
         console.error("Error creating user:", error);
         dispatch(
-          showNotification(error.message || "Failed to create user", "error")
+          showNotification(error.message || "Failed to create user", "error"),
         );
       });
   };
@@ -197,7 +197,7 @@ const ParentComponent = () => {
   const validateLicenseLimit = (selectedCompany) => {
     // Find the license record for the selected company
     const licenseRecord = licensing.find(
-      (license) => license.organisationName === selectedCompany
+      (license) => license.organisationName === selectedCompany,
     );
 
     if (!licenseRecord) {
@@ -214,7 +214,7 @@ const ParentComponent = () => {
 
     // Count ALL users (regardless of role) assigned to this company
     const usersInCompany = users.filter(
-      (user) => user.company === selectedCompany
+      (user) => user.company === selectedCompany,
     );
 
     const currentUserCount = usersInCompany.length;
@@ -274,8 +274,8 @@ const ParentComponent = () => {
       dispatch(
         showNotification(
           `Cannot add more users. ${validation.message}`,
-          "error"
-        )
+          "error",
+        ),
       );
     } else {
       setIsSaveDisabled(false);
@@ -299,8 +299,8 @@ const ParentComponent = () => {
       dispatch(
         showNotification(
           `Cannot add more users. ${validation.message}`,
-          "error"
-        )
+          "error",
+        ),
       );
     } else {
       setIsSaveDisabled(false);
@@ -327,7 +327,7 @@ const ParentComponent = () => {
 
     // Only validate if the input matches an actual company
     const matchingCompany = licensing.find(
-      (license) => license.organisationName === value
+      (license) => license.organisationName === value,
     );
 
     if (matchingCompany) {
@@ -338,8 +338,8 @@ const ParentComponent = () => {
         dispatch(
           showNotification(
             `Cannot add more users. ${validation.message}`,
-            "error"
-          )
+            "error",
+          ),
         );
       } else {
         setIsSaveDisabled(false);
@@ -361,7 +361,7 @@ const ParentComponent = () => {
 
       // Find the current input and shift focus to the next input field
       const formElements = Array.from(
-        document.querySelectorAll("input, select, textarea, button")
+        document.querySelectorAll("input, select, textarea, button"),
       );
       const currentIndex = formElements.indexOf(e.target);
 
@@ -382,7 +382,7 @@ const ParentComponent = () => {
     try {
       const bytes = CryptoJS.AES.decrypt(
         encryptedRoles,
-        "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1"
+        "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1",
       );
       userRoles = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
     } catch (error) {
@@ -393,7 +393,7 @@ const ParentComponent = () => {
   // Define valid roles for checking
   const validRoles = ["super admin", "admin", "partner", "hr"];
   const hasValidRole = userRoles.some((role) =>
-    validRoles.includes(role.toLowerCase())
+    validRoles.includes(role.toLowerCase()),
   );
 
   // Check if the user is an Admin
@@ -966,7 +966,7 @@ const ParentComponent = () => {
                     options={["Create", "Update", "View", "Delete"]}
                     className="p-2 flex selectext justify-between rounded-xl w-full colorrr"
                     value={Object.keys(formData.permissions).filter(
-                      (key) => formData.permissions[key]
+                      (key) => formData.permissions[key],
                     )}
                     onChange={handleCheckboxChange}
                     required

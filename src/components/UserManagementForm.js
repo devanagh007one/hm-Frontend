@@ -11,7 +11,7 @@ const ParentComponent = () => {
 
   const [showPopup, setShowPopup] = useState(false);
   const { licensing, error: licensingError } = useSelector(
-    (state) => state.licensing
+    (state) => state.licensing,
   );
   const { users, error } = useSelector((state) => state.user);
   const [selectedLicense, setSelectedLicense] = useState(null);
@@ -29,7 +29,7 @@ const ParentComponent = () => {
     company: "",
     department: "",
     email: "",
-    password: "HAPPME@123",
+    password: "",
     image: null,
     employeeCount: "",
     numberOfLicenses: "10",
@@ -58,25 +58,25 @@ const ParentComponent = () => {
       [name]: files ? files[0] : value,
     }));
   };
-  const validatePassword = (password) => {
-    const regex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-    return regex.test(password);
-  };
+  // const validatePassword = (password) => {
+  //   const regex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  //   return regex.test(password);
+  // };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (isSaveDisabled) return;
 
-    if (!validatePassword(formData.password)) {
-      dispatch(
-        showNotification(
-          "Password must be at least 8 characters, include 1 uppercase, 1 number, and 1 special character.",
-          "error"
-        )
-      );
+    // if (!validatePassword(formData.password)) {
+    //   dispatch(
+    //     showNotification(
+    //       "Password must be at least 8 characters, include 1 uppercase, 1 number, and 1 special character.",
+    //       "error",
+    //     ),
+    //   );
 
-      return;
-    }
+    //   return;
+    // }
     if (!formData.company) {
       dispatch(showNotification("Organisation is required.", "error"));
 
@@ -115,9 +115,19 @@ const ParentComponent = () => {
     setFormData((prevData) => ({ ...prevData, image: file }));
   };
 
+  const getUniqueLicensing = () => {
+    const seen = new Set();
+    return licensing.filter((license) => {
+      const key = `${license.organisationName}-${license.mobile}-${license.numberOfLicence}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
+
   const handleCompanyChange = (value) => {
     const associatedLicense = licensing.find(
-      (license) => license.organisationName === value
+      (license) => license.organisationName === value,
     );
 
     if (associatedLicense) {
@@ -132,8 +142,8 @@ const ParentComponent = () => {
         dispatch(
           showNotification(
             `Maximum number of users (${numberOfLicence}) reached for this organisation.`,
-            "error"
-          )
+            "error",
+          ),
         );
       } else {
         setIsSaveDisabled(false);
@@ -325,7 +335,7 @@ const ParentComponent = () => {
                   showSearch
                   placeholder="Organisation"
                   className="choose-org"
-                  options={licensing?.map((item) => ({
+                  options={getUniqueLicensing()?.map((item) => ({
                     label: item.organisationName,
                     value: item.organisationName,
                   }))}

@@ -11,7 +11,7 @@ const ParentComponentHr = () => {
 
   const [showPopup, setShowPopup] = useState(false);
   const { licensing, error: licensingError } = useSelector(
-    (state) => state.licensing
+    (state) => state.licensing,
   );
   const { users, error } = useSelector((state) => state.user);
   const [selectedLicense, setSelectedLicense] = useState(null);
@@ -29,7 +29,7 @@ const ParentComponentHr = () => {
     company: "",
     department: "",
     email: "",
-    password: "HAPPME@123",
+    password: "",
     image: null,
     employeeCount: "",
     numberOfLicenses: "10",
@@ -62,11 +62,11 @@ const ParentComponentHr = () => {
 
     // Find and set the HappMe license info if it exists
     const happMeLicense = licensing?.find(
-      (license) => license.organisationName === "HappMe"
+      (license) => license.organisationName === "HappMe",
     );
     if (happMeLicense) {
       const userCount = users.filter(
-        (user) => user.company === "HappMe"
+        (user) => user.company === "HappMe",
       ).length;
       setUserCount(userCount);
       setTotalLicenses(happMeLicense.numberOfLicence);
@@ -81,10 +81,10 @@ const ParentComponentHr = () => {
     }));
   };
 
-  const validatePassword = (password) => {
-    const regex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-    return regex.test(password);
-  };
+  // const validatePassword = (password) => {
+  //   const regex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  //   return regex.test(password);
+  // };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -98,21 +98,21 @@ const ParentComponentHr = () => {
       dispatch(
         showNotification(
           `Cannot create user. License limit (${totalLicenses}) reached.`,
-          "error"
-        )
+          "error",
+        ),
       );
       return;
     }
 
-    if (!validatePassword(formData.password)) {
-      dispatch(
-        showNotification(
-          "Password must be at least 8 characters, include 1 uppercase, 1 number, and 1 special character.",
-          "error"
-        )
-      );
-      return;
-    }
+    // if (!validatePassword(formData.password)) {
+    //   dispatch(
+    //     showNotification(
+    //       "Password must be at least 8 characters, include 1 uppercase, 1 number, and 1 special character.",
+    //       "error",
+    //     ),
+    //   );
+    //   return;
+    // }
 
     if (!formData.company) {
       dispatch(showNotification("Organisation is required.", "error"));
@@ -159,8 +159,8 @@ const ParentComponentHr = () => {
       dispatch(
         showNotification(
           `Maximum number of users (${totalLicenses}) reached for this organisation.`,
-          "error"
-        )
+          "error",
+        ),
       );
       return; // Don't open popup
     } else {
@@ -180,7 +180,7 @@ const ParentComponentHr = () => {
 
   const handleCompanyChange = (value) => {
     const associatedLicense = licensing.find(
-      (license) => license.organisationName === value
+      (license) => license.organisationName === value,
     );
 
     if (associatedLicense) {
@@ -195,8 +195,8 @@ const ParentComponentHr = () => {
         dispatch(
           showNotification(
             `Maximum number of users (${numberOfLicence}) reached for this organisation.`,
-            "error"
-          )
+            "error",
+          ),
         );
       } else {
         setIsSaveDisabled(false);

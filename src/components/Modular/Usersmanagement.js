@@ -146,8 +146,8 @@ const UserManagement = () => {
       filtered = filtered.filter(
         ({ userName, company, roles }) =>
           [userName, company].some((val) =>
-            val?.toLowerCase().includes(query)
-          ) || roles.some((role) => role.toLowerCase().includes(query))
+            val?.toLowerCase().includes(query),
+          ) || roles.some((role) => role.toLowerCase().includes(query)),
       );
     }
 
@@ -306,7 +306,7 @@ const UserManagement = () => {
         return {
           ...filteredRow,
           roles, // Set default role if missing
-          password: "HAPPME@123", // Add the password field with the required value
+          password: "", // Add the password field with the required value
         };
       });
 
@@ -323,7 +323,7 @@ const UserManagement = () => {
             return row[header].join(", ");
           }
           return row[header] || "";
-        })
+        }),
       );
 
       doc.autoTable({
@@ -368,7 +368,7 @@ const UserManagement = () => {
       (prev) =>
         prev.includes(absoluteIndex)
           ? prev.filter((i) => i !== absoluteIndex) // Remove if already selected
-          : [...prev, absoluteIndex] // Add if not selected
+          : [...prev, absoluteIndex], // Add if not selected
     );
   };
 
@@ -396,7 +396,7 @@ const UserManagement = () => {
     try {
       const bytes = CryptoJS.AES.decrypt(
         encryptedRoles,
-        "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1"
+        "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1",
       );
       userRoles = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
     } catch (error) {
@@ -505,7 +505,7 @@ const UserManagement = () => {
             year: "numeric",
             month: "short",
             day: "numeric",
-          }
+          },
         );
 
         return formattedDate;
@@ -538,7 +538,7 @@ const UserManagement = () => {
           <SvgIcon
             onClick={() =>
               setFilter((prev) =>
-                prev === "inactiveFirst" ? "" : "inactiveFirst"
+                prev === "inactiveFirst" ? "" : "inactiveFirst",
               )
             }
           />
@@ -1089,8 +1089,8 @@ const UserManagement = () => {
                   paginatedData.length > 0 &&
                   paginatedData.every((_, index) =>
                     selectedIndices.includes(
-                      (currentPage - 1) * pageSize + index
-                    )
+                      (currentPage - 1) * pageSize + index,
+                    ),
                   )
                 } // Check if all on the page are selected
                 onChange={handleSelectAll}
@@ -1135,8 +1135,8 @@ const UserManagement = () => {
                             selectedIndices.length > 0
                               ? "#F48567"
                               : darkMode
-                              ? "#333333"
-                              : "#ffffff",
+                                ? "#333333"
+                                : "#ffffff",
                           color:
                             selectedIndices.length > 0 ? "#ffffff" : "#F48567",
                           padding: "10px",

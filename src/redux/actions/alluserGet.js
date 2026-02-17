@@ -25,7 +25,7 @@ export const fetchAllUsers = () => async (dispatch) => {
         headers: {
           Authorization: `Bearer ${authToken}`,
         },
-      }
+      },
     );
 
     if (!response.ok) {
@@ -62,7 +62,7 @@ export const fetchAllUsers = () => async (dispatch) => {
     // Get company name from localStorage and count users for that company
     const storedCompanyName = localStorage.getItem("companyName") || "HappMe";
     const companyUsers = data.filter(
-      (user) => user.company === storedCompanyName
+      (user) => user.company === storedCompanyName,
     );
 
     // Store company user count in localStorage
@@ -92,7 +92,7 @@ export const createUser = (userData) => async (dispatch) => {
     try {
       const bytes = CryptoJS.AES.decrypt(
         encryptedId,
-        "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1"
+        "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1",
       );
       userId = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
     } catch (error) {
@@ -116,14 +116,14 @@ export const createUser = (userData) => async (dispatch) => {
     }
 
     const response = await fetch(
-      `${process.env.REACT_APP_STATIC_API_URL}/api/adminSignup/signup`,
+      `${process.env.REACT_APP_STATIC_API_URL}/api/happmeSignupV2/signup`,
       {
         method: "POST",
         headers: {
           Authorization: `Bearer ${authToken}`,
         },
         body: formData,
-      }
+      },
     );
 
     const data = await response.json();
@@ -167,7 +167,7 @@ export const deleteUser = (userIds) => async (dispatch) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ userIds: idsToDelete }),
-      }
+      },
     );
 
     console.log("Response status:", response.status);
@@ -208,7 +208,7 @@ export const toggleUserStatus = (userIds) => async (dispatch) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ userIds: formattedUserIds }), // Ensure it's an array
-      }
+      },
     );
 
     if (!response.ok) {
@@ -238,7 +238,7 @@ export const changeUserRole = (userId, newRole) => async (dispatch) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ userId, newRole }),
-      }
+      },
     );
 
     if (!response.ok) {
@@ -278,7 +278,7 @@ export const editUserProfile = (userId, formData) => async (dispatch) => {
           // The browser will automatically set the correct Content-Type with boundary
         },
         body: formData, // Pass the FormData object directly
-      }
+      },
     );
 
     if (!response.ok) {
