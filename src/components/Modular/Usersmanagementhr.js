@@ -62,9 +62,10 @@ const SvgIcon = ({ onClick }) => (
 const UserManagement = () => {
   const darkMode = useSelector((state) => state.theme.darkMode);
   const { users, error } = useSelector((state) => state.user);
-  const userData = useSelector((state) => state.auth.userData); // Assuming the userData is in auth reducer
+  const userData = useSelector((state) => state.auth.userData);
   const dispatch = useDispatch();
   const [loadingRecordId, setLoadingRecordId] = useState(null);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   const [showDownloadForm, setshowDownloadForm] = useState(false);
   const [showImportForm, setshowImportForm] = useState(false);
@@ -75,8 +76,11 @@ const UserManagement = () => {
   const [selectedRecordKey, setSelectedRecordKey] = useState(null);
 
   useEffect(() => {
-    dispatch(fetchAllUsers()); // Keep only this
-  }, [dispatch]); // Remove userData from dependencies
+    setIsInitialLoading(true);
+    dispatch(fetchAllUsers()).finally(() => {
+      setIsInitialLoading(false);
+    });
+  }, [dispatch]);
 
   const handleChangePage = (page) => {
     setCurrentPage(page);
@@ -93,13 +97,41 @@ const UserManagement = () => {
   };
 
   const filteredData = useMemo(() => {
-    // First filter by company - only show users from the same company as logged-in user
+    // Get company from userData or localStorage as fallback
+    let userCompany = userData?.company || localStorage.getItem("companyName");
+
+    // Ensure we have a company value
+    if (!userCompany) {
+      console.warn("No company found in userData or localStorage");
+      return [];
+    }
+
+    console.log(
+      "filteredData - userCompany:",
+      userCompany,
+      "isInitialLoading:",
+      isInitialLoading,
+      "users count:",
+      users.length,
+    );
+
+    // Don't show any data until initial load is complete
+    if (isInitialLoading) {
+      console.log("Still loading, returning empty array");
+      return [];
+    }
+
+    // First filter by company AND End User role - only show users from the same company as logged-in user with End User role
     let filtered = users.filter((user) => {
-      // Check if user has "End User" role AND belongs to same company
-      const hasEndUserRole = user.roles.includes("End User");
-      const sameCompany = user.company === userData?.company;
+      const hasEndUserRole = user.roles && user.roles.includes("End User");
+      const sameCompany = user.company === userCompany;
+      if (!sameCompany && user.company) {
+        console.log("User company mismatch:", user.company, "vs", userCompany);
+      }
       return hasEndUserRole && sameCompany;
     });
+
+    console.log("Filtered users after company filter:", filtered.length);
 
     // Then apply status filter (active/inactive)
     if (filter === "active") {
@@ -115,7 +147,7 @@ const UserManagement = () => {
         ({ userName, company, roles }) =>
           (userName && userName.toLowerCase().includes(query)) ||
           (company && company.toLowerCase().includes(query)) ||
-          (roles && roles.some((role) => role.toLowerCase().includes(query)))
+          (roles && roles.some((role) => role.toLowerCase().includes(query))),
       );
     }
 
@@ -126,7 +158,7 @@ const UserManagement = () => {
       try {
         const bytes = CryptoJS.AES.decrypt(
           encryptedId,
-          "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1"
+          "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1",
         );
         userId = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
       } catch (error) {
@@ -160,7 +192,7 @@ const UserManagement = () => {
     if (sorters[filter]) filtered.sort(sorters[filter]);
 
     return filtered;
-  }, [filter, specificSearchQuery, users, userData?.company]); // Added userData?.company to dependencies
+  }, [filter, specificSearchQuery, users, userData?.company, isInitialLoading]);
 
   // Decrypt userId for metrics as well
   let currentUserId = null;
@@ -169,7 +201,7 @@ const UserManagement = () => {
     try {
       const bytes = CryptoJS.AES.decrypt(
         encryptedId,
-        "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1"
+        "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1",
       );
       currentUserId = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
     } catch (error) {
@@ -178,12 +210,28 @@ const UserManagement = () => {
   }
 
   // Calculate Metrics
-  const filteredUsers =
-    users?.filter(
-      (user) => user.company === userData?.company && user._id !== currentUserId
-    ) || [];
+  const filteredUsers = useMemo(() => {
+    // Get company from userData or localStorage as fallback
+    const userCompany =
+      userData?.company || localStorage.getItem("companyName");
 
-  const totalUsers = filteredUsers.length; // Total users for the company
+    // Don't calculate metrics until initial load is complete and company is available
+    if (isInitialLoading || !userCompany) {
+      return [];
+    }
+
+    return (
+      users?.filter(
+        (user) =>
+          user.company === userCompany &&
+          user._id !== currentUserId &&
+          user.roles &&
+          user.roles.includes("End User"),
+      ) || []
+    );
+  }, [users, userData?.company, currentUserId, isInitialLoading]);
+
+  const totalUsers = filteredUsers.length; // Total users for the company (End Users only)
   const activeUsers = filteredUsers.filter((user) => !user.blocked).length; // Active users (not blocked)
   const inactiveUsers = filteredUsers.filter((user) => user.blocked).length; // Inactive users (blocked)
 
@@ -390,7 +438,7 @@ const UserManagement = () => {
           <SvgIcon
             onClick={() =>
               setFilter((prev) =>
-                prev === "inactiveFirst" ? "" : "inactiveFirst"
+                prev === "inactiveFirst" ? "" : "inactiveFirst",
               )
             }
           />
@@ -509,92 +557,102 @@ const UserManagement = () => {
         <div className="flex-grow overflow-x-auto h-11 px-8 theusertab">
           <div className={darkMode ? "dark-mode" : "light-mode"}></div>
           <div className="relative">
-            {/* Select All Checkbox */}
+            {/* Loading State */}
+            {isInitialLoading && (
+              <div className="flex justify-center items-center py-12">
+                <Spin size="large" tip="Loading users..." />
+              </div>
+            )}
 
-            <div
-              className={`table-container ${
-                darkMode ? "bg-[#333333]" : "bg-[#f1f5f9]"
-              } rounded-lg`}
-            >
-              <table
-                className={`custom-table ${
-                  darkMode ? "bg-[#18181b]" : "bg-white"
-                }`}
-                style={{
-                  width: "100%",
-                  borderCollapse: "separate",
-                  borderSpacing: "0 10px",
-                }}
+            {/* Select All Checkbox */}
+            {!isInitialLoading && (
+              <div
+                className={`table-container ${
+                  darkMode ? "bg-[#333333]" : "bg-[#f1f5f9]"
+                } rounded-lg`}
               >
-                <thead
+                <table
                   className={`custom-table ${
-                    darkMode ? "bg-[#18181b]" : "bg-[#f1f5f9]"
+                    darkMode ? "bg-[#18181b]" : "bg-white"
                   }`}
+                  style={{
+                    width: "100%",
+                    borderCollapse: "separate",
+                    borderSpacing: "0 10px",
+                  }}
                 >
-                  <tr
-                    className={`rounded-custom ${
+                  <thead
+                    className={`custom-table ${
                       darkMode ? "bg-[#18181b]" : "bg-[#f1f5f9]"
                     }`}
                   >
-                    {columns.map((column, index) => (
-                      <th
-                        key={index}
-                        className={`headtextxx headtable${index + 1} ${
-                          darkMode ? "bg-[#333333]" : "bg-white"
-                        } text-white`}
-                        style={{
-                          cursor: "default",
-                          userSelect: "none",
-                          backgroundColor:
-                            selectedIndices.length > 0
-                              ? "#F48567"
-                              : darkMode
-                              ? "#333333"
-                              : "#ffffff",
-                          color:
-                            selectedIndices.length > 0 ? "#ffffff" : "#F48567",
-                          padding: "10px",
-                          border: "none",
-                        }}
-                      >
-                        {typeof column.title === "string"
-                          ? column.title
-                          : column.title}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedData.map((row, rowIndex) => (
                     <tr
-                      key={row.key || rowIndex}
-                      className={`table-text rounded-lg ${
-                        darkMode ? "bg-[#333333] text-white" : "bg-[#f1f5f9]"
-                      }  ${
-                        selectedIndices.includes(rowIndex)
-                          ? "bg-[#f486673a]"
-                          : ""
-                      } headoptions`}
-                      style={{ cursor: "pointer" }}
+                      className={`rounded-custom ${
+                        darkMode ? "bg-[#18181b]" : "bg-[#f1f5f9]"
+                      }`}
                     >
-                      {columns.map((column, colIndex) => (
-                        <td
-                          key={colIndex}
+                      {columns.map((column, index) => (
+                        <th
+                          key={index}
+                          className={`headtextxx headtable${index + 1} ${
+                            darkMode ? "bg-[#333333]" : "bg-white"
+                          } text-white`}
                           style={{
-                            padding: "10px 10px",
+                            cursor: "default",
+                            userSelect: "none",
+                            backgroundColor:
+                              selectedIndices.length > 0
+                                ? "#F48567"
+                                : darkMode
+                                  ? "#333333"
+                                  : "#ffffff",
+                            color:
+                              selectedIndices.length > 0
+                                ? "#ffffff"
+                                : "#F48567",
+                            padding: "10px",
                             border: "none",
                           }}
                         >
-                          {column.render
-                            ? column.render(row[column.dataIndex], row)
-                            : row[column.dataIndex] || "N/A"}
-                        </td>
+                          {typeof column.title === "string"
+                            ? column.title
+                            : column.title}
+                        </th>
                       ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {paginatedData.map((row, rowIndex) => (
+                      <tr
+                        key={row.key || rowIndex}
+                        className={`table-text rounded-lg ${
+                          darkMode ? "bg-[#333333] text-white" : "bg-[#f1f5f9]"
+                        }  ${
+                          selectedIndices.includes(rowIndex)
+                            ? "bg-[#f486673a]"
+                            : ""
+                        } headoptions`}
+                        style={{ cursor: "pointer" }}
+                      >
+                        {columns.map((column, colIndex) => (
+                          <td
+                            key={colIndex}
+                            style={{
+                              padding: "10px 10px",
+                              border: "none",
+                            }}
+                          >
+                            {column.render
+                              ? column.render(row[column.dataIndex], row)
+                              : row[column.dataIndex] || "N/A"}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
         {/* Pagination Controls */}

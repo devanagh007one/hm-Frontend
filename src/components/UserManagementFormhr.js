@@ -123,13 +123,13 @@ const ParentComponentHr = () => {
       .then(() => {
         dispatch(showNotification("User created successfully", "success"));
         // Refresh users list after creating user
-        dispatch(fetchAllUsers());
-
-        localStorage.setItem("activeComponent", "Usersmanagement");
+        return dispatch(fetchAllUsers());
+      })
+      .then(() => {
+        localStorage.setItem("activeComponent", "UsersmanagementHR");
         setTimeout(() => {
           handleClosePopup();
-          // Remove window.location.reload() since we're now refreshing the users list properly
-        }, 2000);
+        }, 500);
         setShowPopup(false);
       })
       .catch((error) => {
