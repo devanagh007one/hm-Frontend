@@ -148,6 +148,7 @@ const ParentComponent = () => {
     const updatedFormData = {
       ...formData,
       roles: Array.isArray(formData.roles) ? formData.roles : [formData.roles],
+      image: formData.image || `${process.env.PUBLIC_URL}/pp.jpeg`,
     };
 
     dispatch(createUser(updatedFormData))

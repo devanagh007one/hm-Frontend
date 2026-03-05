@@ -83,7 +83,13 @@ const ParentComponent = () => {
       return;
     }
 
-    dispatch(createUser(formData))
+    // If no image is uploaded, use the default image from public folder
+    const dataToSubmit = {
+      ...formData,
+      image: formData.image || `${process.env.PUBLIC_URL}/pp.jpeg`,
+    };
+
+    dispatch(createUser(dataToSubmit))
       .then(() => {
         dispatch(showNotification("User created successfully", "success"));
         localStorage.setItem("activeComponent", "Usersmanagement");
