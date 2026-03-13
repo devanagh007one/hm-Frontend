@@ -105,15 +105,43 @@ const ParentComponent = () => {
         roles: value,
       };
     });
+
+    // Re-validate license limit when role changes
+    if (formData.company) {
+      const validation = validateLicenseLimit(formData.company, value);
+
+      // Only disable save for HR roles when limit is reached
+      if (value === "HR" && !validation.isValid && !validation.isExempt) {
+        setIsSaveDisabled(true);
+        dispatch(
+          showNotification(
+            `Cannot add HR users. ${validation.message}`,
+            "error",
+          ),
+        );
+      } else {
+        setIsSaveDisabled(false);
+        // Show info message for exempt roles
+        if (validation.isExempt) {
+          dispatch(
+            showNotification(
+              `${value} role can bypass license limits.`,
+              "info",
+            ),
+          );
+        }
+      }
+    }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (isSaveDisabled) {
+    // Check if this is an HR role and if license limit is reached
+    if (formData.roles === "HR" && isSaveDisabled) {
       dispatch(
         showNotification(
-          "Cannot create user. License limit has been reached for this organization.",
+          "Cannot create HR user. License limit has been reached for this organization.",
           "error",
         ),
       );
@@ -133,10 +161,15 @@ const ParentComponent = () => {
     if (!formData.company?.trim())
       fieldErrors.company = "Organization name is required.";
 
-    // Final license check before submission
-    const finalValidation = validateLicenseLimit(formData.company);
-    if (!finalValidation.isValid) {
-      fieldErrors.company = finalValidation.message;
+    // Final license check before submission - only for HR roles
+    if (formData.roles === "HR") {
+      const finalValidation = validateLicenseLimit(
+        formData.company,
+        formData.roles,
+      );
+      if (!finalValidation.isValid && !finalValidation.isExempt) {
+        fieldErrors.company = finalValidation.message;
+      }
     }
 
     if (Object.keys(fieldErrors).length > 0) {
@@ -153,7 +186,12 @@ const ParentComponent = () => {
 
     dispatch(createUser(updatedFormData))
       .then(() => {
-        dispatch(showNotification("User created successfully", "success"));
+        const roleMessage = ["Partner", "Admin", "Super Admin"].includes(
+          formData.roles,
+        )
+          ? `${formData.roles} user created successfully (license limit bypassed)`
+          : "User created successfully";
+        dispatch(showNotification(roleMessage, "success"));
         setShowPopup(false);
         localStorage.setItem("activeComponent", "Rolemanagement");
 
@@ -195,7 +233,7 @@ const ParentComponent = () => {
     setFormData((prevData) => ({ ...prevData, image: file }));
   };
 
-  const validateLicenseLimit = (selectedCompany) => {
+  const validateLicenseLimit = (selectedCompany, roleToCreate = null) => {
     // Find the license record for the selected company
     const licenseRecord = licensing.find(
       (license) => license.organisationName === selectedCompany,
@@ -220,7 +258,21 @@ const ParentComponent = () => {
 
     const currentUserCount = usersInCompany.length;
 
-    // Check if adding one more user would exceed the limit
+    // Special roles that bypass license limits: Partner, Admin, Super Admin
+    const exemptRoles = ["Partner", "Admin", "Super Admin"];
+
+    // If creating an exempt role, allow creation regardless of license limit
+    if (roleToCreate && exemptRoles.includes(roleToCreate)) {
+      return {
+        isValid: true,
+        message: `${roleToCreate} role can be created regardless of license limit.`,
+        totalLicenses: numberOfLicence,
+        currentUserCount,
+        isExempt: true,
+      };
+    }
+
+    // For HR and other roles, enforce license limit
     const isValid = currentUserCount < numberOfLicence;
 
     return {
@@ -230,6 +282,7 @@ const ParentComponent = () => {
         : `License limit reached. Maximum users: ${numberOfLicence}, Current users: ${currentUserCount}`,
       totalLicenses: numberOfLicence,
       currentUserCount,
+      isExempt: false,
     };
   };
 
@@ -267,19 +320,33 @@ const ParentComponent = () => {
     setCustomCompany("");
     setShowDropdown(false);
 
-    // Validate license limit
-    const validation = validateLicenseLimit(value);
+    // Validate license limit with current role
+    const validation = validateLicenseLimit(value, formData.roles);
 
-    if (!validation.isValid) {
+    // Only disable save for HR roles when limit is reached
+    if (
+      formData.roles === "HR" &&
+      !validation.isValid &&
+      !validation.isExempt
+    ) {
       setIsSaveDisabled(true);
       dispatch(
         showNotification(
-          `Cannot add more users. ${validation.message}`,
+          `Cannot add more HR users. ${validation.message}`,
           "error",
         ),
       );
     } else {
       setIsSaveDisabled(false);
+      // Show info message for exempt roles
+      if (validation.isExempt) {
+        dispatch(
+          showNotification(
+            `${formData.roles} role can bypass license limits.`,
+            "info",
+          ),
+        );
+      }
     }
 
     setTotalLicenses(validation.totalLicenses);
@@ -288,34 +355,6 @@ const ParentComponent = () => {
     setFormData((prevData) => ({
       ...prevData,
       company: value,
-    }));
-  };
-
-  const handleCompanyChange = (value) => {
-    // Validate license limit for this company
-    const validation = validateLicenseLimit(value);
-
-    if (!validation.isValid) {
-      setIsSaveDisabled(true);
-      dispatch(
-        showNotification(
-          `Cannot add more users. ${validation.message}`,
-          "error",
-        ),
-      );
-    } else {
-      setIsSaveDisabled(false);
-      // Optional: show info message about remaining slots
-      console.log(validation.message);
-    }
-
-    setTotalLicenses(validation.totalLicenses);
-    setUserCount(validation.currentUserCount);
-
-    setFormData((prevData) => ({
-      ...prevData,
-      company: value,
-      numberOfLicenses: validation.currentUserCount + 1,
     }));
   };
 
@@ -332,18 +371,32 @@ const ParentComponent = () => {
     );
 
     if (matchingCompany) {
-      const validation = validateLicenseLimit(value);
+      const validation = validateLicenseLimit(value, formData.roles);
 
-      if (!validation.isValid) {
+      // Only disable save for HR roles when limit is reached
+      if (
+        formData.roles === "HR" &&
+        !validation.isValid &&
+        !validation.isExempt
+      ) {
         setIsSaveDisabled(true);
         dispatch(
           showNotification(
-            `Cannot add more users. ${validation.message}`,
+            `Cannot add more HR users. ${validation.message}`,
             "error",
           ),
         );
       } else {
         setIsSaveDisabled(false);
+        // Show info message for exempt roles
+        if (validation.isExempt) {
+          dispatch(
+            showNotification(
+              `${formData.roles} role can bypass license limits.`,
+              "info",
+            ),
+          );
+        }
       }
 
       setTotalLicenses(validation.totalLicenses);
@@ -650,13 +703,24 @@ const ParentComponent = () => {
                 </div>
 
                 <div className="flex gap-4 mt-4 w-full">
-                  {!isSaveDisabled && (
+                  {!(formData.roles === "HR" && isSaveDisabled) && (
                     <div className="flex flex-col w-full">
                       <button
                         type="submit"
                         className="bg-[#F48567] px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-[#000] hover:bg-[#F48567] transition-all"
                       >
                         Save
+                      </button>
+                    </div>
+                  )}
+                  {formData.roles === "HR" && isSaveDisabled && (
+                    <div className="flex flex-col w-full">
+                      <button
+                        type="button"
+                        disabled
+                        className="bg-gray-400 px-4 py-2 rounded-xl border border-gray-600 focus:outline-none-xl text-gray-600 cursor-not-allowed"
+                      >
+                        License Limit Reached for HR
                       </button>
                     </div>
                   )}
