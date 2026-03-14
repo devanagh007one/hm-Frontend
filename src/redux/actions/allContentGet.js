@@ -47,7 +47,7 @@ export const fetchAllContent = () => async (dispatch) => {
         headers: {
           Authorization: `Bearer ${authToken}`,
         },
-      }
+      },
     );
 
     if (!response.ok) {
@@ -104,7 +104,7 @@ export const patchTheContent = (userId, status) => async (dispatch) => {
           Authorization: `Bearer ${authToken}`,
         },
         body: JSON.stringify(updatedData), // Send updated data in the request body
-      }
+      },
     );
 
     if (!response.ok) {
@@ -146,7 +146,7 @@ export const updateContent = (contentId, updateData) => async (dispatch) => {
     ) {
       formData.append(
         "learningVideoTitles",
-        JSON.stringify(updateData.learningVideoTitles)
+        JSON.stringify(updateData.learningVideoTitles),
       );
     }
 
@@ -204,7 +204,7 @@ export const updateContent = (contentId, updateData) => async (dispatch) => {
           Authorization: `Bearer ${authToken}`,
         },
         body: formData,
-      }
+      },
     );
 
     if (!response.ok) {
@@ -247,7 +247,7 @@ export const patchTheChallenge = (challengeId, status) => async (dispatch) => {
           Authorization: `Bearer ${authToken}`,
         },
         body: JSON.stringify(updatedData), // Send updated data in the request body
-      }
+      },
     );
 
     if (!response.ok) {
@@ -281,7 +281,7 @@ export const deleteContent = (contentId) => async (dispatch) => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${authToken}`,
         },
-      }
+      },
     );
 
     if (!response.ok) {
@@ -315,7 +315,7 @@ export const deleteChallenge = (challengeId) => async (dispatch) => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${authToken}`,
         },
-      }
+      },
     );
 
     if (!response.ok) {
@@ -346,21 +346,41 @@ export const createContent = (contentData) => async (dispatch) => {
       const encryptedId = localStorage.getItem("userId");
       if (!encryptedId) {
         console.error("Encrypted user ID is missing.");
-        return null;
+        throw new Error("User authentication required. Please log in again.");
       }
 
       let userId = null;
       try {
         const bytes = CryptoJS.AES.decrypt(
           encryptedId,
-          "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1"
+          "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1",
         );
-        userId = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+        const decryptedValue = bytes.toString(CryptoJS.enc.Utf8);
+
+        if (!decryptedValue) {
+          throw new Error("Decrypted user ID is empty");
+        }
+
+        userId = JSON.parse(decryptedValue);
+
+        // Additional validation to ensure userId is not empty
+        if (!userId || userId === "" || userId === null) {
+          throw new Error("User ID is empty or invalid");
+        }
+
+        console.log("Decrypted userId for content creation:", userId);
       } catch (error) {
         console.error("Error decrypting user ID:", error);
-        return null;
+        throw new Error("Failed to authenticate user. Please log in again.");
       }
+
       formData.append("uploaded_by", userId);
+    } else {
+      // If uploaded_by is provided in contentData, validate it's not empty
+      if (!contentData.uploaded_by || contentData.uploaded_by === "") {
+        throw new Error("uploaded_by field cannot be empty");
+      }
+      formData.append("uploaded_by", contentData.uploaded_by);
     }
 
     // Check and append other content data
@@ -398,7 +418,7 @@ export const createContent = (contentData) => async (dispatch) => {
             Authorization: `Bearer ${authToken}`,
           },
           body: formData,
-        }
+        },
       );
 
       if (!response.ok) {
@@ -449,7 +469,7 @@ export const createchallenge = (formData) => async (dispatch) => {
           Authorization: `Bearer ${authToken}`,
         },
         body: formData, // Directly use the FormData object
-      }
+      },
     );
 
     if (!response.ok) {
@@ -488,7 +508,7 @@ export const updateChallenge =
       console.log(
         "Sending PUT Request for Challenge ID:",
         challengeId,
-        requestPayload
+        requestPayload,
       );
 
       const response = await fetch(
@@ -500,14 +520,14 @@ export const updateChallenge =
             Authorization: `Bearer ${authToken}`,
           },
           body: JSON.stringify(requestPayload),
-        }
+        },
       );
 
       if (!response.ok) {
         const errorText = await response.text();
         console.error(
           "Failed to update challenge. Server response:",
-          errorText
+          errorText,
         );
         throw new Error(errorText || "Failed to update challenge");
       }
@@ -536,7 +556,7 @@ export const fetchAllTracks = () => async (dispatch) => {
         headers: {
           Authorization: `Bearer ${authToken}`,
         },
-      }
+      },
     );
 
     if (!response.ok) {
@@ -578,7 +598,7 @@ export const updateTrack = (trackId, trackData) => async (dispatch) => {
           Authorization: `Bearer ${authToken}`,
         },
         body: formData,
-      }
+      },
     );
 
     if (!response.ok) {
@@ -610,7 +630,7 @@ export const startFresh = (trackId) => async (dispatch) => {
         headers: {
           Authorization: `Bearer ${authToken}`,
         },
-      }
+      },
     );
 
     if (!response.ok) {
@@ -650,7 +670,7 @@ export const fetchModulesByTrack = (trackName) => async (dispatch) => {
         body: JSON.stringify({
           tracks: trackName,
         }),
-      }
+      },
     );
 
     if (!response.ok) {
@@ -680,13 +700,13 @@ export const updateLearningVideos =
       if (updateData.videoFile_introduction instanceof File) {
         formData.append(
           "videoFile_introduction",
-          updateData.videoFile_introduction
+          updateData.videoFile_introduction,
         );
       }
       if (updateData.videoFile_description instanceof File) {
         formData.append(
           "videoFile_description",
-          updateData.videoFile_description
+          updateData.videoFile_description,
         );
       }
 
@@ -694,12 +714,12 @@ export const updateLearningVideos =
       if (updateData.remove_videoFile_introduction)
         formData.append(
           "remove_videoFile_introduction",
-          updateData.remove_videoFile_introduction
+          updateData.remove_videoFile_introduction,
         );
       if (updateData.remove_videoFile_description)
         formData.append(
           "remove_videoFile_description",
-          updateData.remove_videoFile_description
+          updateData.remove_videoFile_description,
         );
 
       console.log("Sending PUT Request for Learning Video:", videoId);
@@ -711,7 +731,7 @@ export const updateLearningVideos =
           method: "PUT",
           headers: { Authorization: `Bearer ${authToken}` },
           body: formData,
-        }
+        },
       );
 
       if (!response.ok) {
@@ -756,7 +776,7 @@ export const setLearningVideoApproval =
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(
-          errorText || "Failed to update learning video approval"
+          errorText || "Failed to update learning video approval",
         );
       }
 
@@ -801,7 +821,7 @@ export const editLearningVideoAtIndex =
       if (updateData.videoFile_description instanceof File) {
         formData.append(
           "videoFile_description",
-          updateData.videoFile_description
+          updateData.videoFile_description,
         );
       }
       if (updateData.learningVideoCovers instanceof File) {
@@ -836,12 +856,12 @@ export const editLearningVideoAtIndex =
         if (typeof updateData.learningVideoPermission === "object") {
           formData.append(
             "learningVideoPermission",
-            JSON.stringify(updateData.learningVideoPermission)
+            JSON.stringify(updateData.learningVideoPermission),
           );
         } else {
           formData.append(
             "learningVideoPermission",
-            updateData.learningVideoPermission
+            updateData.learningVideoPermission,
           );
         }
       }
@@ -858,7 +878,7 @@ export const editLearningVideoAtIndex =
         if (Array.isArray(updateData.allowedRoles)) {
           formData.append(
             "allowedRoles",
-            JSON.stringify(updateData.allowedRoles)
+            JSON.stringify(updateData.allowedRoles),
           );
         } else {
           formData.append("allowedRoles", updateData.allowedRoles);
@@ -869,7 +889,7 @@ export const editLearningVideoAtIndex =
         if (Array.isArray(updateData.allowedUserIds)) {
           formData.append(
             "allowedUserIds",
-            JSON.stringify(updateData.allowedUserIds)
+            JSON.stringify(updateData.allowedUserIds),
           );
         } else {
           formData.append("allowedUserIds", updateData.allowedUserIds);
@@ -894,14 +914,14 @@ export const editLearningVideoAtIndex =
             // Note: Don't set Content-Type for FormData, let browser set it with boundary
           },
           body: formData,
-        }
+        },
       );
 
       if (!response.ok) {
         const errorText = await response.text();
         console.error(
           "Failed to update learning video. Server response:",
-          errorText
+          errorText,
         );
 
         // Handle specific error cases
@@ -958,14 +978,14 @@ export const deleteLearningVideoAtIndex =
             Authorization: `Bearer ${authToken}`,
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       if (!response.ok) {
         const errorText = await response.text();
         console.error(
           "Failed to delete learning video. Server response:",
-          errorText
+          errorText,
         );
 
         // Handle specific error cases

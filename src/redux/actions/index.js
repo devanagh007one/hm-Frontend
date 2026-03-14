@@ -31,13 +31,13 @@ export const getDecryptedRolesWithHeaders = (navigate) => {
     try {
       const bytes = CryptoJS.AES.decrypt(
         encryptedRoles,
-        "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1"
+        "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1",
       );
       const roles = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
 
       const validRoles = ["super admin", "admin", "partner", "hr"];
       const hasValidRole = roles.some((role) =>
-        validRoles.includes(role.toLowerCase())
+        validRoles.includes(role.toLowerCase()),
       );
 
       if (!hasValidRole) {
@@ -57,7 +57,7 @@ export const getDecryptedRolesWithHeaders = (navigate) => {
     } catch (error) {
       console.error(
         "Error parsing roles or corrupted local storage data",
-        error
+        error,
       );
       localStorage.removeItem("encryptedRoles");
       localStorage.removeItem("authToken");
@@ -658,7 +658,7 @@ const getHeadersForRole = (role) => {
           },
           {
             title: "My Uploads",
-            component: "Myuploardsmanagement",
+            component: "ContentManagement",
             icon: (
               <svg
                 className="icon-side"
@@ -668,14 +668,21 @@ const getHeadersForRole = (role) => {
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                <path
-                  d="M8.5625 13.25V5.60938L6.125 8.04688L4.8125 6.6875L9.5 2L14.1875 6.6875L12.875 8.04688L10.4375 5.60938V13.25H8.5625ZM3.875 17C3.35938 17 2.91812 16.8166 2.55125 16.4497C2.18437 16.0828 2.00062 15.6412 2 15.125V12.3125H3.875V15.125H15.125V12.3125H17V15.125C17 15.6406 16.8166 16.0822 16.4497 16.4497C16.0828 16.8172 15.6412 17.0006 15.125 17H3.875Z"
-                  fill="#C7C7C7"
-                />
+                <g clip-path="url(#clip0_3506_2011)">
+                  <path
+                    d="M5.83325 9.99992L8.33325 12.4999L14.1666 6.66658M16.6666 12.4999C15.8333 13.3333 17.7083 15.6249 16.6666 16.6666C15.6249 17.7083 13.3333 15.8333 12.4999 16.6666C11.6666 17.4999 11.2499 19.1666 9.99992 19.1666C8.74992 19.1666 8.33325 17.4999 7.49992 16.6666C6.66658 15.8333 4.37492 17.7083 3.33325 16.6666C2.29159 15.6249 4.16658 13.3333 3.33325 12.4999C2.49992 11.6666 0.833252 11.2499 0.833252 9.99992C0.833252 8.74992 2.49992 8.33325 3.33325 7.49992C4.16658 6.66658 2.29159 4.37492 3.33325 3.33325C4.37492 2.29159 6.66658 4.16658 7.49992 3.33325C8.33325 2.49992 8.74992 0.833252 9.99992 0.833252C11.2499 0.833252 11.6666 2.49992 12.4999 3.33325C13.3333 4.16658 15.6249 2.29159 16.6666 3.33325C17.7083 4.37492 15.8333 6.66658 16.6666 7.49992C17.4999 8.33325 19.1666 8.74992 19.1666 9.99992C19.1666 11.2499 17.4999 11.6666 16.6666 12.4999Z"
+                    stroke="#C7C7C7"
+                    stroke-width="1.66667"
+                  />
+                </g>
+                <defs>
+                  <clipPath id="clip0_3506_2011">
+                    <rect width="20" height="20" fill="white" />
+                  </clipPath>
+                </defs>
               </svg>
             ),
           },
-
           {
             title: "My Events",
             component: "Eventsmanagement",

@@ -3,6 +3,7 @@ import { Spin, Progress } from "antd";
 import "./popup.css"; // Import custom CSS
 import "./popup2.css"; // Import custom CSS
 import { useSelector, useDispatch } from "react-redux";
+import CryptoJS from "crypto-js";
 import {
   createContent,
   createchallenge,
@@ -140,7 +141,7 @@ const ParentComponent = () => {
     duration: time.duration,
     isApproved: "pending",
     difficulty_Level: "",
-    uploaded_by: "",
+    uploaded_by: null, // Changed from empty string to null
     video_or_image: "",
   };
 
@@ -184,7 +185,7 @@ const ParentComponent = () => {
         setModulesLoading(true);
         try {
           const modulesData = await dispatch(
-            fetchModulesByTrack(formData.tracks)
+            fetchModulesByTrack(formData.tracks),
           );
           setModulesFromStorage(modulesData?.items || []);
         } catch (error) {
@@ -241,6 +242,53 @@ const ParentComponent = () => {
     loadTracks();
   }, [dispatch]);
 
+  // Auto-set current user as partner if they have partner role
+  useEffect(() => {
+    const autoSetPartnerForCurrentUser = async () => {
+      try {
+        // Check if user is a partner
+        const encryptedRoles = localStorage.getItem("encryptedRoles");
+        if (encryptedRoles) {
+          const bytes = CryptoJS.AES.decrypt(
+            encryptedRoles,
+            "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1",
+          );
+          const roles = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+          const isPartner = roles.some(
+            (role) => role.toLowerCase() === "partner",
+          );
+
+          if (isPartner) {
+            // Get current user ID
+            const encryptedId = localStorage.getItem("userId");
+            if (encryptedId) {
+              const userBytes = CryptoJS.AES.decrypt(
+                encryptedId,
+                "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1",
+              );
+              const userId = JSON.parse(userBytes.toString(CryptoJS.enc.Utf8));
+
+              if (userId) {
+                // Set current user as the partner
+                setFormData((prevData) => ({
+                  ...prevData,
+                  partnerId: userId,
+                  partner: "Current User", // You might want to get actual user name
+                }));
+
+                console.log("Auto-set partner ID for current user:", userId);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error auto-setting partner:", error);
+      }
+    };
+
+    autoSetPartnerForCurrentUser();
+  }, []);
+
   const saveSelectedDataToStorage = (track, module, partner, partnerId) => {
     const selectedData = {
       track: track,
@@ -274,7 +322,7 @@ const ParentComponent = () => {
       trackName,
       currentSelected?.module || "",
       currentSelected?.partner || formData.partner,
-      currentSelected?.partnerId || formData.partnerId
+      currentSelected?.partnerId || formData.partnerId,
     );
 
     setIsOpenTrack(false);
@@ -297,7 +345,7 @@ const ParentComponent = () => {
       currentSelected?.track || formData.tracks,
       currentSelected?.module || formData.module,
       partnerName,
-      partnerId
+      partnerId,
     );
 
     setIsOpenPartner(false);
@@ -345,10 +393,10 @@ const ParentComponent = () => {
       setFormData((prev) => ({
         ...prev,
         videoFile_introduction: prev.videoFile_introduction.filter(
-          (_, i) => i !== index
+          (_, i) => i !== index,
         ),
         videoFile_description: prev.videoFile_description.filter(
-          (_, i) => i !== index
+          (_, i) => i !== index,
         ),
       }));
     } else {
@@ -516,14 +564,14 @@ const ParentComponent = () => {
 
       // Check if any modules were updated
       const hasUpdates = modules.some(
-        (m) => m.isExistingModule === true || editingIndex !== null
+        (m) => m.isExistingModule === true || editingIndex !== null,
       );
 
       dispatch(
         showNotification(
           "Your Modules have been successfully submitted for approval.",
-          "success"
-        )
+          "success",
+        ),
       );
 
       setLoadingLink(false);
@@ -540,7 +588,7 @@ const ParentComponent = () => {
     } catch (error) {
       console.error("Update track error:", error);
       dispatch(
-        showNotification("Failed to update track. Please try again.", "error")
+        showNotification("Failed to update track. Please try again.", "error"),
       );
     } finally {
       setActionLoading(false);
@@ -566,14 +614,14 @@ const ParentComponent = () => {
         dispatch(
           showNotification(
             "Track started fresh successfully! All related content has been deleted.",
-            "success"
-          )
+            "success",
+          ),
         );
       }
     } catch (error) {
       console.error("Start fresh error:", error);
       dispatch(
-        showNotification("Failed to start fresh. Please try again.", "error")
+        showNotification("Failed to start fresh. Please try again.", "error"),
       );
     } finally {
       setStartFreshLoading(false);
@@ -598,7 +646,7 @@ const ParentComponent = () => {
     } catch (error) {
       console.error("Update track error:", error);
       dispatch(
-        showNotification("Failed to update track. Please try again.", "error")
+        showNotification("Failed to update track. Please try again.", "error"),
       );
     } finally {
       setUpdateLoading(false);
@@ -664,14 +712,14 @@ const ParentComponent = () => {
     if (formData.videoFile_introduction.length > 0) {
       const hasEmptyTitles = formData.learningVideoTitles.some(
         (title, idx) =>
-          idx < formData.videoFile_introduction.length && !title?.trim()
+          idx < formData.videoFile_introduction.length && !title?.trim(),
       );
       if (hasEmptyTitles) {
         dispatch(
           showNotification(
             "Please provide titles for all learning videos.",
-            "error"
-          )
+            "error",
+          ),
         );
         return;
       }
@@ -692,21 +740,21 @@ const ParentComponent = () => {
         // REPLACE arrays instead of appending
         videoFile_introduction: [
           ...(modules[editingIndex].videoFile_introduction || []).filter(
-            (file) => !(file instanceof File)
+            (file) => !(file instanceof File),
           ),
           ...(Array.isArray(formData.videoFile_introduction)
             ? formData.videoFile_introduction.filter(
-                (file) => file instanceof File
+                (file) => file instanceof File,
               )
             : []),
         ],
         videoFile_description: [
           ...(modules[editingIndex].videoFile_description || []).filter(
-            (file) => !(file instanceof File)
+            (file) => !(file instanceof File),
           ),
           ...(Array.isArray(formData.videoFile_description)
             ? formData.videoFile_description.filter(
-                (file) => file instanceof File
+                (file) => file instanceof File,
               )
             : []),
         ],
@@ -830,7 +878,7 @@ const ParentComponent = () => {
 
       for (const [moduleId, entries] of Object.entries(moduleGroups)) {
         console.log(
-          `\n🔄 Processing module ${moduleId} with ${entries.length} entries`
+          `\n🔄 Processing module ${moduleId} with ${entries.length} entries`,
         );
 
         const allNewVideos = [];
@@ -868,7 +916,7 @@ const ParentComponent = () => {
             allVideoDescriptions = [
               ...allVideoDescriptions,
               ...entry.description_videofile_text.filter(
-                (text) => text && text.trim()
+                (text) => text && text.trim(),
               ),
             ];
           }
@@ -877,7 +925,7 @@ const ParentComponent = () => {
             allVideoTitles = [
               ...allVideoTitles,
               ...entry.learningVideoTitles.filter(
-                (title) => title && title.trim()
+                (title) => title && title.trim(),
               ),
             ];
           }
@@ -896,12 +944,18 @@ const ParentComponent = () => {
         formDataToSend.append("moduleName", latestEntry.moduleName || "");
         formDataToSend.append(
           "tracks",
-          storedData?.track || latestEntry.tracks || ""
+          storedData?.track || latestEntry.tracks || "",
         );
         formDataToSend.append("moduleType", latestEntry.moduleType || "Module");
         formDataToSend.append("fileSize", latestEntry.fileSize || "");
         formDataToSend.append("isApproved", "approved"); // ✅ MODULE STAYS APPROVED
-        formDataToSend.append("uploaded_by", formData.partnerId || "");
+
+        // Ensure uploaded_by is not empty
+        if (!formData.partnerId) {
+          throw new Error("Partner ID is required for content creation");
+        }
+        formDataToSend.append("uploaded_by", formData.partnerId);
+
         formDataToSend.append("append_desc", "true");
 
         // Add description field
@@ -917,7 +971,7 @@ const ParentComponent = () => {
         if (allVideoTitles.length > 0) {
           formDataToSend.append(
             "learningVideoTitles",
-            JSON.stringify(allVideoTitles)
+            JSON.stringify(allVideoTitles),
           );
         }
 
@@ -925,7 +979,7 @@ const ParentComponent = () => {
         if (allVideoDescriptions.length > 0) {
           formDataToSend.append(
             "description_videofile_text",
-            JSON.stringify(allVideoDescriptions)
+            JSON.stringify(allVideoDescriptions),
           );
         }
 
@@ -958,7 +1012,7 @@ const ParentComponent = () => {
                 Authorization: `Bearer ${authToken}`,
               },
               body: formDataToSend,
-            }
+            },
           );
 
           if (!response.ok) {
@@ -991,8 +1045,8 @@ const ParentComponent = () => {
           dispatch(
             showNotification(
               `Failed to update module: ${latestEntry.moduleName}`,
-              "error"
-            )
+              "error",
+            ),
           );
           setLoadingLink(false);
           return;
@@ -1002,8 +1056,8 @@ const ParentComponent = () => {
       dispatch(
         showNotification(
           "Your Learning Videos have been successfully added to the module!",
-          "success"
-        )
+          "success",
+        ),
       );
 
       setLoadingLink(false);
@@ -1011,7 +1065,7 @@ const ParentComponent = () => {
     } catch (error) {
       console.error("Submission error:", error);
       dispatch(
-        showNotification("An error occurred during submission.", "error")
+        showNotification("An error occurred during submission.", "error"),
       );
       setLoadingLink(false);
     }
@@ -1063,7 +1117,7 @@ const ParentComponent = () => {
       currentSelected?.track || formData.tracks,
       module._id,
       currentSelected?.partner || formData.partner,
-      currentSelected?.partnerId || formData.partnerId
+      currentSelected?.partnerId || formData.partnerId,
     );
 
     const selectedModuleData = {
@@ -1245,12 +1299,12 @@ const ParentComponent = () => {
         id: editModule._id,
         moduleName: editModule.moduleName,
         // ✅ Use partner ID instead of user ID
-        uploadedById: formData.partnerId || "", // Use partner ID only
+        uploadedById: formData.partnerId || null, // Use null instead of empty string
       };
 
       localStorage.setItem(
         "selectedModule",
-        JSON.stringify(selectedModuleData)
+        JSON.stringify(selectedModuleData),
       );
 
       // Use stored track data
@@ -1272,14 +1326,14 @@ const ParentComponent = () => {
 
       console.log(
         "Creating new module with uploaded_by (partner only):",
-        newModule.uploaded_by
+        newModule.uploaded_by,
       );
 
       const response = await dispatch(createContent(newModule));
 
       if (response?._id) {
         const modulesData = await dispatch(
-          fetchModulesByTrack(formData.tracks)
+          fetchModulesByTrack(formData.tracks),
         );
         setModulesFromStorage(modulesData?.items || []);
         setEditModule(null);
@@ -1288,11 +1342,11 @@ const ParentComponent = () => {
           id: response._id,
           moduleName: editModule.moduleName,
           // ✅ Keep using partner ID
-          uploadedById: formData.partnerId || "",
+          uploadedById: formData.partnerId || null,
         };
         localStorage.setItem(
           "selectedModule",
-          JSON.stringify(updatedSelectedModule)
+          JSON.stringify(updatedSelectedModule),
         );
 
         // Update the modules array with stored track
@@ -1308,8 +1362,8 @@ const ParentComponent = () => {
                   // ✅ Use partner ID only
                   uploaded_by: formData.partnerId,
                 }
-              : module
-          )
+              : module,
+          ),
         );
 
         setFormData((prev) => ({
@@ -1421,26 +1475,26 @@ const ParentComponent = () => {
 
         formDataToSend.append(
           "uniChallengeId",
-          challenge.uniChallengeId || generateUniqueId()
+          challenge.uniChallengeId || generateUniqueId(),
         );
         formDataToSend.append("challengeName", challenge.challengeName || "");
         formDataToSend.append("module", selectedModule.id);
         formDataToSend.append(
           "challenge_Description",
-          challenge.challenge_Description || ""
+          challenge.challenge_Description || "",
         );
         formDataToSend.append(
           "uploaded_by",
-          formData.partnerId || selectedModule.uploadedById
+          formData.partnerId || selectedModule.uploadedById || null,
         );
         formDataToSend.append("duration", challenge.duration || "0h 00 min");
         formDataToSend.append(
           "challenge_benefits",
-          challenge.challenge_benefits || ""
+          challenge.challenge_benefits || "",
         );
         formDataToSend.append(
           "difficulty_Level",
-          challenge.difficulty_Level || "Medium"
+          challenge.difficulty_Level || "Medium",
         );
 
         if (challenge.video_or_image) {
@@ -1457,7 +1511,7 @@ const ParentComponent = () => {
       }
 
       dispatch(
-        showNotification("Challenges submitted successfully!", "success")
+        showNotification("Challenges submitted successfully!", "success"),
       );
 
       setLoadingLink(false);
@@ -2108,7 +2162,7 @@ const ParentComponent = () => {
                                                 setEditModule(
                                                   module._id === editModule?._id
                                                     ? null
-                                                    : module
+                                                    : module,
                                                 );
                                               }}
                                               className="ml-2"
@@ -2236,7 +2290,7 @@ const ParentComponent = () => {
                                       {Array.from({
                                         length: Math.max(
                                           0,
-                                          15 - modulesFromStorage.length
+                                          15 - modulesFromStorage.length,
                                         ),
                                       }).map((_, index) => {
                                         const moduleNumber =
@@ -2261,7 +2315,7 @@ const ParentComponent = () => {
                                                 className="flex items-center gap-2 flex-1"
                                                 onClick={() =>
                                                   handleSelectModule(
-                                                    templateModule
+                                                    templateModule,
                                                   )
                                                 }
                                               >
@@ -2291,7 +2345,7 @@ const ParentComponent = () => {
                                                     templateModule._id ===
                                                       editModule?._id
                                                       ? null
-                                                      : templateModule
+                                                      : templateModule,
                                                   );
                                                 }}
                                                 className="ml-2"
@@ -2441,7 +2495,7 @@ const ParentComponent = () => {
                                                 className="flex items-center gap-2 flex-1"
                                                 onClick={() =>
                                                   handleSelectModule(
-                                                    templateModule
+                                                    templateModule,
                                                   )
                                                 }
                                               >
@@ -2471,7 +2525,7 @@ const ParentComponent = () => {
                                                     templateModule._id ===
                                                       editModule?._id
                                                       ? null
-                                                      : templateModule
+                                                      : templateModule,
                                                   );
                                                 }}
                                                 className="ml-2"
@@ -2589,7 +2643,7 @@ const ParentComponent = () => {
                                               )}
                                           </div>
                                         );
-                                      }
+                                      },
                                     )
                                   )}
                                 </div>
@@ -2863,8 +2917,8 @@ const ParentComponent = () => {
                                         {video instanceof File
                                           ? video.name
                                           : typeof video === "string"
-                                          ? video.split("/").pop()
-                                          : "Video file"}
+                                            ? video.split("/").pop()
+                                            : "Video file"}
                                       </span>
                                       <svg
                                         width="18"
@@ -2875,7 +2929,7 @@ const ParentComponent = () => {
                                         onClick={() =>
                                           handleRemoveVideoFromArray(
                                             "videoFile_introduction",
-                                            index
+                                            index,
                                           )
                                         }
                                         className="cursor-pointer ml-2"
@@ -2886,7 +2940,7 @@ const ParentComponent = () => {
                                         />
                                       </svg>
                                     </div>
-                                  )
+                                  ),
                                 )}
                               </div>
                             )}
@@ -3018,7 +3072,7 @@ const ParentComponent = () => {
                             } catch (error) {
                               console.error(
                                 "Error creating object URL:",
-                                error
+                                error,
                               );
                               return null;
                             }
@@ -3044,7 +3098,7 @@ const ParentComponent = () => {
 
                         // Handle video arrays
                         const videoIntroURLs = Array.isArray(
-                          module.videoFile_introduction
+                          module.videoFile_introduction,
                         )
                           ? module.videoFile_introduction
                               .map(createSafeURL)
@@ -3052,7 +3106,7 @@ const ParentComponent = () => {
                           : [];
 
                         const videoDescURLs = Array.isArray(
-                          module.videoFile_description
+                          module.videoFile_description,
                         )
                           ? module.videoFile_description
                               .map(createSafeURL)
@@ -3071,7 +3125,7 @@ const ParentComponent = () => {
                                   className="flex justify-between items-center cursor-pointer"
                                   onClick={() =>
                                     setExpandedIndex(
-                                      expandedIndex === index ? null : index
+                                      expandedIndex === index ? null : index,
                                     )
                                   }
                                 >
@@ -3182,7 +3236,7 @@ const ParentComponent = () => {
                                                 {idx + 1}.{" "}
                                                 {title || `Video ${idx + 1}`}
                                               </p>
-                                            )
+                                            ),
                                           )}
                                         </div>
                                       </div>
@@ -3207,7 +3261,7 @@ const ParentComponent = () => {
                                                     }`}
                                                 </p>
                                               </div>
-                                            )
+                                            ),
                                           )}
                                         </div>
                                       </div>
@@ -3249,7 +3303,7 @@ const ParentComponent = () => {
                                                       </div>
                                                     )}
                                                   </div>
-                                                )
+                                                ),
                                               )}
                                             </div>
                                           </div>
@@ -3299,7 +3353,7 @@ const ParentComponent = () => {
                                                       )}
                                                     </div>
                                                   ) : null;
-                                                }
+                                                },
                                               )}
                                             </div>
                                           </div>
@@ -3610,7 +3664,7 @@ const ParentComponent = () => {
                                 className="flex justify-between items-center cursor-pointer"
                                 onClick={() =>
                                   setExpandedIndex(
-                                    expandedIndex === index ? null : index
+                                    expandedIndex === index ? null : index,
                                   )
                                 }
                               >
@@ -3719,7 +3773,7 @@ const ParentComponent = () => {
                                             Challenge Media:
                                           </p>
                                           {challenge.video_or_image.type.includes(
-                                            "video"
+                                            "video",
                                           ) ? (
                                             <video
                                               src={videoOrImageURL}

@@ -1,4 +1,3 @@
-import React, { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchUsers } from "../redux/actions/authActions";
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
@@ -7,12 +6,14 @@ import { fetchAllUsers } from "../redux/actions/alluserGet";
 import { fetchAllContent } from "../redux/actions/allContentGet.js";
 import CryptoJS from "crypto-js";
 
+import { useEffect } from "react";
+
 const Infoprofile = () => {
   const darkMode = useSelector((state) => state.theme.darkMode);
   const userData = useSelector((state) => state.auth.userData);
   const { content } = useSelector((state) => state.content);
 
-  const { users, error } = useSelector((state) => state.user);
+  const { users } = useSelector((state) => state.user);
 
   const dispatch = useDispatch();
 
@@ -30,6 +31,7 @@ const Infoprofile = () => {
   const partnerUsers = users
     ? users.filter((user) => user.roles && user.roles.includes("Partner"))
     : [];
+
   const cardClass = `${
     darkMode ? "bg-zinc-800 text-zinc-300" : "bg-slate-100 text-black"
   }`;
@@ -40,7 +42,7 @@ const Infoprofile = () => {
   if (encryptedId) {
     const bytes = CryptoJS.AES.decrypt(
       encryptedId,
-      "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1"
+      "477f58bc13b97959097e7bda64de165ab9d7496b7a15ab39697e6d31ac61cbd1",
     );
     userId = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
   }
@@ -49,18 +51,46 @@ const Infoprofile = () => {
   const challenges = content?.data?.challenges || [];
   const modules = content?.data?.modules || [];
 
-  // Combine both into a single array and filter by userId
-  const allContents = [...challenges, ...modules];
-  const userUploadedContents = allContents.filter(
-    (item) => item.uploaded_by?._id === userId
-  );
+  // Create entries similar to Content Management logic
+  let allContents = [];
+
+  // Add challenges
+  challenges.forEach((challenge) => {
+    allContents.push({
+      ...challenge,
+      entryType: "challenge",
+    });
+  });
+
+  // Add individual learning videos from modules (not the modules themselves)
+  modules.forEach((module) => {
+    if (
+      module.videoFile_description &&
+      module.videoFile_description.length > 0
+    ) {
+      module.videoFile_description.forEach((video, index) => {
+        allContents.push({
+          ...module,
+          entryType: "learningVideo",
+          videoIndex: index,
+          individualVideoTitle:
+            module.learningVideoTitles?.[index] || `Video ${index + 1}`,
+          individualVideo: video,
+        });
+      });
+    }
+  });
+
+  const userUploadedContents = allContents.filter((item) => {
+    return item.uploaded_by?._id === userId;
+  });
 
   // Total content count for user's uploads
   const totalContents = userUploadedContents.length;
 
   // Count approved content for user's uploads
   const totalApproved = userUploadedContents.filter(
-    (item) => item.isApproved === "approved"
+    (item) => item.isApproved === "approved",
   ).length;
 
   // Calculate progress percentage for user's uploads
@@ -96,7 +126,7 @@ const Infoprofile = () => {
                 process.env.REACT_APP_STATIC_API_URL
               }${userData.image.replace(
                 "/root/happme_adminuser_management",
-                ""
+                "",
               )}`}
               alt="Notification"
               className="w-[100px] absolute ml-[150px] "
