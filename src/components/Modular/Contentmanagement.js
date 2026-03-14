@@ -534,18 +534,47 @@ const ContentManagement = () => {
     // Apply filters
     let filteredCombinedData = combinedData;
 
+    const getItemApprovalStatus = (item) => {
+      // For learning video entries, check video-level approval status
+      if (item.entryType === "learningVideo") {
+        const videoIndex = item.videoIndex || 0;
+
+        // Check learningVideoPermissions first (new format with approvalStatus object)
+        const videoPermissions = item.learningVideoPermissions?.[videoIndex];
+        if (videoPermissions?.approvalStatus) {
+          return videoPermissions.approvalStatus.toLowerCase();
+        }
+
+        // Fallback to learningVideoApproval (old format - direct string array)
+        if (item.learningVideoApproval?.[videoIndex]) {
+          return item.learningVideoApproval[videoIndex].toLowerCase();
+        }
+
+        return "pending";
+      }
+      // For other content types
+      return (
+        item.isApproved?.toLowerCase() ||
+        item.status?.toLowerCase() ||
+        "pending"
+      );
+    };
+
     if (filter === "active") {
-      filteredCombinedData = filteredCombinedData.filter(
-        (data) => data.isApproved === "approved" || data.status === "Approved",
-      );
+      filteredCombinedData = filteredCombinedData.filter((data) => {
+        const status = getItemApprovalStatus(data);
+        return status === "approved";
+      });
     } else if (filter === "inactive") {
-      filteredCombinedData = filteredCombinedData.filter(
-        (data) => data.isApproved === "pending" || data.status === "Pending",
-      );
+      filteredCombinedData = filteredCombinedData.filter((data) => {
+        const status = getItemApprovalStatus(data);
+        return status === "pending";
+      });
     } else if (filter === "rejected") {
-      filteredCombinedData = filteredCombinedData.filter(
-        (data) => data.isApproved === "rejected" || data.status === "Rejected",
-      );
+      filteredCombinedData = filteredCombinedData.filter((data) => {
+        const status = getItemApprovalStatus(data);
+        return status === "rejected";
+      });
     }
 
     // Apply specific search query filtering
@@ -719,34 +748,58 @@ const ContentManagement = () => {
     }
   };
 
+  const getApprovalStatus = (item) => {
+    // For learning video entries, check video-level approval status
+    if (item.entryType === "learningVideo") {
+      const videoIndex = item.videoIndex || 0;
+
+      // Check learningVideoPermissions first (new format with approvalStatus object)
+      const videoPermissions = item.learningVideoPermissions?.[videoIndex];
+      if (videoPermissions?.approvalStatus) {
+        return videoPermissions.approvalStatus.toLowerCase();
+      }
+
+      // Fallback to learningVideoApproval (old format - direct string array)
+      if (item.learningVideoApproval?.[videoIndex]) {
+        return item.learningVideoApproval[videoIndex].toLowerCase();
+      }
+
+      return "pending";
+    }
+    // For other content types
+    return (
+      item.isApproved?.toLowerCase() || item.status?.toLowerCase() || "pending"
+    );
+  };
+
   const cardData = [
     {
       title: "Total Content",
-      value: filteredData.length,
+      value: filteredData.filter((item) => item.entryType !== "module").length,
       filter: "all",
     },
     {
       title: "Approved Content",
-      value: filteredData.filter(
-        (content) =>
-          content.isApproved === "approved" || content.status === "Approved",
-      ).length,
+      value: filteredData.filter((content) => {
+        const status = getApprovalStatus(content);
+        return status === "approved";
+      }).length,
       filter: "active",
     },
     {
       title: "Pending Content",
-      value: filteredData.filter(
-        (content) =>
-          content.isApproved === "pending" || content.status === "Pending",
-      ).length,
+      value: filteredData.filter((content) => {
+        const status = getApprovalStatus(content);
+        return status === "pending";
+      }).length,
       filter: "inactive",
     },
     {
       title: "Rejected Content",
-      value: filteredData.filter(
-        (content) =>
-          content.isApproved === "rejected" || content.status === "Rejected",
-      ).length,
+      value: filteredData.filter((content) => {
+        const status = getApprovalStatus(content);
+        return status === "rejected";
+      }).length,
       filter: "rejected",
     },
   ];
