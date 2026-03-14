@@ -521,9 +521,10 @@ const ParentComponent = () => {
       {showPopup && (
         <div className="popup-overlay">
           <div
-            className={`rounded-xl border border-gray-600 focus:outline-none-lg shadow-lg w-[45%] overflow-y-scroll  p-8 relative flex flex-col max-h-[90%] ${
+            className={`rounded-xl border border-gray-600 focus:outline-none-lg shadow-lg w-[45%] overflow-y-auto overflow-x-hidden p-8 relative flex flex-col max-h-[90%] ${
               darkMode ? "bg-[#222222] text-white" : "bg-[#fff] text-dark"
             }`}
+            style={{ overflowY: "auto", overflowX: "visible" }}
           >
             <div className="flex justify-between align-center">
               <h2 className="text-2xl mb-6 ">Add New Role</h2>
@@ -594,7 +595,7 @@ const ParentComponent = () => {
                       />
                       {showDropdown && (
                         <ul
-                          className={`absolute w-full mt-1 border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto z-10 ${
+                          className={`organization-dropdown ${
                             darkMode
                               ? "bg-[#222222] text-white"
                               : "bg-[#fff] text-dark"
@@ -759,7 +760,7 @@ const ParentComponent = () => {
                       />
                       {showDropdown && (
                         <ul
-                          className={`absolute w-full mt-1 border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto z-10 ${
+                          className={`organization-dropdown ${
                             darkMode
                               ? "bg-[#222222] text-white"
                               : "bg-[#fff] text-dark"
@@ -965,7 +966,7 @@ const ParentComponent = () => {
                     />
                     {showDropdown && (
                       <ul
-                        className={`absolute w-full mt-1 border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto z-10 ${
+                        className={`organization-dropdown ${
                           darkMode
                             ? "bg-[#222222] text-white"
                             : "bg-[#fff] text-dark"
@@ -1107,7 +1108,7 @@ const ParentComponent = () => {
                     />
                     {showDropdown && (
                       <ul
-                        className={`absolute w-full mt-1 border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto z-10 ${
+                        className={`organization-dropdown ${
                           darkMode
                             ? "bg-[#222222] text-white"
                             : "bg-[#fff] text-dark"

@@ -44,3 +44,94 @@
     transform: translateY(0);
   }
 }
+
+/* Responsive Organization Dropdown */
+.organization-dropdown {
+  position: absolute;
+  width: 100%;
+  margin-top: 0.25rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  max-height: 240px; /* Increased to 240px - shows ~6 items for better visibility */
+  overflow-y: scroll !important; /* Force scrollbar */
+  overflow-x: hidden;
+  z-index: 9999;
+  /* Force scrollbar to always be visible */
+  scrollbar-width: thin; /* For Firefox */
+  scrollbar-color: #f48567 #333333; /* thumb and track color for Firefox */
+}
+
+/* Webkit browsers (Chrome, Safari, Edge) scrollbar styling */
+.organization-dropdown::-webkit-scrollbar {
+  width: 12px; /* Wider scrollbar for better visibility */
+  height: 12px;
+  display: block !important;
+}
+
+.organization-dropdown::-webkit-scrollbar-track {
+  background: #2a2a2a;
+  border-radius: 6px;
+  border: 1px solid #444;
+}
+
+.organization-dropdown::-webkit-scrollbar-thumb {
+  background: #f48567;
+  border-radius: 6px;
+  border: 2px solid #2a2a2a;
+  min-height: 40px; /* Ensure thumb is always visible and grabbable */
+}
+
+.organization-dropdown::-webkit-scrollbar-thumb:hover {
+  background: #ff6b4a;
+  cursor: pointer;
+}
+
+.organization-dropdown::-webkit-scrollbar-thumb:active {
+  background: #e0744f;
+}
+
+/* Responsive breakpoints for dropdown height */
+/* Small laptops (15-inch at 1080p) */
+@media (min-height: 768px) and (max-height: 900px) {
+  .organization-dropdown {
+    max-height: 240px; /* Consistent height for small laptops */
+  }
+}
+
+/* Medium screens */
+@media (min-width: 768px) and (min-height: 900px) {
+  .organization-dropdown {
+    max-height: 280px; /* Increased for medium screens */
+  }
+}
+
+/* Large laptops and small desktops */
+@media (min-width: 1024px) and (min-height: 1000px) {
+  .organization-dropdown {
+    max-height: 300px; /* Increased for large laptops */
+  }
+}
+
+/* Large desktops (22-inch monitors) */
+@media (min-width: 1920px) and (min-height: 1080px) {
+  .organization-dropdown {
+    max-height: 320px; /* Increased for large monitors */
+  }
+}
+
+/* Ensure dropdown items are properly sized */
+.organization-dropdown li {
+  min-height: 40px; /* Taller items for better touch/click targets */
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.organization-dropdown li:hover {
+  background-color: rgba(244, 133, 103, 0.1);
+}

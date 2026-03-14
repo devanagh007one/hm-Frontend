@@ -383,9 +383,9 @@ export const createContent = (contentData) => async (dispatch) => {
       formData.append("uploaded_by", contentData.uploaded_by);
     }
 
-    // Check and append other content data
+    // Check and append other content data (excluding uploaded_by since we handled it above)
     for (const key in contentData) {
-      if (contentData.hasOwnProperty(key)) {
+      if (contentData.hasOwnProperty(key) && key !== "uploaded_by") {
         if (
           key === "formData" &&
           typeof contentData[key] === "object" &&
@@ -403,11 +403,11 @@ export const createContent = (contentData) => async (dispatch) => {
       }
     }
 
-    // ✅ DEBUG: Log what we're actually sending
-    console.log("Final FormData being sent:");
-    for (let pair of formData.entries()) {
-      console.log(pair[0] + ": " + pair[1]);
-    }
+    // ✅ DEBUG: Log what we're actually sending (remove in production)
+    // console.log("Final FormData being sent:");
+    // for (let pair of formData.entries()) {
+    //   console.log(pair[0] + ": " + pair[1]);
+    // }
 
     try {
       const response = await fetch(
